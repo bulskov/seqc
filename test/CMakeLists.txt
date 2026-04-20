@@ -1,0 +1,14 @@
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CRITERION REQUIRED IMPORTED_TARGET criterion)
+
+function(add_criterion_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE seqc PkgConfig::CRITERION)
+    target_compile_options(${name} PRIVATE -Wall -Wextra)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_criterion_test(arena_test arena/arena_test.c)
+add_criterion_test(slice_test slice/slice_test.c)
+add_criterion_test(iter_test  iter/iter_test.c)
+add_criterion_test(vec_test   vec/vec_test.c)
