@@ -1,0 +1,197 @@
+#include "string.h"
+
+#include <ctype.h>
+#include <stdint.h>
+#include <string.h>
+
+/* --- Construction ------------------------------------------------------- */
+
+String string_from_cstr(const char *s) {
+  if (!s)
+    return (String){NULL, 0};
+  return (String){s, strlen(s)};
+}
+
+String string_copy(String s, Allocator allocator) {
+  if (!s.ptr || s.len == 0)
+    return (String){NULL, 0};
+  char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+  memcpy(buf, s.ptr, s.len);
+  return (String){buf, s.len};
+}
+
+const char *string_to_cstr(String s, Allocator allocator) {
+  char *buf = allocator.alloc(allocator.ctx, s.len + 1, 1);
+  if (s.ptr && s.len > 0)
+    memcpy(buf, s.ptr, s.len);
+  buf[s.len] = '\0';
+  return buf;
+}
+
+/* --- Comparison --------------------------------------------------------- */
+
+int string_equals(String a, String b) {
+  return a.len == b.len && memcmp(a.ptr, b.ptr, a.len) == 0;
+}
+
+int string_compare(String a, String b) {
+  size_t min = a.len < b.len ? a.len : b.len;
+  int cmp = memcmp(a.ptr, b.ptr, min);
+  if (cmp != 0)
+    return cmp;
+  return (a.len > b.len) - (a.len < b.len);
+}
+
+/* --- Query -------------------------------------------------------------- */
+
+int string_starts_with(String s, String prefix) {
+  if (prefix.len > s.len)
+    return 0;
+  return memcmp(s.ptr, prefix.ptr, prefix.len) == 0;
+}
+
+int string_ends_with(String s, String suffix) {
+  if (suffix.len > s.len)
+    return 0;
+  return memcmp(s.ptr + s.len - suffix.len, suffix.ptr, suffix.len) == 0;
+}
+
+size_t string_find(String s, String needle) {
+  if (needle.len == 0)
+    return 0;
+  if (needle.len > s.len)
+    return STRING_NOT_FOUND;
+  for (size_t i = 0; i <= s.len - needle.len; i++) {
+    if (memcmp(s.ptr + i, needle.ptr, needle.len) == 0)
+      return i;
+  }
+  return STRING_NOT_FOUND;
+}
+
+int string_contains(String s, String needle) {
+  return string_find(s, needle) != STRING_NOT_FOUND;
+}
+
+/* --- Views (zero-copy) -------------------------------------------------- */
+
+String string_slice(String s, size_t start, size_t end) {
+  if (!s.ptr || start >= s.len || end <= start)
+    return (String){NULL, 0};
+  if (end > s.len)
+    end = s.len;
+  return (String){s.ptr + start, end - start};
+}
+
+String string_trim_left(String s) {
+  while (s.len > 0 && isspace((unsigned char)*s.ptr)) {
+    s.ptr++;
+    s.len--;
+  }
+  return s;
+}
+
+String string_trim_right(String s) {
+  while (s.len > 0 && isspace((unsigned char)s.ptr[s.len - 1]))
+    s.len--;
+  return s;
+}
+
+String string_trim(String s) { return string_trim_right(string_trim_left(s)); }
+
+/* --- Builder ------------------------------------------------------------ */
+
+StringBuilder sb_create(Allocator allocator) {
+  return (StringBuilder){vec_create(sizeof(char), allocator)};
+}
+
+void sb_append(StringBuilder *sb, String s) {
+  for (size_t i = 0; i < s.len; i++)
+    vec_push(&sb->chars, &s.ptr[i]);
+}
+
+void sb_append_char(StringBuilder *sb, char c) { vec_push(&sb->chars, &c); }
+
+void sb_append_cstr(StringBuilder *sb, const char *s) {
+  sb_append(sb, string_from_cstr(s));
+}
+
+String sb_finish(const StringBuilder *sb) {
+  return (String){sb->chars.data, sb->chars.len};
+}
+
+/* --- Iter sources ------------------------------------------------------- */
+
+Iter string_chars(String s, Allocator allocator) {
+  Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
+  return iter_from_slice(sl, allocator);
+}
+
+/* ---- string_split ------------------------------------------------------ */
+
+typedef struct {
+  String src;
+  String delim;
+  size_t pos;
+} SplitState;
+
+static int split_next(Iter *it, void *out) {
+  SplitState *s = it->state;
+  if (s->pos > s->src.len)
+    return 0;
+
+  String remaining = {s->src.ptr + s->pos, s->src.len - s->pos};
+  size_t found = string_find(remaining, s->delim);
+
+  String token;
+  if (found == STRING_NOT_FOUND) {
+    token = remaining;
+    s->pos = s->src.len + 1; /* mark exhausted */
+  } else {
+    token = (String){remaining.ptr, found};
+    s->pos += found + s->delim.len;
+  }
+
+  memcpy(out, &token, sizeof(String));
+  return 1;
+}
+
+static void split_drop(Iter *it) {
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, it->state);
+}
+
+Iter string_split(String s, String delim, Allocator allocator) {
+  SplitState *state =
+      allocator.alloc(allocator.ctx, sizeof(SplitState), _Alignof(SplitState));
+  *state = (SplitState){s, delim, 0};
+  return (Iter){.next = split_next,
+                .drop = split_drop,
+                .state = state,
+                .elem_size = sizeof(String),
+                .allocator = allocator};
+}
+
+/* --- HashMap helpers ---------------------------------------------------- */
+
+size_t string_hash(const void *key, size_t key_size) {
+  (void)key_size;
+  if (!key)
+    return 0;
+  const String *s = (const String *)key;
+  if (!s->ptr || s->len == 0)
+    return 0;
+  const uint8_t *data = (const uint8_t *)s->ptr;
+  uint64_t hash = 14695981039346656037ULL;
+  for (size_t i = 0; i < s->len; i++) {
+    hash ^= (uint64_t)data[i];
+    hash *= 1099511628211ULL;
+  }
+  return (size_t)hash;
+}
+
+int string_key_eq(const void *a, const void *b, size_t key_size) {
+  (void)key_size;
+  if (!a || !b)
+    return 0;
+  return string_equals(*(const String *)a, *(const String *)b);
+}

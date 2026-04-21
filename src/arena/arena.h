@@ -17,7 +17,6 @@ typedef struct Allocator {
 typedef struct Arena Arena;
 
 Allocator arena_allocator(Arena *arena);
-Allocator system_allocator(void);
 
 typedef struct {
   Arena *arena;

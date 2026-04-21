@@ -129,7 +129,8 @@ Test(iter, take_more_than_available) {
   Arena *a = arena_create(256);
   Scratch sc = arena_scratch_push(a);
   cr_assert_eq(
-      iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 100)), 2);
+      iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 100)),
+      2);
   arena_scratch_pop(&sc);
   arena_free(a);
 }
@@ -162,7 +163,8 @@ Test(iter, reduce_sum) {
   Arena *a = arena_create(256);
   Scratch sc = arena_scratch_push(a);
   int sum = 0;
-  iter_reduce(iter_from_slice(s, scratch_allocator(&sc)), &sum, sum_combine, NULL);
+  iter_reduce(iter_from_slice(s, scratch_allocator(&sc)), &sum, sum_combine,
+              NULL);
   cr_assert_eq(sum, 15);
   arena_scratch_pop(&sc);
   arena_free(a);
