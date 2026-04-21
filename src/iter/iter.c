@@ -40,7 +40,7 @@ Iter iter_from_slice(Slice s) {
 
 typedef struct {
   Iter source;
-  int (*pred)(const void *elem, void *ctx);
+  pred_fn pred;
   void *ctx;
 } FilterState;
 
@@ -58,8 +58,7 @@ static void filter_drop(Iter *it) {
   free(s);
 }
 
-Iter iter_filter(Iter source, int (*pred)(const void *elem, void *ctx),
-                 void *ctx) {
+Iter iter_filter(Iter source, pred_fn pred, void *ctx) {
   FilterState *s = malloc(sizeof *s);
   *s = (FilterState){source, pred, ctx};
   return (Iter){.next = filter_next,
@@ -72,7 +71,7 @@ Iter iter_filter(Iter source, int (*pred)(const void *elem, void *ctx),
 
 typedef struct {
   Iter source;
-  void (*map)(const void *in, void *out, void *ctx);
+  map_fn map;
   void *ctx;
   void *in_buf; /* reusable buffer of source.elem_size bytes */
 } MapState;
@@ -92,8 +91,7 @@ static void map_drop(Iter *it) {
   free(s);
 }
 
-Iter iter_map(Iter source, void (*map)(const void *in, void *out, void *ctx),
-              void *ctx, size_t out_elem_size) {
+Iter iter_map(Iter source, map_fn map, void *ctx, size_t out_elem_size) {
   MapState *s = malloc(sizeof *s);
   s->source = source;
   s->map = map;
@@ -212,17 +210,15 @@ size_t iter_count(Iter it) {
   return n;
 }
 
-void iter_foreach(Iter it, void (*fn)(const void *elem, void *ctx), void *ctx) {
+void iter_foreach(Iter it, visitor_fn visit, void *ctx) {
   void *tmp = malloc(it.elem_size);
   while (it.next(&it, tmp))
-    fn(tmp, ctx);
+    visit(tmp, ctx);
   free(tmp);
   iter_drop(&it);
 }
 
-void iter_reduce(Iter it, void *acc,
-                 void (*combine)(void *acc, const void *elem, void *ctx),
-                 void *ctx) {
+void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx) {
   void *tmp = malloc(it.elem_size);
   while (it.next(&it, tmp))
     combine(acc, tmp, ctx);
