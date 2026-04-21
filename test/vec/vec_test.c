@@ -4,14 +4,14 @@
 #include "vec/vec.h"
 
 Test(vec, create_is_empty) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   cr_assert_eq(v.len, 0);
   cr_assert_null(v.data);
   vec_free(&v);
 }
 
 Test(vec, push_increments_len) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   int x = 42;
   vec_push(&v, &x);
   cr_assert_eq(v.len, 1);
@@ -19,7 +19,7 @@ Test(vec, push_increments_len) {
 }
 
 Test(vec, get_returns_pushed_value) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   int x = 99;
   vec_push(&v, &x);
   cr_assert_eq(*(int *)vec_get(&v, 0), 99);
@@ -27,7 +27,7 @@ Test(vec, get_returns_pushed_value) {
 }
 
 Test(vec, push_many_preserves_values) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   for (int i = 0; i < 100; i++)
     vec_push(&v, &i);
   cr_assert_eq(v.len, 100);
@@ -37,7 +37,7 @@ Test(vec, push_many_preserves_values) {
 }
 
 Test(vec, as_slice_reflects_contents) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   int x = 7, y = 8, z = 9;
   vec_push(&v, &x);
   vec_push(&v, &y);
@@ -50,7 +50,7 @@ Test(vec, as_slice_reflects_contents) {
 }
 
 Test(vec, iter_counts_all_elements) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   for (int i = 0; i < 5; i++)
     vec_push(&v, &i);
 
@@ -59,7 +59,7 @@ Test(vec, iter_counts_all_elements) {
 }
 
 Test(vec, iter_collect_round_trip) {
-  Vec v = vec_create(sizeof(int));
+  Vec v = vec_create(sizeof(int), NULL);
   for (int i = 0; i < 4; i++)
     vec_push(&v, &i);
 
