@@ -195,3 +195,11 @@ size_t arena_capacity(const Arena *a) {
   }
   return capacity;
 }
+
+Allocator arena_allocator(Arena *arena) {
+  assert(arena);
+  return (Allocator){.alloc = (alloc_fn)arena_alloc,
+                     .realloc = (realloc_fn)arena_realloc,
+                     .free = (free_fn)NULL,
+                     .ctx = arena};
+}

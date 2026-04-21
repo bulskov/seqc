@@ -2,10 +2,10 @@
 
 #include <stddef.h>
 
+#include "arena/arena.h"
 #include "slice/slice.h"
 
 /* Forward declaration — include arena/arena.h to use iter_collect */
-typedef struct Arena Arena;
 
 typedef struct Iter Iter;
 
@@ -42,7 +42,7 @@ Iter iter_skip(Iter source, size_t n);
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
-Slice iter_collect(Iter it, Arena *a);
+Slice iter_collect(Iter it, Allocator allocator);
 size_t iter_count(Iter it);
 void iter_foreach(Iter it, visitor_fn visit, void *ctx);
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx);

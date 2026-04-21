@@ -5,7 +5,7 @@
 
 Test(vec, create_is_empty) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   cr_assert_eq(v.len, 0);
   cr_assert_null(v.data);
   vec_free(&v);
@@ -14,7 +14,7 @@ Test(vec, create_is_empty) {
 
 Test(vec, push_increments_len) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   int x = 42;
   vec_push(&v, &x);
   cr_assert_eq(v.len, 1);
@@ -24,7 +24,7 @@ Test(vec, push_increments_len) {
 
 Test(vec, get_returns_pushed_value) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   int x = 99;
   vec_push(&v, &x);
   cr_assert_eq(*(int *)vec_get(&v, 0), 99);
@@ -34,7 +34,7 @@ Test(vec, get_returns_pushed_value) {
 
 Test(vec, push_many_preserves_values) {
   Arena *a = arena_create(4096);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   for (int i = 0; i < 100; i++)
     vec_push(&v, &i);
   cr_assert_eq(v.len, 100);
@@ -46,7 +46,7 @@ Test(vec, push_many_preserves_values) {
 
 Test(vec, as_slice_reflects_contents) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   int x = 7, y = 8, z = 9;
   vec_push(&v, &x);
   vec_push(&v, &y);
@@ -61,7 +61,7 @@ Test(vec, as_slice_reflects_contents) {
 
 Test(vec, iter_counts_all_elements) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   for (int i = 0; i < 5; i++)
     vec_push(&v, &i);
 
@@ -72,11 +72,11 @@ Test(vec, iter_counts_all_elements) {
 
 Test(vec, iter_collect_round_trip) {
   Arena *a = arena_create(256);
-  Vec v = vec_create(sizeof(int), a);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
   for (int i = 0; i < 4; i++)
     vec_push(&v, &i);
 
-  Slice result = iter_collect(vec_iter(&v), a);
+  Slice result = iter_collect(vec_iter(&v), arena_allocator(a));
 
   cr_assert_eq(result.len, 4);
   for (int i = 0; i < 4; i++)

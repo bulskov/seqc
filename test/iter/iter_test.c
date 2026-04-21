@@ -58,7 +58,7 @@ Test(iter, map_doubles_values) {
   Arena *a = arena_create(256);
 
   Slice result = iter_collect(
-      iter_map(iter_from_slice(s), double_it, NULL, sizeof(int)), a);
+      iter_map(iter_from_slice(s), double_it, NULL, sizeof(int)), arena_allocator(a));
 
   cr_assert_eq(result.len, 3);
   cr_assert_eq(*(int *)slice_get(result, 0), 2);
@@ -73,7 +73,7 @@ Test(iter, collect_produces_correct_slice) {
   Slice s = {data, 4, sizeof(int)};
   Arena *a = arena_create(256);
 
-  Slice result = iter_collect(iter_from_slice(s), a);
+  Slice result = iter_collect(iter_from_slice(s), arena_allocator(a));
 
   cr_assert_eq(result.len, 4);
   for (size_t i = 0; i < result.len; i++)
@@ -86,7 +86,7 @@ Test(iter, collect_empty_gives_null_ptr) {
   Slice s = {NULL, 0, sizeof(int)};
   Arena *a = arena_create(64);
 
-  Slice result = iter_collect(iter_from_slice(s), a);
+  Slice result = iter_collect(iter_from_slice(s), arena_allocator(a));
 
   cr_assert_eq(result.len, 0);
   cr_assert_null(result.ptr);
@@ -145,7 +145,7 @@ Test(iter, filter_map_chain) {
   Slice result =
       iter_collect(iter_map(iter_filter(iter_from_slice(s), gt10, NULL),
                             double_it, NULL, sizeof(int)),
-                   a);
+                   arena_allocator(a));
 
   /* 15→30, 22→44, 18→36 */
   cr_assert_eq(result.len, 3);

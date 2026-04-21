@@ -170,7 +170,7 @@ Iter iter_skip(Iter source, size_t n) {
 
 /* ---- terminals --------------------------------------------------------- */
 
-Slice iter_collect(Iter it, Arena *a) {
+Slice iter_collect(Iter it, Allocator allocator) {
   const size_t elem_size = it.elem_size;
   size_t cap = 16;
   size_t len = 0;
@@ -194,7 +194,8 @@ Slice iter_collect(Iter it, Arena *a) {
     return (Slice){NULL, 0, elem_size};
   }
 
-  void *out = arena_alloc(a, len * elem_size, _Alignof(max_align_t));
+  void *out =
+      allocator.alloc(allocator.ctx, len * elem_size, _Alignof(max_align_t));
   memcpy(out, buf, len * elem_size);
   free(buf);
   return (Slice){out, len, elem_size};
