@@ -177,7 +177,8 @@ Test(arena, block_count_starts_at_one) {
 }
 
 Test(arena, block_count_grows_with_overflow) {
-  /* arena_create rounds up to ARENA_BLOCK_SIZE (4096); allocate more than that */
+  /* arena_create rounds up to ARENA_BLOCK_SIZE (4096); allocate more than that
+   */
   Arena *a = arena_create(8);
   size_t initial = arena_block_count(a);
   for (int i = 0; i < 1024; i++)

@@ -3,6 +3,7 @@ add_library(seqc STATIC
     slice/slice.c
     iter/iter.c
     vec/vec.c
+    hashmap/hashmap.c
 )
 
 target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

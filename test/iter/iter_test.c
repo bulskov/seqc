@@ -57,8 +57,9 @@ Test(iter, map_doubles_values) {
   Slice s = {data, 3, sizeof(int)};
   Arena *a = arena_create(256);
 
-  Slice result = iter_collect(
-      iter_map(iter_from_slice(s), double_it, NULL, sizeof(int)), arena_allocator(a));
+  Slice result =
+      iter_collect(iter_map(iter_from_slice(s), double_it, NULL, sizeof(int)),
+                   arena_allocator(a));
 
   cr_assert_eq(result.len, 3);
   cr_assert_eq(*(int *)slice_get(result, 0), 2);
