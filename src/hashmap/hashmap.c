@@ -1,6 +1,7 @@
 #include "hashmap.h"
 #include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 size_t hashmap_fnv1a(const void *key, size_t key_size) {
@@ -179,4 +180,35 @@ int hashmap_delete(HashMap *map, const void *key) {
     }
     slot = (slot + 1) & (map->cap - 1);
   }
+}
+
+/* ---- iter_from_hashmap ------------------------------------------------- */
+
+typedef struct {
+  const HashMap *map;
+  size_t slot;
+} HashMapIterState;
+
+static int hashmap_iter_next(Iter *it, void *out) {
+  HashMapIterState *s = it->state;
+  while (s->slot < s->map->cap) {
+    Bucket *b = &s->map->buckets[s->slot++];
+    if (b->psl != 0) {
+      HashMapEntry entry = {b->key, b->value};
+      memcpy(out, &entry, sizeof(HashMapEntry));
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void hashmap_iter_drop(Iter *it) { free(it->state); }
+
+Iter iter_from_hashmap(const HashMap *map) {
+  HashMapIterState *s = malloc(sizeof *s);
+  *s = (HashMapIterState){map, 0};
+  return (Iter){.next = hashmap_iter_next,
+                .drop = hashmap_iter_drop,
+                .state = s,
+                .elem_size = sizeof(HashMapEntry)};
 }

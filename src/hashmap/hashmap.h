@@ -1,6 +1,7 @@
 #pragma once
 
 #include "arena/arena.h"
+#include "iter/iter.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -32,9 +33,15 @@ int hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
 size_t hashmap_fnv1a_str(const void *key, size_t key_size);
 int hashmap_eq_str(const void *a, const void *b, size_t key_size);
 
+typedef struct {
+  void *key;
+  void *value;
+} HashMapEntry;
+
 HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
                        Allocator allocator);
 void hashmap_free(HashMap *map);
 int hashmap_set(HashMap *map, const void *key, const void *value);
 void *hashmap_get(const HashMap *map, const void *key);
 int hashmap_delete(HashMap *map, const void *key);
+Iter iter_from_hashmap(const HashMap *map);

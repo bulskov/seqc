@@ -2,6 +2,7 @@
 
 #include "arena/arena.h"
 #include "hashmap/hashmap.h"
+#include "iter/iter.h"
 
 /* ---- string-keyed helpers ---- */
 static HashMap make_str_map(Arena *a) {
@@ -173,6 +174,49 @@ Test(hashmap, many_entries_triggers_resize) {
     cr_assert_not_null(got);
     cr_assert_eq(*got, i * 10);
   }
+  hashmap_free(&m);
+  arena_free(a);
+}
+
+/* ---- iter integration -------------------------------------------------- */
+
+static void sum_values(const void *elem, void *ctx) {
+  const HashMapEntry *e = elem;
+  *(int *)ctx += *(int *)e->value;
+}
+
+Test(hashmap, iter_foreach_sums_values) {
+  Arena *a = arena_create(4096);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  for (int i = 1; i <= 4; i++) {
+    int v = i * 10;
+    hashmap_set(&m, &i, &v);
+  }
+  int sum = 0;
+  iter_foreach(iter_from_hashmap(&m), sum_values, &sum);
+  cr_assert_eq(sum, 100); /* 10+20+30+40 */
+  hashmap_free(&m);
+  arena_free(a);
+}
+
+static int value_gt_20(const void *elem, void *ctx) {
+  (void)ctx;
+  const HashMapEntry *e = elem;
+  return *(int *)e->value > 20;
+}
+
+Test(hashmap, iter_filter_entries) {
+  Arena *a = arena_create(4096);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  for (int i = 1; i <= 4; i++) {
+    int v = i * 10;
+    hashmap_set(&m, &i, &v);
+  }
+  size_t count =
+      iter_count(iter_filter(iter_from_hashmap(&m), value_gt_20, NULL));
+  cr_assert_eq(count, 2); /* 30 and 40 */
   hashmap_free(&m);
   arena_free(a);
 }
