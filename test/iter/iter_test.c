@@ -202,3 +202,199 @@ Test(iter, filter_map_chain) {
 
   arena_free(a);
 }
+
+/* ---- iter_chain -------------------------------------------------------- */
+
+Test(iter, chain_concatenates) {
+  int a[] = {1, 2, 3};
+  int b[] = {4, 5};
+  Slice sa = {a, 3, sizeof(int)};
+  Slice sb = {b, 2, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Scratch sc = arena_scratch_push(arena);
+  Allocator al = scratch_allocator(&sc);
+  size_t n =
+      iter_count(iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)));
+  cr_assert_eq(n, 5);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, chain_collects_in_order) {
+  int a[] = {1, 2};
+  int b[] = {3, 4};
+  Slice sa = {a, 2, sizeof(int)};
+  Slice sb = {b, 2, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Allocator al = arena_allocator(arena);
+  Slice result = iter_collect(
+      iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)));
+  cr_assert_eq(result.len, 4);
+  cr_assert_eq(*(int *)slice_get(result, 0), 1);
+  cr_assert_eq(*(int *)slice_get(result, 3), 4);
+  arena_free(arena);
+}
+
+Test(iter, chain_empty_first) {
+  int b[] = {7, 8};
+  Slice sa = {NULL, 0, sizeof(int)};
+  Slice sb = {b, 2, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Allocator al = scratch_allocator(&sc);
+  cr_assert_eq(
+      iter_count(iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al))),
+      2);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_zip ---------------------------------------------------------- */
+
+Test(iter, zip_pairs_elements) {
+  int as[] = {1, 2, 3};
+  char bs[] = {'a', 'b', 'c'};
+  Slice sa = {as, 3, sizeof(int)};
+  Slice sb = {bs, 3, sizeof(char)};
+  Arena *arena = arena_create(512);
+  Allocator al = arena_allocator(arena);
+  Iter z = iter_zip(iter_from_slice(sa, al), iter_from_slice(sb, al));
+  cr_assert_eq(z.elem_size, sizeof(int) + sizeof(char));
+  char buf[sizeof(int) + sizeof(char)];
+  int count = 0;
+  while (z.next(&z, buf)) {
+    int iv;
+    memcpy(&iv, buf, sizeof(int));
+    char cv;
+    memcpy(&cv, buf + sizeof(int), sizeof(char));
+    cr_assert_eq(iv, count + 1);
+    cr_assert_eq(cv, 'a' + count);
+    count++;
+  }
+  cr_assert_eq(count, 3);
+  iter_drop(&z);
+  arena_free(arena);
+}
+
+Test(iter, zip_stops_at_shorter) {
+  int as[] = {1, 2, 3, 4};
+  int bs[] = {10, 20};
+  Slice sa = {as, 4, sizeof(int)};
+  Slice sb = {bs, 2, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Scratch sc = arena_scratch_push(arena);
+  Allocator al = scratch_allocator(&sc);
+  cr_assert_eq(
+      iter_count(iter_zip(iter_from_slice(sa, al), iter_from_slice(sb, al))),
+      2);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_sort --------------------------------------------------------- */
+
+static int int_cmp(const void *a, const void *b) {
+  return *(const int *)a - *(const int *)b;
+}
+
+Test(iter, sort_ascending) {
+  int data[] = {5, 1, 4, 2, 3};
+  Slice s = {data, 5, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Slice result = iter_sort(iter_from_slice(s, arena_allocator(arena)), int_cmp);
+  cr_assert_eq(result.len, 5);
+  for (size_t i = 0; i < result.len; i++)
+    cr_assert_eq(*(int *)slice_get(result, i), (int)(i + 1));
+  arena_free(arena);
+}
+
+Test(iter, sort_already_sorted) {
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Slice result = iter_sort(iter_from_slice(s, arena_allocator(arena)), int_cmp);
+  cr_assert_eq(*(int *)slice_get(result, 0), 1);
+  cr_assert_eq(*(int *)slice_get(result, 2), 3);
+  arena_free(arena);
+}
+
+/* ---- iter_find --------------------------------------------------------- */
+
+Test(iter, find_returns_first_match) {
+  int data[] = {1, 15, 22, 18};
+  Slice s = {data, 4, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int out = 0;
+  int found =
+      iter_find(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL, &out);
+  cr_assert(found);
+  cr_assert_eq(out, 15);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, find_not_found) {
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int found =
+      iter_find(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL, NULL);
+  cr_assert_not(found);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_any / iter_all ----------------------------------------------- */
+
+Test(iter, any_true_when_match_exists) {
+  int data[] = {1, 2, 20};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert(iter_any(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, any_false_when_no_match) {
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert_not(
+      iter_any(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, all_true_when_all_match) {
+  int data[] = {11, 22, 33};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert(iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, all_false_when_one_fails) {
+  int data[] = {11, 22, 5};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert_not(
+      iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, all_vacuously_true_for_empty) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert(iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}

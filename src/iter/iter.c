@@ -2,6 +2,7 @@
 #include "arena/arena.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* ---- iter_from_slice -------------------------------------------------- */
@@ -274,4 +275,146 @@ void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx) {
     it.allocator.free(it.allocator.ctx, tmp);
   }
   iter_drop(&it);
+}
+
+/* ---- iter_chain -------------------------------------------------------- */
+
+typedef struct {
+  Iter first;
+  Iter second;
+  int done_first;
+} ChainState;
+
+static int chain_next(Iter *it, void *out) {
+  ChainState *s = it->state;
+  if (!s->done_first) {
+    if (s->first.next(&s->first, out))
+      return 1;
+    s->done_first = 1;
+  }
+  return s->second.next(&s->second, out);
+}
+
+static void chain_drop(Iter *it) {
+  if (!it->state)
+    return;
+  ChainState *s = it->state;
+  iter_drop(&s->first);
+  iter_drop(&s->second);
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, s);
+}
+
+Iter iter_chain(Iter a, Iter b) {
+  ChainState *s =
+      a.allocator.alloc(a.allocator.ctx, sizeof *s, _Alignof(ChainState));
+  *s = (ChainState){a, b, 0};
+  return (Iter){.next = chain_next,
+                .drop = chain_drop,
+                .state = s,
+                .elem_size = a.elem_size,
+                .allocator = a.allocator};
+}
+
+/* ---- iter_zip ---------------------------------------------------------- */
+
+typedef struct {
+  Iter a;
+  Iter b;
+  size_t a_elem_size;
+  void *buf_a; /* temporary buffer; confirms a before writing b to out */
+} ZipState;
+
+static int zip_next(Iter *it, void *out) {
+  ZipState *s = it->state;
+  if (!s->a.next(&s->a, s->buf_a))
+    return 0;
+  if (!s->b.next(&s->b, (char *)out + s->a_elem_size))
+    return 0;
+  memcpy(out, s->buf_a, s->a_elem_size);
+  return 1;
+}
+
+static void zip_drop(Iter *it) {
+  if (!it->state)
+    return;
+  ZipState *s = it->state;
+  iter_drop(&s->a);
+  iter_drop(&s->b);
+  if (it->allocator.free) {
+    it->allocator.free(it->allocator.ctx, s->buf_a);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+Iter iter_zip(Iter a, Iter b) {
+  ZipState *s =
+      a.allocator.alloc(a.allocator.ctx, sizeof *s, _Alignof(ZipState));
+  void *buf_a =
+      a.allocator.alloc(a.allocator.ctx, a.elem_size, _Alignof(max_align_t));
+  *s = (ZipState){a, b, a.elem_size, buf_a};
+  return (Iter){.next = zip_next,
+                .drop = zip_drop,
+                .state = s,
+                .elem_size = a.elem_size + b.elem_size,
+                .allocator = a.allocator};
+}
+
+/* ---- iter_sort --------------------------------------------------------- */
+
+Slice iter_sort(Iter it, compare_fn cmp) {
+  Slice s = iter_collect(it);
+  if (s.len > 1)
+    qsort(s.ptr, s.len, s.elem_size, cmp);
+  return s;
+}
+
+/* ---- iter_find --------------------------------------------------------- */
+
+int iter_find(Iter it, pred_fn pred, void *ctx, void *out) {
+  void *tmp =
+      it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+  int found = 0;
+  while (it.next(&it, tmp)) {
+    if (pred(tmp, ctx)) {
+      if (out)
+        memcpy(out, tmp, it.elem_size);
+      found = 1;
+      break;
+    }
+  }
+  if (it.allocator.free)
+    it.allocator.free(it.allocator.ctx, tmp);
+  iter_drop(&it);
+  return found;
+}
+
+/* ---- iter_any ---------------------------------------------------------- */
+
+int iter_any(Iter it, pred_fn pred, void *ctx) {
+  void *tmp =
+      it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+  int found = 0;
+  while (!found && it.next(&it, tmp))
+    if (pred(tmp, ctx))
+      found = 1;
+  if (it.allocator.free)
+    it.allocator.free(it.allocator.ctx, tmp);
+  iter_drop(&it);
+  return found;
+}
+
+/* ---- iter_all ---------------------------------------------------------- */
+
+int iter_all(Iter it, pred_fn pred, void *ctx) {
+  void *tmp =
+      it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+  int all = 1;
+  while (all && it.next(&it, tmp))
+    if (!pred(tmp, ctx))
+      all = 0;
+  if (it.allocator.free)
+    it.allocator.free(it.allocator.ctx, tmp);
+  iter_drop(&it);
+  return all;
 }
