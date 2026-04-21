@@ -3,46 +3,46 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 
 #define ARENA_BLOCK_SIZE 4096
 
-struct mem_block {
+typedef struct MemBlock {
   char *buf;
   size_t pos;
   size_t cap;
-  struct mem_block *next;
-};
+  struct MemBlock *next;
+} MemBlock;
 
 struct Arena {
-  char *buf;
-  struct mem_block *mem_head;
+  MemBlock *mem_head;
 };
 
 static size_t arena_align_to_block_size(size_t size) {
   return ((size + ARENA_BLOCK_SIZE - 1) / ARENA_BLOCK_SIZE) * ARENA_BLOCK_SIZE;
 }
 
-static struct mem_block *arena_create_block(size_t capacity, size_t offset) {
+static MemBlock *arena_create_block(size_t capacity, size_t offset) {
   void *mem = mmap(NULL, capacity, PROT_READ | PROT_WRITE,
                    MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   if (mem == MAP_FAILED) {
     return NULL;
   }
-  struct mem_block *block = (struct mem_block *)((char *)mem + offset);
-  block->pos = offset + sizeof(struct mem_block);
+  MemBlock *block = (MemBlock *)((char *)mem + offset);
+  block->pos = offset + sizeof(MemBlock);
   block->buf = mem;
   block->cap = capacity;
   block->next = NULL;
   return block;
 }
 
-static void *arena_alloc_from_block(struct mem_block *block, size_t size,
+static void *arena_alloc_from_block(MemBlock *block, size_t size,
                                     size_t align) {
   size_t pad = (align - (block->pos % align)) % align;
   if (block->pos + pad + size > block->cap)
     return NULL;
-  void *ptr = block->buf + block->pos + pad;
+  void *ptr = (void *)((char *)block->buf + (block->pos + pad));
   block->pos += pad + size;
   return ptr;
 }
@@ -50,7 +50,7 @@ static void *arena_alloc_from_block(struct mem_block *block, size_t size,
 static void *arena_alloc_mem(Arena *arena, size_t size, size_t align) {
   if (size == 0)
     return NULL;
-  struct mem_block *block = arena->mem_head;
+  MemBlock *block = arena->mem_head;
   if (align == 0)
     align = 1;
   void *ptr = arena_alloc_from_block(block, size, align);
@@ -67,8 +67,8 @@ static void *arena_alloc_mem(Arena *arena, size_t size, size_t align) {
   // we are out of memory in existing blocks, so we need to allocate a new one
   // block is pointing to the last block, so we can just append a new one
 
-  size_t block_cap = arena_align_to_block_size(size + sizeof(struct mem_block));
-  struct mem_block *new_block = arena_create_block(block_cap, 0);
+  size_t block_cap = arena_align_to_block_size(size + sizeof(MemBlock));
+  MemBlock *new_block = arena_create_block(block_cap, 0);
   if (!new_block) {
     return NULL;
   }
@@ -79,13 +79,13 @@ static void *arena_alloc_mem(Arena *arena, size_t size, size_t align) {
 Arena *arena_create(size_t capacity) {
   assert(capacity > 0);
 
-  capacity += sizeof(Arena) + sizeof(struct mem_block);
+  capacity += sizeof(Arena) + sizeof(MemBlock);
 
   // align capacity to block size, so we can fit the arena struct and the first
   // block
   capacity = arena_align_to_block_size(capacity);
 
-  struct mem_block *block = arena_create_block(capacity, sizeof(Arena));
+  MemBlock *block = arena_create_block(capacity, sizeof(Arena));
   if (!block) {
     return NULL;
   }
@@ -105,22 +105,102 @@ void *arena_alloc(Arena *arena, size_t size, size_t align) {
   return arena_alloc_mem(arena, size, align);
 }
 
+static MemBlock *arena_find_block(Arena *arena, void *ptr) {
+  MemBlock *block = arena->mem_head;
+  while (block) {
+    if ((char *)ptr >= (char *)block->buf &&
+        (char *)ptr < (char *)block->buf + block->cap) {
+      return block;
+    }
+    block = block->next;
+  }
+  return NULL;
+}
+
+void *arena_realloc(Arena *arena, void *ptr, size_t old_size, size_t new_size,
+                    size_t align) {
+  if (new_size == 0) {
+    return NULL;
+  }
+  if (ptr == NULL) {
+    return arena_alloc(arena, new_size, align);
+  }
+
+  MemBlock *block = arena_find_block(arena, ptr);
+  if (!block) {
+    return NULL; // ptr not allocated by this arena
+  }
+
+  if (new_size <= old_size) {
+    return ptr;
+  }
+
+  if (block->cap - block->pos >= new_size - old_size &&
+      (char *)ptr + old_size == (char *)block->buf + block->pos) {
+    // we have enough space in the current block to expand the allocation
+    // and the current allocation is at the end of the used space, so we can
+    // just expand it
+    block->pos += new_size - old_size;
+    return ptr;
+  }
+
+  void *new_ptr = arena_alloc(arena, new_size, align);
+  if (!new_ptr) {
+    return NULL;
+  }
+  memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
+  return new_ptr;
+}
+
 void arena_reset(Arena *arena) {
-  struct mem_block *block = arena->mem_head;
-  block->pos = sizeof(Arena) + sizeof(struct mem_block);
+  MemBlock *block = arena->mem_head;
+  block->pos = sizeof(Arena) + sizeof(MemBlock);
   while (block->next) {
     block = block->next;
-    block->pos = sizeof(struct mem_block);
+    block->pos = sizeof(MemBlock);
   }
 }
 
 // this is a recursive function that frees all blocks in the arena
 // properly not the best solution if we expect a lot of blocks,
 //  but it is simple and works for our use case
-static void arena_free_block(struct mem_block *block) {
+static void arena_free_block(MemBlock *block) {
   if (block->next)
     arena_free_block(block->next);
   munmap(block->buf, block->cap);
 }
 
-void arena_free(Arena *a) { arena_free_block(a->mem_head); }
+void arena_free(Arena *a) {
+  arena_free_block(a->mem_head);
+  a->mem_head = NULL;
+}
+
+size_t arena_total_allocated(const Arena *a) {
+  size_t total = 0;
+  MemBlock *block = a->mem_head;
+  while (block) {
+    total += block->pos;
+    block = block->next;
+  }
+  return total;
+}
+
+size_t arena_block_count(const Arena *a) {
+  size_t count = 0;
+  MemBlock *block = a->mem_head;
+  while (block) {
+    count++;
+    block = block->next;
+  }
+  return count;
+}
+
+size_t arena_capacity(const Arena *a) {
+  size_t capacity = 0;
+  MemBlock *block = a->mem_head;
+  while (block) {
+    capacity += block->cap;
+    block = block->next;
+  }
+  return capacity;
+}

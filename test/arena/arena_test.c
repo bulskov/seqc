@@ -101,3 +101,116 @@ Test(arena, reset_reuses_memory_across_blocks) {
   cr_assert_not_null(after);
   arena_free(a);
 }
+
+/* --- arena_realloc ---------------------------------------------------- */
+
+Test(arena, realloc_null_ptr_acts_as_alloc) {
+  Arena *a = arena_create(64);
+  int *p = arena_realloc(a, NULL, 0, sizeof(int), _Alignof(int));
+  cr_assert_not_null(p);
+  *p = 7;
+  cr_assert_eq(*p, 7);
+  arena_free(a);
+}
+
+Test(arena, realloc_zero_new_size_returns_null) {
+  Arena *a = arena_create(64);
+  int *p = arena_alloc(a, sizeof(int), _Alignof(int));
+  void *r = arena_realloc(a, p, sizeof(int), 0, _Alignof(int));
+  cr_assert_null(r);
+  arena_free(a);
+}
+
+Test(arena, realloc_shrink_returns_same_ptr) {
+  Arena *a = arena_create(64);
+  int *p = arena_alloc(a, 4 * sizeof(int), _Alignof(int));
+  void *r = arena_realloc(a, p, 4 * sizeof(int), 2 * sizeof(int), _Alignof(int));
+  cr_assert_eq((void *)p, r);
+  arena_free(a);
+}
+
+Test(arena, realloc_last_alloc_extends_in_place) {
+  Arena *a = arena_create(256);
+  int *p = arena_alloc(a, sizeof(int), _Alignof(int));
+  *p = 42;
+  /* grow in place — p is the last allocation */
+  int *r = arena_realloc(a, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
+  cr_assert_eq((void *)p, (void *)r); /* same pointer — fast path taken */
+  cr_assert_eq(r[0], 42);            /* existing data preserved */
+  arena_free(a);
+}
+
+Test(arena, realloc_non_last_alloc_copies) {
+  Arena *a = arena_create(256);
+  int *p = arena_alloc(a, sizeof(int), _Alignof(int));
+  *p = 99;
+  /* allocate after p so p is no longer the last allocation */
+  arena_alloc(a, sizeof(int), _Alignof(int));
+  int *r = arena_realloc(a, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
+  cr_assert_not_null(r);
+  cr_assert_neq((void *)p, (void *)r); /* different pointer — full copy */
+  cr_assert_eq(r[0], 99);              /* data copied correctly */
+  arena_free(a);
+}
+
+Test(arena, realloc_preserves_data_across_blocks) {
+  Arena *a = arena_create(8);
+  /* fill until a new block is needed, then realloc into it */
+  int *p = arena_alloc(a, sizeof(int), _Alignof(int));
+  *p = 123;
+  for (int i = 0; i < 64; i++)
+    arena_alloc(a, sizeof(int), _Alignof(int));
+  int *r = arena_realloc(a, p, sizeof(int), 2 * sizeof(int), _Alignof(int));
+  cr_assert_not_null(r);
+  cr_assert_eq(r[0], 123);
+  arena_free(a);
+}
+
+/* --- audit functions -------------------------------------------------- */
+
+Test(arena, block_count_starts_at_one) {
+  Arena *a = arena_create(256);
+  cr_assert_eq(arena_block_count(a), 1);
+  arena_free(a);
+}
+
+Test(arena, block_count_grows_with_overflow) {
+  Arena *a = arena_create(8);
+  size_t initial = arena_block_count(a);
+  for (int i = 0; i < 64; i++)
+    arena_alloc(a, sizeof(int), _Alignof(int));
+  cr_assert_gt(arena_block_count(a), initial);
+  arena_free(a);
+}
+
+Test(arena, capacity_at_least_initial) {
+  Arena *a = arena_create(256);
+  cr_assert_geq(arena_capacity(a), (size_t)256);
+  arena_free(a);
+}
+
+Test(arena, capacity_grows_after_overflow) {
+  Arena *a = arena_create(8);
+  size_t cap_before = arena_capacity(a);
+  for (int i = 0; i < 64; i++)
+    arena_alloc(a, sizeof(int), _Alignof(int));
+  cr_assert_gt(arena_capacity(a), cap_before);
+  arena_free(a);
+}
+
+Test(arena, total_allocated_increases_with_allocs) {
+  Arena *a = arena_create(256);
+  size_t before = arena_total_allocated(a);
+  arena_alloc(a, sizeof(int), _Alignof(int));
+  cr_assert_gt(arena_total_allocated(a), before);
+  arena_free(a);
+}
+
+Test(arena, total_allocated_resets_after_reset) {
+  Arena *a = arena_create(256);
+  arena_alloc(a, sizeof(int), _Alignof(int));
+  size_t after_alloc = arena_total_allocated(a);
+  arena_reset(a);
+  cr_assert_lt(arena_total_allocated(a), after_alloc);
+  arena_free(a);
+}
