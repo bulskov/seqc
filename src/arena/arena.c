@@ -17,6 +17,7 @@ typedef struct MemBlock {
 
 struct Arena {
   MemBlock *mem_head;
+  MemBlock *mem_tail;
 };
 
 static size_t arena_align_to_block_size(size_t size) {
@@ -50,19 +51,12 @@ static void *arena_alloc_from_block(MemBlock *block, size_t size,
 static void *arena_alloc_mem(Arena *arena, size_t size, size_t align) {
   if (size == 0)
     return NULL;
-  MemBlock *block = arena->mem_head;
+  MemBlock *block = arena->mem_tail;
   if (align == 0)
     align = 1;
   void *ptr = arena_alloc_from_block(block, size, align);
   if (ptr)
     return ptr;
-
-  while (block->next) {
-    block = block->next;
-    void *ptr = arena_alloc_from_block(block, size, align);
-    if (ptr)
-      return ptr;
-  }
 
   // we are out of memory in existing blocks, so we need to allocate a new one
   // block is pointing to the last block, so we can just append a new one
@@ -73,6 +67,7 @@ static void *arena_alloc_mem(Arena *arena, size_t size, size_t align) {
     return NULL;
   }
   block->next = new_block;
+  arena->mem_tail = new_block;
   return arena_alloc_from_block(new_block, size, align);
 }
 
@@ -92,6 +87,7 @@ Arena *arena_create(size_t capacity) {
 
   Arena *a = (Arena *)block->buf;
   a->mem_head = block;
+  a->mem_tail = block;
   return a;
 }
 
@@ -161,18 +157,13 @@ void arena_reset(Arena *arena) {
   }
 }
 
-// this is a recursive function that frees all blocks in the arena
-// properly not the best solution if we expect a lot of blocks,
-//  but it is simple and works for our use case
-static void arena_free_block(MemBlock *block) {
-  if (block->next)
-    arena_free_block(block->next);
-  munmap(block->buf, block->cap);
-}
-
 void arena_free(Arena *a) {
-  arena_free_block(a->mem_head);
-  /* a itself lives inside the first block's mmap — do not dereference after */
+  MemBlock *block = a->mem_head;
+  while (block) {
+    MemBlock *next = block->next;
+    munmap(block->buf, block->cap);
+    block = next;
+  }
 }
 
 size_t arena_total_allocated(const Arena *a) {
