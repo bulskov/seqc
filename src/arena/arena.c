@@ -172,7 +172,7 @@ static void arena_free_block(MemBlock *block) {
 
 void arena_free(Arena *a) {
   arena_free_block(a->mem_head);
-  a->mem_head = NULL;
+  /* a itself lives inside the first block's mmap — do not dereference after */
 }
 
 size_t arena_total_allocated(const Arena *a) {

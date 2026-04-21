@@ -34,8 +34,9 @@ Test(arena, alignment_respected) {
 }
 
 Test(arena, grows_beyond_initial_capacity) {
+  /* Use a large count to exceed ARENA_BLOCK_SIZE worth of ints */
   Arena *a = arena_create(8);
-  for (int i = 0; i < 64; i++) {
+  for (int i = 0; i < 1024; i++) {
     int *p = arena_alloc(a, sizeof(int), _Alignof(int));
     cr_assert_not_null(p);
     *p = i;
@@ -89,7 +90,7 @@ Test(arena, pointers_stable_after_growth) {
 Test(arena, reset_reuses_memory_across_blocks) {
   Arena *a = arena_create(8);
   /* force multiple blocks */
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < 1024; i++)
     arena_alloc(a, sizeof(int), _Alignof(int));
 
   int *before = arena_alloc(a, sizeof(int), _Alignof(int));
@@ -124,7 +125,8 @@ Test(arena, realloc_zero_new_size_returns_null) {
 Test(arena, realloc_shrink_returns_same_ptr) {
   Arena *a = arena_create(64);
   int *p = arena_alloc(a, 4 * sizeof(int), _Alignof(int));
-  void *r = arena_realloc(a, p, 4 * sizeof(int), 2 * sizeof(int), _Alignof(int));
+  void *r =
+      arena_realloc(a, p, 4 * sizeof(int), 2 * sizeof(int), _Alignof(int));
   cr_assert_eq((void *)p, r);
   arena_free(a);
 }
@@ -136,7 +138,7 @@ Test(arena, realloc_last_alloc_extends_in_place) {
   /* grow in place — p is the last allocation */
   int *r = arena_realloc(a, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
   cr_assert_eq((void *)p, (void *)r); /* same pointer — fast path taken */
-  cr_assert_eq(r[0], 42);            /* existing data preserved */
+  cr_assert_eq(r[0], 42);             /* existing data preserved */
   arena_free(a);
 }
 
@@ -158,7 +160,7 @@ Test(arena, realloc_preserves_data_across_blocks) {
   /* fill until a new block is needed, then realloc into it */
   int *p = arena_alloc(a, sizeof(int), _Alignof(int));
   *p = 123;
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < 1024; i++)
     arena_alloc(a, sizeof(int), _Alignof(int));
   int *r = arena_realloc(a, p, sizeof(int), 2 * sizeof(int), _Alignof(int));
   cr_assert_not_null(r);
@@ -175,9 +177,10 @@ Test(arena, block_count_starts_at_one) {
 }
 
 Test(arena, block_count_grows_with_overflow) {
+  /* arena_create rounds up to ARENA_BLOCK_SIZE (4096); allocate more than that */
   Arena *a = arena_create(8);
   size_t initial = arena_block_count(a);
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < 1024; i++)
     arena_alloc(a, sizeof(int), _Alignof(int));
   cr_assert_gt(arena_block_count(a), initial);
   arena_free(a);
@@ -192,7 +195,7 @@ Test(arena, capacity_at_least_initial) {
 Test(arena, capacity_grows_after_overflow) {
   Arena *a = arena_create(8);
   size_t cap_before = arena_capacity(a);
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < 1024; i++)
     arena_alloc(a, sizeof(int), _Alignof(int));
   cr_assert_gt(arena_capacity(a), cap_before);
   arena_free(a);
