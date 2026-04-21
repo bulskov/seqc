@@ -19,6 +19,7 @@ struct Iter {
   void (*drop)(Iter *it); /* frees internal state; NULL is valid     */
   void *state;
   size_t elem_size;
+  Allocator allocator; /* used by adaptors that need to allocate state */
 };
 
 /* Inline drop — call to release resources without a terminal */
@@ -29,7 +30,7 @@ static inline void iter_drop(Iter *it) {
 
 /* --- Sources ------------------------------------------------------------ */
 
-Iter iter_from_slice(Slice s);
+Iter iter_from_slice(Slice s, Allocator allocator);
 
 /* --- Adaptors (take ownership of source) -------------------------------- */
 
@@ -42,7 +43,7 @@ Iter iter_skip(Iter source, size_t n);
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
-Slice iter_collect(Iter it, Allocator allocator);
+Slice iter_collect(Iter it);
 size_t iter_count(Iter it);
 void iter_foreach(Iter it, visitor_fn visit, void *ctx);
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx);

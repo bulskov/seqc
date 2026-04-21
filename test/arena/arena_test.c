@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "arena/arena.h"
+#include "iter/iter.h"
 
 Test(arena, create_and_free) {
   Arena *a = arena_create(64);
@@ -216,5 +217,53 @@ Test(arena, total_allocated_resets_after_reset) {
   size_t after_alloc = arena_total_allocated(a);
   arena_reset(a);
   cr_assert_lt(arena_total_allocated(a), after_alloc);
+  arena_free(a);
+}
+
+/* --- scratch ---------------------------------------------------------- */
+
+Test(arena, scratch_pop_rewinds_pos) {
+  Arena *a = arena_create(256);
+  Scratch s = arena_scratch_push(a);
+  size_t before = arena_total_allocated(a);
+  arena_alloc(a, 64, 1);
+  cr_assert_gt(arena_total_allocated(a), before);
+  arena_scratch_pop(&s);
+  cr_assert_eq(arena_total_allocated(a), before);
+  arena_free(a);
+}
+
+Test(arena, scratch_frees_extra_blocks) {
+  Arena *a = arena_create(64);
+  Scratch s = arena_scratch_push(a);
+  size_t blocks_before = arena_block_count(a);
+  /* allocate enough to trigger a new block */
+  for (int i = 0; i < 1024; i++)
+    arena_alloc(a, sizeof(int), _Alignof(int));
+  cr_assert_gt(arena_block_count(a), blocks_before);
+  arena_scratch_pop(&s);
+  cr_assert_eq(arena_block_count(a), blocks_before);
+  arena_free(a);
+}
+
+Test(arena, scratch_permanent_allocs_survive) {
+  Arena *a = arena_create(256);
+  int *permanent = arena_alloc(a, sizeof(int), _Alignof(int));
+  *permanent = 42;
+  Scratch s = arena_scratch_push(a);
+  arena_alloc(a, 64, 1); /* temporary */
+  arena_scratch_pop(&s);
+  cr_assert_eq(*permanent, 42);
+  arena_free(a);
+}
+
+Test(arena, scratch_allocator_works_with_iter) {
+  Arena *a = arena_create(256);
+  Scratch s = arena_scratch_push(a);
+  int data[] = {1, 2, 3, 4, 5};
+  Slice sl = {data, 5, sizeof(int)};
+  size_t n = iter_count(iter_from_slice(sl, scratch_allocator(&s)));
+  cr_assert_eq(n, 5);
+  arena_scratch_pop(&s);
   arena_free(a);
 }

@@ -30,26 +30,44 @@ static void push_to_arr(const void *elem, void *ctx) {
 Test(iter, from_slice_count) {
   int data[] = {1, 2, 3, 4, 5};
   Slice s = {data, 5, sizeof(int)};
-  cr_assert_eq(iter_count(iter_from_slice(s)), 5);
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(iter_count(iter_from_slice(s, scratch_allocator(&sc))), 5);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, from_slice_empty) {
   Slice s = {NULL, 0, sizeof(int)};
-  cr_assert_eq(iter_count(iter_from_slice(s)), 0);
+  Arena *a = arena_create(64);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(iter_count(iter_from_slice(s, scratch_allocator(&sc))), 0);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, filter_keeps_matching) {
   int data[] = {3, 15, 7, 22, 1, 18};
   Slice s = {data, 6, sizeof(int)};
-  size_t n = iter_count(iter_filter(iter_from_slice(s), gt10, NULL));
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  size_t n = iter_count(
+      iter_filter(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
   cr_assert_eq(n, 3);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, filter_none_match) {
   int data[] = {1, 2, 3};
   Slice s = {data, 3, sizeof(int)};
-  size_t n = iter_count(iter_filter(iter_from_slice(s), gt10, NULL));
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  size_t n = iter_count(
+      iter_filter(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
   cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, map_doubles_values) {
@@ -57,9 +75,8 @@ Test(iter, map_doubles_values) {
   Slice s = {data, 3, sizeof(int)};
   Arena *a = arena_create(256);
 
-  Slice result =
-      iter_collect(iter_map(iter_from_slice(s), double_it, NULL, sizeof(int)),
-                   arena_allocator(a));
+  Slice result = iter_collect(iter_map(iter_from_slice(s, arena_allocator(a)),
+                                       double_it, NULL, sizeof(int)));
 
   cr_assert_eq(result.len, 3);
   cr_assert_eq(*(int *)slice_get(result, 0), 2);
@@ -74,7 +91,7 @@ Test(iter, collect_produces_correct_slice) {
   Slice s = {data, 4, sizeof(int)};
   Arena *a = arena_create(256);
 
-  Slice result = iter_collect(iter_from_slice(s), arena_allocator(a));
+  Slice result = iter_collect(iter_from_slice(s, arena_allocator(a)));
 
   cr_assert_eq(result.len, 4);
   for (size_t i = 0; i < result.len; i++)
@@ -87,7 +104,7 @@ Test(iter, collect_empty_gives_null_ptr) {
   Slice s = {NULL, 0, sizeof(int)};
   Arena *a = arena_create(64);
 
-  Slice result = iter_collect(iter_from_slice(s), arena_allocator(a));
+  Slice result = iter_collect(iter_from_slice(s, arena_allocator(a)));
 
   cr_assert_eq(result.len, 0);
   cr_assert_null(result.ptr);
@@ -98,44 +115,72 @@ Test(iter, collect_empty_gives_null_ptr) {
 Test(iter, take_limits_output) {
   int data[] = {1, 2, 3, 4, 5};
   Slice s = {data, 5, sizeof(int)};
-  cr_assert_eq(iter_count(iter_take(iter_from_slice(s), 3)), 3);
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(
+      iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 3)), 3);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, take_more_than_available) {
   int data[] = {1, 2};
   Slice s = {data, 2, sizeof(int)};
-  cr_assert_eq(iter_count(iter_take(iter_from_slice(s), 100)), 2);
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(
+      iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 100)), 2);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, skip_drops_first_n) {
   int data[] = {1, 2, 3, 4, 5};
   Slice s = {data, 5, sizeof(int)};
-  cr_assert_eq(iter_count(iter_skip(iter_from_slice(s), 3)), 2);
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(
+      iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 3)), 2);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, skip_all) {
   int data[] = {1, 2, 3};
   Slice s = {data, 3, sizeof(int)};
-  cr_assert_eq(iter_count(iter_skip(iter_from_slice(s), 10)), 0);
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  cr_assert_eq(
+      iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 10)), 0);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, reduce_sum) {
   int data[] = {1, 2, 3, 4, 5};
   Slice s = {data, 5, sizeof(int)};
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
   int sum = 0;
-  iter_reduce(iter_from_slice(s), &sum, sum_combine, NULL);
+  iter_reduce(iter_from_slice(s, scratch_allocator(&sc)), &sum, sum_combine, NULL);
   cr_assert_eq(sum, 15);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, foreach_visits_all) {
   int data[] = {10, 20, 30};
   Slice s = {data, 3, sizeof(int)};
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
   int out[3] = {0};
   int *ptr = out;
-  iter_foreach(iter_from_slice(s), push_to_arr, &ptr);
+  iter_foreach(iter_from_slice(s, scratch_allocator(&sc)), push_to_arr, &ptr);
   cr_assert_eq(out[0], 10);
   cr_assert_eq(out[1], 20);
   cr_assert_eq(out[2], 30);
+  arena_scratch_pop(&sc);
+  arena_free(a);
 }
 
 Test(iter, filter_map_chain) {
@@ -143,10 +188,9 @@ Test(iter, filter_map_chain) {
   Slice s = {data, 6, sizeof(int)};
   Arena *a = arena_create(256);
 
-  Slice result =
-      iter_collect(iter_map(iter_filter(iter_from_slice(s), gt10, NULL),
-                            double_it, NULL, sizeof(int)),
-                   arena_allocator(a));
+  Slice result = iter_collect(
+      iter_map(iter_filter(iter_from_slice(s, arena_allocator(a)), gt10, NULL),
+               double_it, NULL, sizeof(int)));
 
   /* 15→30, 22→44, 18→36 */
   cr_assert_eq(result.len, 3);

@@ -17,6 +17,17 @@ typedef struct Allocator {
 typedef struct Arena Arena;
 
 Allocator arena_allocator(Arena *arena);
+Allocator system_allocator(void);
+
+typedef struct {
+  Arena *arena;
+  void *saved_tail; /* opaque MemBlock * */
+  size_t saved_pos;
+} Scratch;
+
+Scratch arena_scratch_push(Arena *arena);
+void arena_scratch_pop(Scratch *scratch);
+Allocator scratch_allocator(Scratch *scratch);
 
 Arena *arena_create(size_t capacity);
 void *arena_alloc(Arena *a, size_t size, size_t align);

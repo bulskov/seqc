@@ -1,8 +1,8 @@
 #include "slice.h"
 
-#include <assert.h>
-
 void *slice_get(Slice s, size_t i) {
-  assert(i < s.len);
+  if (s.ptr == NULL || s.elem_size == 0 || i >= s.len) {
+    return NULL;
+  }
   return (char *)s.ptr + i * s.elem_size;
 }

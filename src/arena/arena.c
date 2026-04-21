@@ -6,6 +6,30 @@
 #include <string.h>
 #include <sys/mman.h>
 
+static void *sys_alloc(void *ctx, size_t size, size_t align) {
+  (void)ctx;
+  (void)align;
+  return malloc(size);
+}
+
+static void *sys_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size,
+                         size_t align) {
+  (void)ctx;
+  (void)old_size;
+  (void)align;
+  return realloc(ptr, new_size);
+}
+
+static void sys_free(void *ctx, void *ptr) {
+  (void)ctx;
+  free(ptr);
+}
+
+Allocator system_allocator(void) {
+  return (Allocator){
+      .alloc = sys_alloc, .realloc = sys_realloc, .free = sys_free};
+}
+
 #define ARENA_BLOCK_SIZE 4096
 
 typedef struct MemBlock {
@@ -202,4 +226,28 @@ Allocator arena_allocator(Arena *arena) {
                      .realloc = (realloc_fn)arena_realloc,
                      .free = (free_fn)NULL,
                      .ctx = arena};
+}
+
+Scratch arena_scratch_push(Arena *arena) {
+  MemBlock *tail = arena->mem_tail;
+  return (Scratch){.arena = arena, .saved_tail = tail, .saved_pos = tail->pos};
+}
+
+void arena_scratch_pop(Scratch *scratch) {
+  Arena *a = scratch->arena;
+  MemBlock *saved = (MemBlock *)scratch->saved_tail;
+  /* free any blocks appended after the saved tail */
+  MemBlock *block = saved->next;
+  while (block) {
+    MemBlock *next = block->next;
+    munmap(block->buf, block->cap);
+    block = next;
+  }
+  saved->next = NULL;
+  saved->pos = scratch->saved_pos;
+  a->mem_tail = saved;
+}
+
+Allocator scratch_allocator(Scratch *scratch) {
+  return arena_allocator(scratch->arena);
 }

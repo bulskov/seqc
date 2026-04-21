@@ -1,10 +1,12 @@
 #include "hashmap.h"
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 size_t hashmap_fnv1a(const void *key, size_t key_size) {
+  if (key_size == 0 || key == NULL) {
+    return 0;
+  }
   const uint8_t *data = (const uint8_t *)key;
   uint64_t hash = 14695981039346656037ULL;
   for (size_t i = 0; i < key_size; i++) {
@@ -15,11 +17,18 @@ size_t hashmap_fnv1a(const void *key, size_t key_size) {
 }
 
 int hashmap_eq_bytes(const void *a, const void *b, size_t key_size) {
+  if (key_size == 0)
+    return 1; /* treat all zero-size keys as equal */
+  if (a == NULL || b == NULL)
+    return 0; /* treat null pointers as unequal to any key, including each other
+               */
   return memcmp(a, b, key_size) == 0;
 }
 
 size_t hashmap_fnv1a_str(const void *key, size_t key_size) {
-  (void)key_size;
+  if (key_size != sizeof(char *) || key == NULL) {
+    return 0; /* invalid key size for string map */
+  }
   const char *s = *(const char *const *)key;
   uint64_t hash = 14695981039346656037ULL;
   for (; *s; s++) {
@@ -30,7 +39,9 @@ size_t hashmap_fnv1a_str(const void *key, size_t key_size) {
 }
 
 int hashmap_eq_str(const void *a, const void *b, size_t key_size) {
-  (void)key_size;
+  if (key_size != sizeof(char *) || a == NULL || b == NULL) {
+    return 0; /* invalid key size for string map */
+  }
   return strcmp(*(const char *const *)a, *(const char *const *)b) == 0;
 }
 
@@ -78,11 +89,13 @@ static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap) {
 
 HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
                        Allocator allocator) {
-  assert(key_size > 0);
-  assert(val_size > 0);
-  assert(hash);
-  assert(eq);
+
+  if (!allocator.alloc || key_size == 0 || val_size == 0 || !hash || !eq) {
+    return (HashMap){0};
+  }
+
   size_t cap = 16;
+
   Bucket *buckets =
       allocator.alloc(allocator.ctx, cap * sizeof(Bucket), _Alignof(Bucket));
   if (!buckets)
@@ -99,7 +112,10 @@ HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
 }
 
 void hashmap_free(HashMap *map) {
-  if (map->buckets && map->allocator.free) {
+  if (!map || !map->buckets) {
+    return; /* nothing to free */
+  }
+  if (map->allocator.free) {
     for (size_t i = 0; i < map->cap; i++) {
       if (map->buckets[i].psl != 0) {
         map->allocator.free(map->allocator.ctx, map->buckets[i].key);
@@ -112,6 +128,9 @@ void hashmap_free(HashMap *map) {
 }
 
 int hashmap_set(HashMap *map, const void *key, const void *value) {
+  if (!map || !map->buckets || !key || !value) {
+    return 0; /* invalid map or key/value */
+  }
   if ((map->len + 1) * 4 > map->cap * 3) {
     hashmap_resize_and_rehash(map, map->cap * 2);
   }
@@ -142,6 +161,9 @@ int hashmap_set(HashMap *map, const void *key, const void *value) {
 }
 
 void *hashmap_get(const HashMap *map, const void *key) {
+  if (!map || !map->buckets || !key) {
+    return NULL; /* invalid map or key */
+  }
   size_t slot = hashmap_get_slot(map, key);
 
   while (1) { /* probe until we find an empty slot or a match */
@@ -156,6 +178,9 @@ void *hashmap_get(const HashMap *map, const void *key) {
 }
 
 int hashmap_delete(HashMap *map, const void *key) {
+  if (!map || !map->buckets || !key) {
+    return 0; /* invalid map or key */
+  }
   size_t slot = hashmap_get_slot(map, key);
 
   while (1) {
@@ -191,6 +216,8 @@ typedef struct {
 
 static int hashmap_iter_next(Iter *it, void *out) {
   HashMapIterState *s = it->state;
+  if (!s)
+    return 0;
   while (s->slot < s->map->cap) {
     Bucket *b = &s->map->buckets[s->slot++];
     if (b->psl != 0) {
@@ -202,13 +229,26 @@ static int hashmap_iter_next(Iter *it, void *out) {
   return 0;
 }
 
-static void hashmap_iter_drop(Iter *it) { free(it->state); }
+static void hashmap_iter_drop(Iter *it) {
+  HashMapIterState *s = it->state;
+  if (s) {
+    if (s->map->allocator.free) {
+      s->map->allocator.free(s->map->allocator.ctx, s);
+    }
+  }
+}
 
 Iter iter_from_hashmap(const HashMap *map) {
-  HashMapIterState *s = malloc(sizeof *s);
-  *s = (HashMapIterState){map, 0};
+  if (!map || !map->buckets) {
+    return (Iter){0}; /* invalid map */
+  }
+  HashMapIterState *s = map->allocator.alloc(
+      map->allocator.ctx, sizeof(HashMapIterState), _Alignof(HashMapIterState));
+  if (s)
+    *s = (HashMapIterState){map, 0};
   return (Iter){.next = hashmap_iter_next,
                 .drop = hashmap_iter_drop,
                 .state = s,
-                .elem_size = sizeof(HashMapEntry)};
+                .elem_size = sizeof(HashMapEntry),
+                .allocator = map->allocator};
 }

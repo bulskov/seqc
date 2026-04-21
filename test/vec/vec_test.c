@@ -76,7 +76,7 @@ Test(vec, iter_collect_round_trip) {
   for (int i = 0; i < 4; i++)
     vec_push(&v, &i);
 
-  Slice result = iter_collect(vec_iter(&v), arena_allocator(a));
+  Slice result = iter_collect(vec_iter(&v));
 
   cr_assert_eq(result.len, 4);
   for (int i = 0; i < 4; i++)
