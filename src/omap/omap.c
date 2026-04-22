@@ -313,24 +313,32 @@ bool omap_max_key(const OMap *m, void *out)
     return true;
 }
 
-OMapEntry omap_min_entry(const OMap *m)
+bool omap_min_entry(const OMap *m, void *key_out, void *val_out)
 {
     if (!m || !m->root)
-        return (OMapEntry){NULL, NULL};
+        return false;
     OMNode *cur = m->root;
     while (cur->left)
         cur = cur->left;
-    return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+    if (key_out)
+        memcpy(key_out, node_key(cur), m->key_size);
+    if (val_out)
+        memcpy(val_out, node_val(cur, m->key_size), m->val_size);
+    return true;
 }
 
-OMapEntry omap_max_entry(const OMap *m)
+bool omap_max_entry(const OMap *m, void *key_out, void *val_out)
 {
     if (!m || !m->root)
-        return (OMapEntry){NULL, NULL};
+        return false;
     OMNode *cur = m->root;
     while (cur->right)
         cur = cur->right;
-    return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+    if (key_out)
+        memcpy(key_out, node_key(cur), m->key_size);
+    if (val_out)
+        memcpy(val_out, node_val(cur, m->key_size), m->val_size);
+    return true;
 }
 
 size_t omap_len(const OMap *m)

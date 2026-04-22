@@ -37,10 +37,10 @@ bool omap_remove(OMap *m, const void *key); /* true=removed false=not found */
 /* Copy the min/max key into out (may be NULL). Returns false if empty. */
 bool omap_min_key(const OMap *m, void *out);
 bool omap_max_key(const OMap *m, void *out);
-/* Return the full entry (key+value pointers) at the min or max key.
- * Returns an entry with both fields NULL if the map is empty. */
-OMapEntry omap_min_entry(const OMap *m);
-OMapEntry omap_max_entry(const OMap *m);
+/* Copy the key and value at the min/max position into key_out and val_out
+ * (either may be NULL). Returns false if the map is empty. */
+bool omap_min_entry(const OMap *m, void *key_out, void *val_out);
+bool omap_max_entry(const OMap *m, void *key_out, void *val_out);
 size_t omap_len(const OMap *m);
 int omap_height(const OMap *m); /* 0 if empty            */
 

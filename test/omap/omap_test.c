@@ -364,9 +364,10 @@ Test(omap, min_entry_returns_smallest_key_and_value)
         int v = keys[i] * 10;
         omap_set(m, &keys[i], &v);
     }
-    OMapEntry e = omap_min_entry(m);
-    cr_assert_eq(*(int *)e.key, 1);
-    cr_assert_eq(*(int *)e.value, 10);
+    int min_k, min_v;
+    cr_assert(omap_min_entry(m, &min_k, &min_v));
+    cr_assert_eq(min_k, 1);
+    cr_assert_eq(min_v, 10);
     arena_free(a);
 }
 
@@ -380,8 +381,9 @@ Test(omap, max_entry_returns_largest_key_and_value)
         int v = keys[i] * 10;
         omap_set(m, &keys[i], &v);
     }
-    OMapEntry e = omap_max_entry(m);
-    cr_assert_eq(*(int *)e.key, 7);
-    cr_assert_eq(*(int *)e.value, 70);
+    int max_k, max_v;
+    cr_assert(omap_max_entry(m, &max_k, &max_v));
+    cr_assert_eq(max_k, 7);
+    cr_assert_eq(max_v, 70);
     arena_free(a);
 }
