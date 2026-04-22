@@ -228,6 +228,6 @@ parameters that are always `_Alignof(max_align_t)` in practice.
   `list_pop_back` must walk to the second-to-last node; use
   [`dlist`](docs/dlist.md) if you need O(1) pop from both ends.
 
-### Future sources
-- `iter_from_file` / `iter_lines` — I/O sources
+### Future / platform
+
 - Cross-platform: `arena` uses `mmap`/`munmap` (`<sys/mman.h>`); needs `VirtualAlloc` path for Windows
