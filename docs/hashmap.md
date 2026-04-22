@@ -120,14 +120,16 @@ hashmap_set(m, &k, &v);
 ### `hashmap_get`
 
 ```c
-void *hashmap_get(const HashMap *map, const void *key);
+bool hashmap_get(const HashMap *map, const void *key, void *out);
 ```
 
-Return a pointer to the stored value, or `NULL` if not found.
+Copy the value for `key` into `*out`. `out` may be `NULL` to test for
+presence only. Returns `true` if found, `false` otherwise.
 
 ```c
-double *val = hashmap_get(m, &k);
-if (val) printf("%.2f\n", *val);
+double val;
+if (hashmap_get(m, &k, &val))
+    printf("%.2f\n", val);
 ```
 
 ---
@@ -149,7 +151,7 @@ bool hashmap_contains(const HashMap *map, const void *key);
 ```
 
 Return `true` if `key` is present in the map. Equivalent to
-`hashmap_get(map, key) != NULL` but expresses intent more clearly.
+`hashmap_get(map, key, NULL)`.
 
 ```c
 if (hashmap_contains(m, &k))
@@ -173,11 +175,11 @@ Iter hashmap_iter(const HashMap *map);
 ```
 
 Iterate over all key-value pairs in unspecified order. Each element is a
-[`HashMapEntry`](#hashmapmapentry) — both `key` and `value` are pointers into
-live bucket storage.
+[`HashMapEntry`](#hashmapentry) — both `key` and `value` are pointers into
+live bucket storage. Do not modify the map while iterating.
 
 ```c
-Iter        it = hashmap_iter(m);
+Iter         it = hashmap_iter(m);
 HashMapEntry e;
 while (it.next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
@@ -238,8 +240,9 @@ for (int i = 0; i < 3; i++)
     hashmap_set(m, &keys[i], &counts[i]);
 
 const char *k = "banana";
-int *count = hashmap_get(m, &k);
-printf("%d\n", *count);  // 1
+int count;
+if (hashmap_get(m, &k, &count))
+    printf("%d\n", count);  // 1
 
 arena_free(a);
 ```

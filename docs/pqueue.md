@@ -112,11 +112,18 @@ while (pqueue_pop(q, &v))
 ### `pqueue_peek`
 
 ```c
-void *pqueue_peek(const PQueue *q);
+bool pqueue_peek(const PQueue *q, void *out);
 ```
 
-Return a pointer to the minimum element without removing it. Returns `NULL` if
-empty. O(1).
+Copy the minimum element into `*out` without removing it. `out` may be `NULL`
+to test for non-emptiness. Returns `true` if the queue is non-empty, `false`
+otherwise. O(1).
+
+```c
+int top;
+if (pqueue_peek(q, &top))
+    printf("min: %d\n", top);
+```
 
 ---
 

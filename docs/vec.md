@@ -96,10 +96,29 @@ while (vec_pop(v, &val))
 void *vec_get(const Vec *v, size_t i);
 ```
 
-Return a pointer to element `i`. No bounds checking.
+Return a pointer to element `i`. No bounds checking. The pointer is
+invalidated by any operation that reallocates the buffer (`vec_push`,
+`vec_insert`, `vec_reserve`).
 
 ```c
 int *third = vec_get(v, 2);
+```
+
+---
+
+### `vec_get_copy`
+
+```c
+bool vec_get_copy(const Vec *v, size_t i, void *out);
+```
+
+Copy element `i` into `*out`. Returns `false` if `i >= len`. Unlike
+`vec_get`, the copied value is not invalidated by later reallocations.
+
+```c
+int val;
+if (vec_get_copy(v, 2, &val))
+    printf("%d\n", val);
 ```
 
 ---

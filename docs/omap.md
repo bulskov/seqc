@@ -75,14 +75,16 @@ omap_set(m, &k, &v);
 ### `omap_get`
 
 ```c
-void *omap_get(const OMap *m, const void *key);
+bool omap_get(const OMap *m, const void *key, void *out);
 ```
 
-Return a pointer to the stored value, or `NULL` if not found.
+Copy the value for `key` into `*out`. `out` may be `NULL` to test for
+presence only. Returns `true` if found, `false` otherwise.
 
 ```c
-double *val = omap_get(m, &(int){1});
-if (val) printf("%.2f\n", *val);
+double val;
+if (omap_get(m, &(int){1}, &val))
+    printf("%.2f\n", val);
 ```
 
 ---
@@ -108,32 +110,34 @@ Remove by key. Returns `true` if removed, `false` if not found.
 ### `omap_min_key` / `omap_max_key`
 
 ```c
-void *omap_min_key(const OMap *m);
-void *omap_max_key(const OMap *m);
+bool omap_min_key(const OMap *m, void *out);
+bool omap_max_key(const OMap *m, void *out);
 ```
 
-Pointer to the smallest / largest key. Returns `NULL` if empty.
+Copy the smallest / largest key into `*out`. Returns `false` if the map is
+empty; `out` may be `NULL` to test for non-emptiness.
 
 ---
 
 ### `omap_min_entry` / `omap_max_entry`
 
 ```c
-OMapEntry omap_min_entry(const OMap *m);
-OMapEntry omap_max_entry(const OMap *m);
+bool omap_min_entry(const OMap *m, void *key_out, void *val_out);
+bool omap_max_entry(const OMap *m, void *key_out, void *val_out);
 ```
 
-Return the full [`OMapEntry`](#omapentry) (key + value pointer) at the
-minimum or maximum key in a single O(log n) walk. Both pointers point into
-live node storage — do not modify the map after calling.
+Copy both the key and value at the minimum / maximum position into
+`*key_out` and `*val_out` respectively. Either output pointer may be `NULL`
+to skip that field. Returns `false` if the map is empty.
 
-Prefer these over `omap_min_key` + `omap_get` when you need both the key and
-the value, since the latter would require two tree walks.
+Prefer these over `omap_min_key` + `omap_get` when you need both key and
+value, since the latter would require two tree walks.
 
 ```c
-OMapEntry lo = omap_min_entry(m);
-OMapEntry hi = omap_max_entry(m);
-printf("range [%d, %d]\n", *(int *)lo.key, *(int *)hi.key);
+int lo_k, lo_v, hi_k, hi_v;
+omap_min_entry(m, &lo_k, &lo_v);
+omap_max_entry(m, &hi_k, &hi_v);
+printf("range [%d, %d]\n", lo_k, hi_k);
 ```
 
 ---
@@ -153,7 +157,9 @@ int    omap_height(const OMap *m);   /* 0 if empty */
 Iter omap_iter(const OMap *m);
 ```
 
-Ascending key-order [`Iter`](iter.md). Each element is an [`OMapEntry`](#omapentry).
+Ascending key-order [`Iter`](iter.md). Each element is an
+[`OMapEntry`](#omapentry) — both `key` and `value` are pointers into live
+node storage. Do not modify the map while iterating.
 
 ### `omap_iter_rev`
 
@@ -161,7 +167,8 @@ Ascending key-order [`Iter`](iter.md). Each element is an [`OMapEntry`](#omapent
 Iter omap_iter_rev(const OMap *m);
 ```
 
-Descending key-order [`Iter`](iter.md).
+Descending key-order [`Iter`](iter.md). Same pointer-lifetime rules as
+`omap_iter`.
 
 ### `omap_iter_range`
 
@@ -211,17 +218,15 @@ Free all nodes and then the OMap struct itself. Do not use `m` after calling thi
 Arena *a = arena_create(4096);
 OMap  *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
 
-// insert word counts
-const char *words[] = {"apple", "banana", "cherry", "apple", "banana", "apple"};
-// (using int keys for brevity)
 for (int i = 1; i <= 5; i++) {
     int v = i * 100;
     omap_set(m, &i, &v);
 }
 
-printf("min=%d max=%d\n",
-       *(int *)omap_min_key(m),  // 1
-       *(int *)omap_max_key(m)); // 5
+int min_k, max_k;
+omap_min_key(m, &min_k);
+omap_max_key(m, &max_k);
+printf("min=%d max=%d\n", min_k, max_k);  // 1, 5
 
 // iterate all in ascending order
 Iter      it = omap_iter(m);
