@@ -216,9 +216,13 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ### Ergonomics (lower priority)
 
-- **`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
-  never use** — these sources are stateless; the allocator is stored on `Iter`
-  for adaptors that need it, but passing one here is awkward at the call site.
+- ~~**`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
+  never use**~~ — by design. All three allocate their internal `state` struct
+  through the passed-in allocator (a bump-pointer op with an arena), and the
+  allocator propagates automatically to every downstream adaptor in the chain.
+  Removing it from sources would break the uniform "caller owns memory" contract
+  and create an inconsistent interface: some `Iter`s would need an allocator
+  passed later, some would not. With an arena the cost is negligible.
 
 - **`list_pop_back` is O(n)** — documented, but the cost is easy to miss in a
   hot loop. Could add a note in the module docs.
