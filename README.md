@@ -207,35 +207,15 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ### API / encapsulation (should fix before publishing)
 
-- ~~**`hashmap_get` pointer stability undocumented**~~ — fixed: `hashmap_get` is now
-  copy-out (`bool hashmap_get(map, key, out)`), matching the `vec_pop` / `pqueue_pop`
-  / `iter_find` pattern used elsewhere in the library. `omap_get`, `omap_min_key`,
-  `omap_max_key`, and `pqueue_peek` were converted to the same copy-out style for
-  consistency. `vec_get` keeps its pointer-return for indexed-access performance;
-  `vec_get_copy` is available as a safe alternative.
-
-- ~~**Redundant `set_hash_fn` / `set_eq_fn` typedefs**~~ — removed: `hash_fn` / `eq_fn`
-  are now defined in `iter.h` (the shared foundation header already included by every
-  collection). `set.h` uses them directly; `hashmap.h` no longer re-declares them.
-  `HashMapEntry` and `OMapEntry` are unified into `MapEntry` in `iter.h`; the
-  module-prefixed names remain as `typedef` aliases for backwards compatibility.
-
 - **PSL capped at `uint8_t` with no assertion** — a `psl` value > 255 wraps
   silently and corrupts the table. Add an `assert(psl < 255)` in the insert
   path so a degenerate hash function fails loudly instead of silently.
 
 ### Ergonomics (lower priority)
 
-- ~~**Stale comment in `iter.h`**~~ — removed: line 9 previously said
-  "Forward declaration — include arena/arena.h to use iter_collect"; the file
-  already includes `arena.h` directly.
-
 - **`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
   never use** — these sources are stateless; the allocator is stored on `Iter`
   for adaptors that need it, but passing one here is awkward at the call site.
-
-- **Stale comment in `iter.h`** — line 9 says "Forward declaration — include
-  arena/arena.h to use iter_collect"; the file already includes it directly.
 
 - **`list_pop_back` is O(n)** — documented, but the cost is easy to miss in a
   hot loop. Could add a note in the module docs.
