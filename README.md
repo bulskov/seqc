@@ -205,6 +205,38 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ## Known gaps / roadmap
 
+### API / encapsulation (should fix before publishing)
+
+- **Internal structs in public headers** — `Bucket`, `SetBucket`, and the fields
+  `buckets`, `cap`, `psl` inside `HashMap`, `Set`, and `Vec` are visible to
+  callers. Any internal layout change is a breaking change with no warning.
+  Fix: forward-declare opaque handles, or at minimum move `Bucket`/`SetBucket`
+  into the `.c` files.
+
+- **`hashmap_get` pointer stability undocumented** — returns a raw pointer into
+  the backing array; any subsequent `hashmap_set` that triggers a resize silently
+  invalidates it. Header needs a "do not cache; invalidated by resize" note.
+
+- **Redundant `set_hash_fn` / `set_eq_fn` typedefs** — identical signatures to
+  `hash_fn` / `eq_fn` from `hashmap.h` but different type names. Either unify
+  them or remove the separate typedefs.
+
+- **PSL capped at `uint8_t` with no assertion** — a `psl` value > 255 wraps
+  silently and corrupts the table. Add an `assert(psl < 255)` in the insert
+  path so a degenerate hash function fails loudly instead of silently.
+
+### Ergonomics (lower priority)
+
+- **`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
+  never use** — these sources are stateless; the allocator is stored on `Iter`
+  for adaptors that need it, but passing one here is awkward at the call site.
+
+- **Stale comment in `iter.h`** — line 9 says "Forward declaration — include
+  arena/arena.h to use iter_collect"; the file already includes it directly.
+
+- **`list_pop_back` is O(n)** — documented, but the cost is easy to miss in a
+  hot loop. Could add a note in the module docs.
+
 ### Future sources
 - `iter_from_file` / `iter_lines` — I/O sources
 - Cross-platform: `arena` uses `mmap`/`munmap` (`<sys/mman.h>`); needs `VirtualAlloc` path for Windows
