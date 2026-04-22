@@ -220,3 +220,63 @@ Test(omap, iter_rev_descending) {
   arena_scratch_pop(&sc);
   arena_free(a);
 }
+
+Test(omap, iter_range_mid) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  for (int i = 1; i <= 10; i++) {
+    int v = i * 100;
+    omap_set(&m, &i, &v);
+  }
+  int lo = 3, hi = 7;
+  Iter it = omap_iter_range(&m, &lo, &hi);
+  OMapEntry e;
+  int n = 0;
+  int prev = 0;
+  while (it.next(&it, &e)) {
+    int k = *(int *)e.key;
+    cr_assert_geq(k, 3);
+    cr_assert_leq(k, 7);
+    cr_assert_lt(prev, k);
+    cr_assert_eq(*(int *)e.value, k * 100);
+    prev = k;
+    n++;
+  }
+  iter_drop(&it);
+  cr_assert_eq(n, 5);
+  arena_free(a);
+}
+
+Test(omap, iter_range_no_lo) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  for (int i = 1; i <= 5; i++) {
+    int v = 0;
+    omap_set(&m, &i, &v);
+  }
+  int hi = 3;
+  Iter it = omap_iter_range(&m, NULL, &hi);
+  OMapEntry e;
+  int n = 0;
+  while (it.next(&it, &e))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 3); /* 1,2,3 */
+  arena_free(a);
+}
+
+Test(omap, iter_range_empty_result) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  int keys[] = {1, 5, 10};
+  for (int i = 0; i < 3; i++) {
+    int v = 0;
+    omap_set(&m, &keys[i], &v);
+  }
+  int lo = 6, hi = 9;
+  Iter it = omap_iter_range(&m, &lo, &hi);
+  OMapEntry e;
+  cr_assert(!it.next(&it, &e));
+  iter_drop(&it);
+  arena_free(a);
+}

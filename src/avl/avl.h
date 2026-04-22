@@ -36,4 +36,7 @@ size_t avl_len(const AVLTree *t);
 int avl_height(const AVLTree *t);    /* 0 if empty             */
 Iter avl_iter(const AVLTree *t);     /* ascending, in-order    */
 Iter avl_iter_rev(const AVLTree *t); /* descending, in-order   */
+/* Ascending in-order, only elements where lo <= elem <= hi.
+ * NULL lo/hi means unbounded on that side. */
+Iter avl_iter_range(const AVLTree *t, const void *lo, const void *hi);
 void avl_free(AVLTree *t);

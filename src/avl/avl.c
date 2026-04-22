@@ -351,3 +351,104 @@ Iter avl_iter_rev(const AVLTree *t) {
                 .elem_size = t->elem_size,
                 .allocator = t->allocator};
 }
+
+/* ---- range iterator ---------------------------------------------------- */
+
+typedef struct {
+  AVLNode **stack;
+  size_t stack_len;
+  size_t stack_cap;
+  AVLNode *current;
+  size_t elem_size;
+  Allocator allocator;
+  compare_fn cmp;
+  void *hi; /* NULL means no upper bound; owned allocation */
+} AVLRangeIterState;
+
+static int avl_range_iter_next(Iter *it, void *out) {
+  AVLRangeIterState *s = it->state;
+  while (s->current) {
+    if (s->stack_len == s->stack_cap) {
+      size_t new_cap =
+          s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP : s->stack_cap * 2;
+      s->stack = s->allocator.realloc(
+          s->allocator.ctx, s->stack, s->stack_cap * sizeof(AVLNode *),
+          new_cap * sizeof(AVLNode *), _Alignof(AVLNode *));
+      s->stack_cap = new_cap;
+    }
+    s->stack[s->stack_len++] = s->current;
+    s->current = s->current->left;
+  }
+  if (s->stack_len == 0)
+    return 0;
+  AVLNode *node = s->stack[--s->stack_len];
+  void *data = node_data(node);
+  if (s->hi && s->cmp(data, s->hi) > 0) {
+    s->stack_len = 0;
+    s->current = NULL;
+    return 0;
+  }
+  memcpy(out, data, s->elem_size);
+  s->current = node->right;
+  return 1;
+}
+
+static void avl_range_iter_drop(Iter *it) {
+  AVLRangeIterState *s = it->state;
+  if (it->allocator.free) {
+    if (s->stack)
+      it->allocator.free(it->allocator.ctx, s->stack);
+    if (s->hi)
+      it->allocator.free(it->allocator.ctx, s->hi);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+static void avl_push_lo(AVLRangeIterState *s, AVLNode *node, const void *lo) {
+  while (node) {
+    if (s->cmp(node_data(node), lo) < 0) {
+      node = node->right;
+    } else {
+      if (s->stack_len == s->stack_cap) {
+        size_t new_cap =
+            s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP : s->stack_cap * 2;
+        s->stack = s->allocator.realloc(
+            s->allocator.ctx, s->stack, s->stack_cap * sizeof(AVLNode *),
+            new_cap * sizeof(AVLNode *), _Alignof(AVLNode *));
+        s->stack_cap = new_cap;
+      }
+      s->stack[s->stack_len++] = node;
+      node = node->left;
+    }
+  }
+}
+
+Iter avl_iter_range(const AVLTree *t, const void *lo, const void *hi) {
+  if (!t)
+    return (Iter){0};
+  AVLRangeIterState *s = t->allocator.alloc(t->allocator.ctx, sizeof *s,
+                                            _Alignof(AVLRangeIterState));
+  void *hi_copy = NULL;
+  if (hi) {
+    hi_copy = t->allocator.alloc(t->allocator.ctx, t->elem_size,
+                                 _Alignof(max_align_t));
+    memcpy(hi_copy, hi, t->elem_size);
+  }
+  *s = (AVLRangeIterState){.stack = NULL,
+                           .stack_len = 0,
+                           .stack_cap = 0,
+                           .current = NULL,
+                           .elem_size = t->elem_size,
+                           .allocator = t->allocator,
+                           .cmp = t->cmp,
+                           .hi = hi_copy};
+  if (lo)
+    avl_push_lo(s, t->root, lo);
+  else
+    s->current = t->root;
+  return (Iter){.next = avl_range_iter_next,
+                .drop = avl_range_iter_drop,
+                .state = s,
+                .elem_size = t->elem_size,
+                .allocator = t->allocator};
+}

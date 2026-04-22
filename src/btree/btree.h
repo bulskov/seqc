@@ -33,4 +33,7 @@ void *btree_max(const BTree *t);              /* NULL if empty          */
 size_t btree_len(const BTree *t);
 Iter btree_iter(const BTree *t);     /* ascending, in-order    */
 Iter btree_iter_rev(const BTree *t); /* descending, in-order   */
+/* Ascending in-order, only elements where lo <= elem <= hi.
+ * NULL lo/hi means unbounded on that side. */
+Iter btree_iter_range(const BTree *t, const void *lo, const void *hi);
 void btree_free(BTree *t);

@@ -53,5 +53,8 @@ int omap_height(const OMap *m); /* 0 if empty            */
 Iter omap_iter(const OMap *m);
 /* Yields OMapEntry in descending key order */
 Iter omap_iter_rev(const OMap *m);
+/* Yields OMapEntry in ascending key order where lo_key <= key <= hi_key.
+ * NULL lo_key/hi_key means unbounded on that side. */
+Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key);
 
 void omap_free(OMap *m);

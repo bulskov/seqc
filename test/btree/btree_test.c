@@ -183,3 +183,70 @@ Test(btree, iter_rev_descending) {
   arena_scratch_pop(&sc);
   arena_free(a);
 }
+
+Test(btree, iter_range_mid) {
+  Arena *a = arena_create(1024);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  for (int i = 0; i < 10; i++)
+    btree_insert(&t, &vals[i]);
+  int lo = 3, hi = 7;
+  Iter it = btree_iter_range(&t, &lo, &hi);
+  int collected[10];
+  int n = 0;
+  while (it.next(&it, &collected[n]))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 5); /* 3,4,5,6,7 */
+  cr_assert_eq(collected[0], 3);
+  cr_assert_eq(collected[4], 7);
+  arena_free(a);
+}
+
+Test(btree, iter_range_no_lo) {
+  Arena *a = arena_create(1024);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {1, 2, 3, 4, 5};
+  for (int i = 0; i < 5; i++)
+    btree_insert(&t, &vals[i]);
+  int hi = 3;
+  Iter it = btree_iter_range(&t, NULL, &hi);
+  int v;
+  int n = 0;
+  while (it.next(&it, &v))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 3); /* 1,2,3 */
+  arena_free(a);
+}
+
+Test(btree, iter_range_no_hi) {
+  Arena *a = arena_create(1024);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {1, 2, 3, 4, 5};
+  for (int i = 0; i < 5; i++)
+    btree_insert(&t, &vals[i]);
+  int lo = 3;
+  Iter it = btree_iter_range(&t, &lo, NULL);
+  int v;
+  int n = 0;
+  while (it.next(&it, &v))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 3); /* 3,4,5 */
+  arena_free(a);
+}
+
+Test(btree, iter_range_empty_result) {
+  Arena *a = arena_create(1024);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {1, 5, 10};
+  for (int i = 0; i < 3; i++)
+    btree_insert(&t, &vals[i]);
+  int lo = 6, hi = 9;
+  Iter it = btree_iter_range(&t, &lo, &hi);
+  int v;
+  cr_assert(!it.next(&it, &v));
+  iter_drop(&it);
+  arena_free(a);
+}
