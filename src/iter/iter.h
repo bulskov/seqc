@@ -50,6 +50,16 @@ Iter iter_chain(Iter a, Iter b);
  * elem_size of result == a.elem_size + b.elem_size */
 Iter iter_zip(Iter a, Iter b);
 
+/* Pairs each element with its 0-based index.
+ * Yields EnumEntry {index, elem} where elem points into an internal buffer.
+ * Do not store elem across calls. */
+typedef struct {
+  size_t index;
+  void *elem; /* pointer into internal buffer — valid until next call */
+} EnumEntry;
+
+Iter iter_enumerate(Iter source);
+
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
 Slice iter_collect(Iter it);

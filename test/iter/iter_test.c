@@ -398,3 +398,39 @@ Test(iter, all_vacuously_true_for_empty) {
   arena_scratch_pop(&sc);
   arena_free(arena);
 }
+
+/* ---- iter_enumerate ---------------------------------------------------- */
+
+Test(iter, enumerate_indices_and_values) {
+  int data[] = {10, 20, 30};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_enumerate(iter_from_slice(s, scratch_allocator(&sc)));
+  EnumEntry e;
+  it.next(&it, &e);
+  cr_assert_eq(e.index, 0);
+  cr_assert_eq(*(int *)e.elem, 10);
+  it.next(&it, &e);
+  cr_assert_eq(e.index, 1);
+  cr_assert_eq(*(int *)e.elem, 20);
+  it.next(&it, &e);
+  cr_assert_eq(e.index, 2);
+  cr_assert_eq(*(int *)e.elem, 30);
+  cr_assert_not(it.next(&it, &e));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, enumerate_empty) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_enumerate(iter_from_slice(s, scratch_allocator(&sc)));
+  EnumEntry e;
+  cr_assert_not(it.next(&it, &e));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}

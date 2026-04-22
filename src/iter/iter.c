@@ -438,3 +438,42 @@ int iter_all(Iter it, pred_fn pred, void *ctx) {
   iter_drop(&it);
   return all;
 }
+
+/* ---- iter_enumerate ---------------------------------------------------- */
+
+typedef struct {
+  Iter source;
+  size_t index;
+  void *buf; /* holds the current element so EnumEntry.elem is valid */
+} EnumState;
+
+static int enum_next(Iter *it, void *out) {
+  EnumState *s = it->state;
+  if (!s->source.next(&s->source, s->buf))
+    return 0;
+  EnumEntry entry = {s->index++, s->buf};
+  memcpy(out, &entry, sizeof(EnumEntry));
+  return 1;
+}
+
+static void enum_drop(Iter *it) {
+  EnumState *s = it->state;
+  iter_drop(&s->source);
+  if (it->allocator.free) {
+    it->allocator.free(it->allocator.ctx, s->buf);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+Iter iter_enumerate(Iter source) {
+  EnumState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                        _Alignof(EnumState));
+  void *buf = source.allocator.alloc(source.allocator.ctx, source.elem_size,
+                                     _Alignof(max_align_t));
+  *s = (EnumState){source, 0, buf};
+  return (Iter){.next = enum_next,
+                .drop = enum_drop,
+                .state = s,
+                .elem_size = sizeof(EnumEntry),
+                .allocator = source.allocator};
+}
