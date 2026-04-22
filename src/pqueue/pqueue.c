@@ -97,3 +97,9 @@ Iter pqueue_iter(const PQueue *q) {
     return (Iter){0};
   return vec_iter(&q->data);
 }
+
+Iter pqueue_iter_rev(const PQueue *q) {
+  if (!q)
+    return (Iter){0};
+  return vec_iter_rev(&q->data);
+}

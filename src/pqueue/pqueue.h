@@ -35,5 +35,6 @@ size_t pqueue_len(const PQueue *q);
 bool pqueue_is_empty(const PQueue *q);
 Iter pqueue_iter(
     const PQueue *q); /* heap-storage order (unspecified priority order) */
-void pqueue_clear(PQueue *q); /* empty the queue, keep buffer */
+Iter pqueue_iter_rev(const PQueue *q); /* reverse heap-storage order */
+void pqueue_clear(PQueue *q);          /* empty the queue, keep buffer */
 void pqueue_free(PQueue *q);

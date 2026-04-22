@@ -192,3 +192,37 @@ Test(pqueue, iter_empty) {
   iter_drop(&it);
   arena_free(a);
 }
+
+/* ---- pqueue_iter_rev --------------------------------------------------- */
+
+Test(pqueue, iter_rev_visits_all_elements) {
+  Arena *a = arena_create(512);
+  PQueue q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {5, 1, 3, 2, 4};
+  for (int i = 0; i < 5; i++)
+    pqueue_push(&q, &vals[i]);
+  int seen_fwd[5], seen_rev[5];
+  size_t nf = 0, nr = 0;
+  Iter fwd = pqueue_iter(&q);
+  while (fwd.next(&fwd, &seen_fwd[nf])) nf++;
+  iter_drop(&fwd);
+  Iter rev = pqueue_iter_rev(&q);
+  while (rev.next(&rev, &seen_rev[nr])) nr++;
+  iter_drop(&rev);
+  cr_assert_eq(nf, 5);
+  cr_assert_eq(nr, 5);
+  /* rev must be exactly the reverse of fwd */
+  for (size_t i = 0; i < 5; i++)
+    cr_assert_eq(seen_rev[i], seen_fwd[4 - i]);
+  arena_free(a);
+}
+
+Test(pqueue, iter_rev_empty) {
+  Arena *a = arena_create(256);
+  PQueue q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+  Iter it = pqueue_iter_rev(&q);
+  int v;
+  cr_assert(!it.next(&it, &v));
+  iter_drop(&it);
+  arena_free(a);
+}

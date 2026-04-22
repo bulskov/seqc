@@ -114,6 +114,17 @@ elements in priority order, use `pqueue_pop` in a loop.
 
 ---
 
+### `pqueue_iter_rev`
+
+```c
+Iter pqueue_iter_rev(const PQueue *q);
+```
+
+Iterate in **reverse heap-storage order**. Equivalent to reversing the
+sequence produced by `pqueue_iter`.
+
+---
+
 ### `pqueue_clear`
 
 ```c
