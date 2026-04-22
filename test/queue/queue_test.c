@@ -244,3 +244,26 @@ Test(queue, back_differs_from_front_after_pop)
     cr_assert_eq(*(int *)queue_back(&q), 4);
     arena_free(a);
 }
+
+/* queue_pop with NULL out: element is consumed but not copied. */
+Test(queue, pop_null_out_discards_element)
+{
+    Arena *a = arena_create(256);
+    Queue q = queue_create(sizeof(int), arena_allocator(a));
+    int vals[] = {10, 20, 30};
+    for (int i = 0; i < 3; i++)
+        queue_push(&q, &vals[i]);
+    cr_assert(queue_pop(&q, NULL)); /* discard front element */
+    cr_assert_eq(queue_len(&q), 2);
+    cr_assert_eq(*(int *)queue_peek(&q), 20); /* 10 is gone */
+    arena_free(a);
+}
+
+/* queue_back on an empty queue must return NULL. */
+Test(queue, back_empty_returns_null)
+{
+    Arena *a = arena_create(64);
+    Queue q = queue_create(sizeof(int), arena_allocator(a));
+    cr_assert_null(queue_back(&q));
+    arena_free(a);
+}

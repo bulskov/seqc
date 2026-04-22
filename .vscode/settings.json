@@ -2,6 +2,8 @@
     "chat.tools.terminal.autoApprove": {
         "git -C /home/bulskov/repos/seqc": true,
         "./build.sh": true,
-        "ctest": true
+        "ctest": true,
+        "llvm-cov-18": true,
+        "cmake": true
     }
 }

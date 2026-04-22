@@ -60,3 +60,12 @@ Test(slice, contains_false_when_no_match)
     Slice s = {data, 3, sizeof(int)};
     cr_assert(!slice_contains(s, int_gt_three, NULL));
 }
+
+/* slice_get with an out-of-bounds index must return NULL. */
+Test(slice, get_out_of_bounds_returns_null)
+{
+    int data[] = {10, 20};
+    Slice s = {data, 2, sizeof(int)};
+    cr_assert_null(slice_get(s, 2));
+    cr_assert_null(slice_get(s, 99));
+}

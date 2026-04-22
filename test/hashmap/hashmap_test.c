@@ -451,3 +451,163 @@ Test(hashmap, contains_returns_false_for_missing_key)
     hashmap_free(&m);
     arena_free(a);
 }
+
+/* ---- collision / probe-chain tests ------------------------------------- */
+
+/* Hash that always maps to slot 0 — forces maximum probing. */
+static size_t always_zero_hash(const void *key, size_t key_size)
+{
+    (void)key;
+    (void)key_size;
+    return 0;
+}
+
+/*
+ * Hash that maps keys 1,4 → slot 0 and keys 2,3 → their face-value slots.
+ * Inserting in order 1,2,3,4 triggers Robin Hood displacement:
+ *   - key4 (home=0) probes to slot 1 where key2 sits with PSL=1 < key4's
+ *     PSL=2, so key4 steals the slot and displaces key2/key3 rightward.
+ */
+static size_t robin_hood_hash(const void *key, size_t key_size)
+{
+    (void)key_size;
+    switch (*(const int *)key)
+    {
+    case 1:
+        return 0;
+    case 2:
+        return 1;
+    case 3:
+        return 2;
+    case 4:
+        return 0; /* same home as key 1 */
+    default:
+        return (size_t)(unsigned)(*(const int *)key);
+    }
+}
+
+/*
+ * All keys land on slot 0.
+ * Exercises the probe loop (psl++, slot++) in both hashmap_set and hashmap_get.
+ */
+Test(hashmap, collision_probe_set_and_get)
+{
+    Arena *a = arena_create(4096);
+    HashMap m = hashmap_create(
+        sizeof(int),
+        sizeof(int),
+        always_zero_hash,
+        hashmap_eq_bytes,
+        arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+    {
+        int v = i * 10;
+        hashmap_set(&m, &i, &v);
+    }
+    cr_assert_eq(m.len, 4);
+    for (int i = 1; i <= 4; i++)
+    {
+        int *got = hashmap_get(&m, &i);
+        cr_assert_not_null(got);
+        cr_assert_eq(*got, i * 10);
+    }
+    arena_free(a);
+}
+
+/*
+ * Robin Hood displacement: insert 1,2,3 at their home slots (PSL=1 each),
+ * then insert 4 (home=0). When 4 reaches slot 1 its PSL=2 > key2's PSL=1,
+ * so 4 steals slot 1 and cascades, displacing key2 then key3 rightward.
+ * All four keys must remain retrievable after the cascade.
+ */
+Test(hashmap, robin_hood_displacement)
+{
+    Arena *a = arena_create(4096);
+    HashMap m = hashmap_create(
+        sizeof(int),
+        sizeof(int),
+        robin_hood_hash,
+        hashmap_eq_bytes,
+        arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+    {
+        int v = i * 10;
+        hashmap_set(&m, &i, &v);
+    }
+    cr_assert_eq(m.len, 4);
+    for (int i = 1; i <= 4; i++)
+    {
+        int *got = hashmap_get(&m, &i);
+        cr_assert_not_null(got);
+        cr_assert_eq(*got, i * 10);
+    }
+    arena_free(a);
+}
+
+/*
+ * Delete a key that is NOT at its home slot (must probe to find it).
+ * Also exercises the backward-shift loop: after deletion the chain must
+ * be compacted so the remaining keys are still reachable.
+ * Uses always_zero_hash so every key is displaced from home.
+ */
+Test(hashmap, collision_delete_probe_and_backward_shift)
+{
+    Arena *a = arena_create(4096);
+    HashMap m = hashmap_create(
+        sizeof(int),
+        sizeof(int),
+        always_zero_hash,
+        hashmap_eq_bytes,
+        arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+    {
+        int v = i * 10;
+        hashmap_set(&m, &i, &v);
+    }
+    /* key 3 sits at slot 2 (home=0); delete requires probing slots 0,1 first
+     * and then backward-shifts key 4 into the vacated slot. */
+    int k = 3;
+    cr_assert(hashmap_delete(&m, &k));
+    cr_assert_null(hashmap_get(&m, &k));
+    for (int i = 1; i <= 4; i++)
+    {
+        if (i == 3)
+            continue;
+        int *got = hashmap_get(&m, &i);
+        cr_assert_not_null(got);
+        cr_assert_eq(*got, i * 10);
+    }
+    cr_assert_eq(m.len, 3);
+    arena_free(a);
+}
+
+/* ---- guard / edge-case tests ------------------------------------------- */
+
+/* hashmap_fnv1a returns 0 for NULL key or zero key_size. */
+Test(hashmap, fnv1a_null_and_zero_size)
+{
+    int x = 1;
+    cr_assert_eq(hashmap_fnv1a(NULL, sizeof(int)), (size_t)0);
+    cr_assert_eq(hashmap_fnv1a(&x, 0), (size_t)0);
+}
+
+/* hashmap_eq_bytes: zero-size keys are always equal; NULL pointers are not. */
+Test(hashmap, eq_bytes_edge_cases)
+{
+    int a = 1, b = 1;
+    cr_assert(hashmap_eq_bytes(&a, &b, 0));
+    cr_assert(!hashmap_eq_bytes(NULL, &b, sizeof(int)));
+    cr_assert(!hashmap_eq_bytes(&a, NULL, sizeof(int)));
+}
+
+/* hashmap_create returns a zero-initialised map when args are invalid. */
+Test(hashmap, create_invalid_args_returns_zero_map)
+{
+    Arena *a = arena_create(256);
+    /* key_size == 0 */
+    HashMap m = hashmap_create(
+        0, sizeof(int), hashmap_fnv1a, hashmap_eq_bytes, arena_allocator(a));
+    cr_assert_null(m.buckets);
+    cr_assert_eq(m.len, 0);
+    arena_free(a);
+}

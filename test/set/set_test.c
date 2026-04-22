@@ -169,3 +169,117 @@ Test(set, iter_rev_empty_set)
     iter_drop(&it);
     arena_free(a);
 }
+
+/* ---- collision / probe-chain tests ------------------------------------- */
+
+/* Forces every element to the same home slot. */
+static size_t always_zero_set_hash(const void *key, size_t key_size)
+{
+    (void)key;
+    (void)key_size;
+    return 0;
+}
+
+/*
+ * Maps keys 1,4 → slot 0, key 2 → slot 1, key 3 → slot 2.
+ * Inserting in order 1,2,3,4 causes Robin Hood displacement when key 4
+ * (home=0) reaches slot 1 where key 2 sits with PSL=1 < key4's PSL=2.
+ */
+static size_t robin_hood_set_hash(const void *key, size_t key_size)
+{
+    (void)key_size;
+    switch (*(const int *)key)
+    {
+    case 1:
+        return 0;
+    case 2:
+        return 1;
+    case 3:
+        return 2;
+    case 4:
+        return 0;
+    default:
+        return (size_t)(unsigned)(*(const int *)key);
+    }
+}
+
+/*
+ * All keys share home slot 0.
+ * Exercises the probe loop in set_insert_raw and set_contains.
+ */
+Test(set, collision_probe_insert_and_contains)
+{
+    Arena *a = arena_create(4096);
+    Set s = set_create(
+        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+        cr_assert(set_add(&s, &i));
+    cr_assert_eq(set_len(&s), 4);
+    for (int i = 1; i <= 4; i++)
+        cr_assert(set_contains(&s, &i));
+    arena_free(a);
+}
+
+/*
+ * Robin Hood displacement: key 4 (home=0) probes past key 1, then steals
+ * slot 1 from key 2 (PSL=1 < incoming PSL=2), cascading key 2 and key 3
+ * rightward.  All four elements must remain members after the cascade.
+ */
+Test(set, collision_robin_hood_displacement)
+{
+    Arena *a = arena_create(4096);
+    Set s = set_create(
+        sizeof(int), robin_hood_set_hash, int_eq, arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+        cr_assert(set_add(&s, &i));
+    cr_assert_eq(set_len(&s), 4);
+    for (int i = 1; i <= 4; i++)
+        cr_assert(set_contains(&s, &i));
+    arena_free(a);
+}
+
+/*
+ * Remove an element that is NOT at its home slot (must probe to find it),
+ * then exercise the backward-shift loop (nb->psl > 1) to compact the chain.
+ * The remaining elements must still be findable.
+ */
+Test(set, collision_remove_probe_and_backward_shift)
+{
+    Arena *a = arena_create(4096);
+    Set s = set_create(
+        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+    for (int i = 1; i <= 4; i++)
+        set_add(&s, &i);
+    /* elem 3 sits at slot 2 (home=0): remove requires probing slots 0,1 first,
+     * then backward-shifts elem 4 into the vacated slot. */
+    int k = 3;
+    cr_assert(set_remove(&s, &k));
+    cr_assert(!set_contains(&s, &k));
+    for (int i = 1; i <= 4; i++)
+    {
+        if (i == 3)
+            continue;
+        cr_assert(set_contains(&s, &i));
+    }
+    cr_assert_eq(set_len(&s), 3);
+    arena_free(a);
+}
+
+/*
+ * set_remove on a non-empty set where the key is absent; exercises the
+ * b->psl == 0 early-exit path (distinct from the s->len == 0 guard).
+ */
+Test(set, remove_absent_hits_empty_slot)
+{
+    Arena *a = arena_create(4096);
+    Set s = set_create(
+        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+    int present = 1;
+    set_add(&s, &present);
+    /* key 99 also hashes to slot 0 but is not in the set; after probing past
+     * present we hit an empty slot and must return false. */
+    int absent = 99;
+    cr_assert(!set_remove(&s, &absent));
+    cr_assert_eq(set_len(&s), 1);
+    arena_free(a);
+}

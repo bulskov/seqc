@@ -352,3 +352,32 @@ Test(vec, contains_returns_false_when_no_match)
     cr_assert(!vec_contains(&v, int_gt_three, NULL));
     arena_free(a);
 }
+
+/* vec_get with an out-of-bounds index must return NULL. */
+Test(vec, get_out_of_bounds_returns_null)
+{
+    Arena *a = arena_create(256);
+    Vec v = vec_create(sizeof(int), arena_allocator(a));
+    int x = 42;
+    vec_push(&v, &x);
+    cr_assert_null(vec_get(&v, 1)); /* only index 0 is valid */
+    cr_assert_null(vec_get(&v, 99));
+    arena_free(a);
+}
+
+/* vec_insert into a full vec must trigger an internal grow. */
+Test(vec, insert_when_full_triggers_grow)
+{
+    Arena *a = arena_create(4096);
+    Vec v = vec_create(sizeof(int), arena_allocator(a));
+    /* Fill exactly to capacity (INITIAL_CAP = 16). */
+    for (int i = 0; i < 16; i++)
+        vec_push(&v, &i);
+    cr_assert_eq(v.len, v.cap); /* at capacity before insert */
+    int newval = 99;
+    vec_insert(&v, 0, &newval); /* insert at front triggers grow */
+    cr_assert_eq(*(int *)vec_get(&v, 0), 99);
+    cr_assert_eq(*(int *)vec_get(&v, 1), 0);
+    cr_assert_eq(v.len, 17);
+    arena_free(a);
+}

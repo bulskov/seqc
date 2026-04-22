@@ -82,7 +82,8 @@ bool list_pop_back(List *l, void *out)
 {
     if (!l || !l->head)
         return false;
-    if (l->head == l->tail) {
+    if (l->head == l->tail)
+    {
         /* single element — reuse list_pop_front logic */
         return list_pop_front(l, out);
     }
