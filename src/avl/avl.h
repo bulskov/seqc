@@ -11,14 +11,6 @@
  * every insert and remove via LL / RR / LR / RL rotations. */
 
 typedef struct AVLNode AVLNode;
-struct AVLNode
-{
-    AVLNode *left;
-    AVLNode *right;
-    int height; /* 1-based; 0 used as sentinel for NULL */
-                /* element data stored inline after the header */
-};
-
 typedef struct AVLTree AVLTree;
 
 AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);

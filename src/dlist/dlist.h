@@ -9,11 +9,6 @@
 /* Doubly-linked list.  Element data is stored inline immediately after each
  * node header, aligned to max_align_t. */
 typedef struct DListNode DListNode;
-struct DListNode
-{
-    DListNode *prev;
-    DListNode *next;
-};
 
 typedef struct DList DList;
 

@@ -2,6 +2,15 @@
 
 #include <string.h>
 
+typedef struct AVLNode AVLNode;
+struct AVLNode
+{
+    AVLNode *left;
+    AVLNode *right;
+    int height; /* 1-based; 0 used as sentinel for NULL */
+                /* element data stored inline after the header */
+};
+
 struct AVLTree
 {
     AVLNode *root;

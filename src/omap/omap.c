@@ -2,6 +2,15 @@
 
 #include <string.h>
 
+typedef struct OMNode OMNode;
+struct OMNode
+{
+    OMNode *left;
+    OMNode *right;
+    int height;
+    /* key data then value data stored inline after the header */
+};
+
 struct OMap
 {
     OMNode *root;

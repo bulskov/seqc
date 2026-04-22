@@ -11,13 +11,7 @@
  * compare_fn: same signature as iter_sort — negative / zero / positive. */
 
 typedef struct OMNode OMNode;
-struct OMNode
-{
-    OMNode *left;
-    OMNode *right;
-    int height;
-    /* key data then value data stored inline after the header */
-};
+typedef struct OMap OMap;
 
 /* Pointer-pair yielded by omap_iter — points directly into the live node.
  * Do not modify the tree while iterating. */
@@ -26,8 +20,6 @@ typedef struct
     void *key;
     void *value;
 } OMapEntry;
-
-typedef struct OMap OMap;
 
 OMap *omap_create(
     size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator);

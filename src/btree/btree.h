@@ -10,13 +10,6 @@
  *   int cmp(const void *a, const void *b) — negative / zero / positive */
 
 typedef struct BTreeNode BTreeNode;
-struct BTreeNode
-{
-    BTreeNode *left;
-    BTreeNode *right;
-    /* element data stored inline after the header */
-};
-
 typedef struct BTree BTree;
 
 BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);

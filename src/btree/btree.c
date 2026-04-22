@@ -3,6 +3,14 @@
 #include <stdbool.h>
 #include <string.h>
 
+typedef struct BTreeNode BTreeNode;
+struct BTreeNode
+{
+    BTreeNode *left;
+    BTreeNode *right;
+    /* element data stored inline after the header */
+};
+
 struct BTree
 {
     BTreeNode *root;

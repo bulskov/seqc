@@ -3,6 +3,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+typedef struct DListNode DListNode;
+struct DListNode
+{
+    DListNode *prev;
+    DListNode *next;
+};
+
 struct DList
 {
     DListNode *head;
