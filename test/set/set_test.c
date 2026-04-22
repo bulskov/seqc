@@ -23,77 +23,77 @@ static bool int_eq(const void *a, const void *b, size_t key_size)
 Test(set, is_empty_on_create)
 {
     Arena *a = arena_create(256);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    cr_assert_eq(set_len(&s), 0);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    cr_assert_eq(set_len(s), 0);
     arena_free(a);
 }
 
 Test(set, add_contains)
 {
     Arena *a = arena_create(1024);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v1 = 1, v2 = 2, v3 = 42;
-    cr_assert(set_add(&s, &v1));
-    cr_assert(set_add(&s, &v2));
-    cr_assert(set_add(&s, &v3));
-    cr_assert(set_contains(&s, &v1));
-    cr_assert(set_contains(&s, &v2));
-    cr_assert(set_contains(&s, &v3));
-    cr_assert_eq(set_len(&s), 3);
+    cr_assert(set_add(s, &v1));
+    cr_assert(set_add(s, &v2));
+    cr_assert(set_add(s, &v3));
+    cr_assert(set_contains(s, &v1));
+    cr_assert(set_contains(s, &v2));
+    cr_assert(set_contains(s, &v3));
+    cr_assert_eq(set_len(s), 3);
     arena_free(a);
 }
 
 Test(set, add_duplicate_returns_0)
 {
     Arena *a = arena_create(512);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 7;
-    cr_assert(set_add(&s, &v));
-    cr_assert_not(set_add(&s, &v)); /* already present */
-    cr_assert_eq(set_len(&s), 1);
+    cr_assert(set_add(s, &v));
+    cr_assert_not(set_add(s, &v)); /* already present */
+    cr_assert_eq(set_len(s), 1);
     arena_free(a);
 }
 
 Test(set, remove_existing)
 {
     Arena *a = arena_create(512);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 5;
-    set_add(&s, &v);
-    cr_assert(set_remove(&s, &v));
-    cr_assert_not(set_contains(&s, &v));
-    cr_assert_eq(set_len(&s), 0);
+    set_add(s, &v);
+    cr_assert(set_remove(s, &v));
+    cr_assert_not(set_contains(s, &v));
+    cr_assert_eq(set_len(s), 0);
     arena_free(a);
 }
 
 Test(set, remove_nonexistent_returns_0)
 {
     Arena *a = arena_create(256);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 99;
-    cr_assert_not(set_remove(&s, &v));
+    cr_assert_not(set_remove(s, &v));
     arena_free(a);
 }
 
 Test(set, does_not_contain_absent_key)
 {
     Arena *a = arena_create(512);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int present = 1, absent = 2;
-    set_add(&s, &present);
-    cr_assert_not(set_contains(&s, &absent));
+    set_add(s, &present);
+    cr_assert_not(set_contains(s, &absent));
     arena_free(a);
 }
 
 Test(set, iter_yields_all_elements)
 {
     Arena *a = arena_create(1024);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int vals[] = {10, 20, 30, 40};
     for (int i = 0; i < 4; i++)
-        set_add(&s, &vals[i]);
+        set_add(s, &vals[i]);
     Scratch sc = arena_scratch_push(a);
-    size_t count = iter_count(set_iter(&s));
+    size_t count = iter_count(set_iter(s));
     cr_assert_eq(count, 4);
     arena_scratch_pop(&sc);
     arena_free(a);
@@ -103,12 +103,12 @@ Test(set, grow_beyond_initial_cap)
 {
     /* Add 20 elements to force a resize (load factor 0.75 of initial cap 16) */
     Arena *a = arena_create(4096);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     for (int i = 0; i < 20; i++)
-        set_add(&s, &i);
-    cr_assert_eq(set_len(&s), 20);
+        set_add(s, &i);
+    cr_assert_eq(set_len(s), 20);
     for (int i = 0; i < 20; i++)
-        cr_assert(set_contains(&s, &i));
+        cr_assert(set_contains(s, &i));
     arena_free(a);
 }
 
@@ -117,27 +117,27 @@ Test(set, grow_beyond_initial_cap)
 Test(set, clear_empties_set)
 {
     Arena *a = arena_create(1024);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     for (int i = 0; i < 5; i++)
-        set_add(&s, &i);
-    set_clear(&s);
-    cr_assert_eq(set_len(&s), 0);
+        set_add(s, &i);
+    set_clear(s);
+    cr_assert_eq(set_len(s), 0);
     for (int i = 0; i < 5; i++)
-        cr_assert(!set_contains(&s, &i));
+        cr_assert(!set_contains(s, &i));
     arena_free(a);
 }
 
 Test(set, clear_allows_reuse)
 {
     Arena *a = arena_create(1024);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     for (int i = 0; i < 3; i++)
-        set_add(&s, &i);
-    set_clear(&s);
+        set_add(s, &i);
+    set_clear(s);
     int x = 42;
-    cr_assert(set_add(&s, &x));
-    cr_assert_eq(set_len(&s), 1);
-    cr_assert(set_contains(&s, &x));
+    cr_assert(set_add(s, &x));
+    cr_assert_eq(set_len(s), 1);
+    cr_assert(set_contains(s, &x));
     arena_free(a);
 }
 
@@ -146,10 +146,10 @@ Test(set, clear_allows_reuse)
 Test(set, iter_rev_yields_all_elements)
 {
     Arena *a = arena_create(1024);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     for (int i = 0; i < 5; i++)
-        set_add(&s, &i);
-    Iter it = set_iter_rev(&s);
+        set_add(s, &i);
+    Iter it = set_iter_rev(s);
     size_t n = 0;
     int v;
     while (it.next(&it, &v))
@@ -162,8 +162,8 @@ Test(set, iter_rev_yields_all_elements)
 Test(set, iter_rev_empty_set)
 {
     Arena *a = arena_create(256);
-    Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Iter it = set_iter_rev(&s);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Iter it = set_iter_rev(s);
     int v;
     cr_assert(!it.next(&it, &v));
     iter_drop(&it);
@@ -210,13 +210,13 @@ static size_t robin_hood_set_hash(const void *key, size_t key_size)
 Test(set, collision_probe_insert_and_contains)
 {
     Arena *a = arena_create(4096);
-    Set s = set_create(
+    Set *s = set_create(
         sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_add(&s, &i));
-    cr_assert_eq(set_len(&s), 4);
+        cr_assert(set_add(s, &i));
+    cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_contains(&s, &i));
+        cr_assert(set_contains(s, &i));
     arena_free(a);
 }
 
@@ -228,13 +228,13 @@ Test(set, collision_probe_insert_and_contains)
 Test(set, collision_robin_hood_displacement)
 {
     Arena *a = arena_create(4096);
-    Set s = set_create(
+    Set *s = set_create(
         sizeof(int), robin_hood_set_hash, int_eq, arena_allocator(a));
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_add(&s, &i));
-    cr_assert_eq(set_len(&s), 4);
+        cr_assert(set_add(s, &i));
+    cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_contains(&s, &i));
+        cr_assert(set_contains(s, &i));
     arena_free(a);
 }
 
@@ -246,22 +246,22 @@ Test(set, collision_robin_hood_displacement)
 Test(set, collision_remove_probe_and_backward_shift)
 {
     Arena *a = arena_create(4096);
-    Set s = set_create(
+    Set *s = set_create(
         sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
     for (int i = 1; i <= 4; i++)
-        set_add(&s, &i);
+        set_add(s, &i);
     /* elem 3 sits at slot 2 (home=0): remove requires probing slots 0,1 first,
      * then backward-shifts elem 4 into the vacated slot. */
     int k = 3;
-    cr_assert(set_remove(&s, &k));
-    cr_assert(!set_contains(&s, &k));
+    cr_assert(set_remove(s, &k));
+    cr_assert(!set_contains(s, &k));
     for (int i = 1; i <= 4; i++)
     {
         if (i == 3)
             continue;
-        cr_assert(set_contains(&s, &i));
+        cr_assert(set_contains(s, &i));
     }
-    cr_assert_eq(set_len(&s), 3);
+    cr_assert_eq(set_len(s), 3);
     arena_free(a);
 }
 
@@ -272,15 +272,15 @@ Test(set, collision_remove_probe_and_backward_shift)
 Test(set, remove_absent_hits_empty_slot)
 {
     Arena *a = arena_create(4096);
-    Set s = set_create(
+    Set *s = set_create(
         sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
     int present = 1;
-    set_add(&s, &present);
+    set_add(s, &present);
     /* key 99 also hashes to slot 0 but is not in the set; after probing past
      * present we hit an empty slot and must return false. */
     int absent = 99;
-    cr_assert(!set_remove(&s, &absent));
-    cr_assert_eq(set_len(&s), 1);
+    cr_assert(!set_remove(s, &absent));
+    cr_assert_eq(set_len(s), 1);
     arena_free(a);
 }
 
@@ -289,37 +289,36 @@ Test(set, remove_absent_hits_empty_slot)
 Test(set, sys_alloc_free_releases_memory)
 {
     Allocator al = sys_allocator();
-    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     for (int i = 0; i < 5; i++)
-        set_add(&s, &i);
-    cr_assert_eq(set_len(&s), 5);
-    set_free(&s);
-    cr_assert_null(s.buckets);
-    cr_assert_eq(s.len, 0);
+        set_add(s, &i);
+    cr_assert_eq(set_len(s), 5);
+    set_free(s);
+    /* memory released — verified by sys_allocator not leaking */
 }
 
 Test(set, sys_alloc_clear_frees_keys)
 {
     Allocator al = sys_allocator();
-    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     for (int i = 0; i < 4; i++)
-        set_add(&s, &i);
-    set_clear(&s);
-    cr_assert_eq(set_len(&s), 0);
+        set_add(s, &i);
+    set_clear(s);
+    cr_assert_eq(set_len(s), 0);
     /* set is still usable after clear */
     int x = 42;
-    cr_assert(set_add(&s, &x));
-    cr_assert(set_contains(&s, &x));
-    set_free(&s);
+    cr_assert(set_add(s, &x));
+    cr_assert(set_contains(s, &x));
+    set_free(s);
 }
 
 Test(set, sys_alloc_remove_frees_key)
 {
     Allocator al = sys_allocator();
-    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     int v = 7;
-    set_add(&s, &v);
-    cr_assert(set_remove(&s, &v));
-    cr_assert(!set_contains(&s, &v));
-    set_free(&s);
+    set_add(s, &v);
+    cr_assert(set_remove(s, &v));
+    cr_assert(!set_contains(s, &v));
+    set_free(s);
 }

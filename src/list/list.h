@@ -14,16 +14,9 @@ struct ListNode
     ListNode *next;
 };
 
-typedef struct
-{
-    ListNode *head;
-    ListNode *tail;
-    size_t len;
-    size_t elem_size;
-    Allocator allocator;
-} List;
+typedef struct List List;
 
-List list_create(size_t elem_size, Allocator allocator);
+List *list_create(size_t elem_size, Allocator allocator);
 void list_push_front(List *l, const void *elem);
 void list_push_back(List *l, const void *elem);
 bool list_pop_front(

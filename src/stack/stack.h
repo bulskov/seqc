@@ -4,12 +4,9 @@
 #include "vec/vec.h"
 
 /* Stack — LIFO wrapper over Vec */
-typedef struct
-{
-    Vec vec;
-} Stack;
+typedef struct Stack Stack;
 
-Stack stack_create(size_t elem_size, Allocator allocator);
+Stack *stack_create(size_t elem_size, Allocator allocator);
 void stack_push(Stack *s, const void *elem);
 bool stack_pop(Stack *s, void *out); /* 1=ok 0=empty; out may be NULL */
 void *stack_peek(const Stack *s);    /* pointer to top; NULL if empty */

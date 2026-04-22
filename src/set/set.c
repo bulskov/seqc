@@ -5,6 +5,23 @@
 
 #define SET_INITIAL_CAP 16
 
+typedef struct
+{
+    void *key;
+    uint8_t psl; /* probe-sequence length; 0 = empty */
+} SetBucket;
+
+struct Set
+{
+    SetBucket *buckets;
+    size_t cap; /* always a power of 2 */
+    size_t len;
+    size_t elem_size;
+    set_hash_fn hash;
+    set_eq_fn eq;
+    Allocator allocator;
+};
+
 /* ---- internal helpers -------------------------------------------------- */
 
 static size_t set_slot(const Set *s, const void *key)
@@ -59,10 +76,13 @@ static void set_resize(Set *s)
 
 /* ---- public API -------------------------------------------------------- */
 
-Set set_create(
+Set *set_create(
     size_t elem_size, set_hash_fn hash, set_eq_fn eq, Allocator allocator)
 {
-    return (Set){
+    Set *s = allocator.alloc(allocator.ctx, sizeof(Set), _Alignof(Set));
+    if (!s)
+        return NULL;
+    *s = (Set){
         .buckets = NULL,
         .cap = 0,
         .len = 0,
@@ -70,6 +90,7 @@ Set set_create(
         .hash = hash,
         .eq = eq,
         .allocator = allocator};
+    return s;
 }
 
 bool set_contains(const Set *s, const void *elem)
@@ -166,9 +187,9 @@ void set_free(Set *s)
                 s->allocator.free(s->allocator.ctx, s->buckets[i].key);
         s->allocator.free(s->allocator.ctx, s->buckets);
     }
-    s->buckets = NULL;
-    s->cap = 0;
-    s->len = 0;
+    Allocator al = s->allocator;
+    if (al.free)
+        al.free(al.ctx, s);
 }
 
 void set_clear(Set *s)

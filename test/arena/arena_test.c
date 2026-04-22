@@ -335,7 +335,8 @@ Test(arena, sys_allocator_alloc_realloc_free)
     *p = 42;
     cr_assert_eq(*p, 42);
     /* realloc to a larger buffer */
-    int *p2 = al.realloc(al.ctx, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
+    int *p2 =
+        al.realloc(al.ctx, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
     cr_assert_not_null(p2);
     cr_assert_eq(p2[0], 42); /* first element preserved */
     /* free */

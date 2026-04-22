@@ -2,6 +2,15 @@
 
 #include <string.h>
 
+struct AVLTree
+{
+    AVLNode *root;
+    size_t len;
+    size_t elem_size;
+    compare_fn cmp;
+    Allocator allocator;
+};
+
 /* ---- node layout ------------------------------------------------------- */
 
 static void *node_data(const AVLNode *node)
@@ -116,14 +125,19 @@ static AVLNode *rebalance(AVLNode *n)
 
 /* ---- public API -------------------------------------------------------- */
 
-AVLTree avl_create(size_t elem_size, compare_fn cmp, Allocator allocator)
+AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator)
 {
-    return (AVLTree){
+    AVLTree *t =
+        allocator.alloc(allocator.ctx, sizeof(AVLTree), _Alignof(AVLTree));
+    if (!t)
+        return NULL;
+    *t = (AVLTree){
         .root = NULL,
         .len = 0,
         .elem_size = elem_size,
         .cmp = cmp,
         .allocator = allocator};
+    return t;
 }
 
 /* --- insert ------------------------------------------------------------- */
@@ -292,13 +306,18 @@ void avl_free(AVLTree *t)
     if (!t)
         return;
     free_subtree(t, t->root);
-    t->root = NULL;
-    t->len = 0;
+    Allocator al = t->allocator;
+    if (al.free)
+        al.free(al.ctx, t);
 }
 
 void avl_clear(AVLTree *t)
 {
-    avl_free(t);
+    if (!t)
+        return;
+    free_subtree(t, t->root);
+    t->root = NULL;
+    t->len = 0;
 }
 
 /* ---- iter: iterative in-order ----------------------------------------- */

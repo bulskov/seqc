@@ -17,16 +17,9 @@ struct BTreeNode
     /* element data stored inline after the header */
 };
 
-typedef struct
-{
-    BTreeNode *root;
-    size_t len;
-    size_t elem_size;
-    compare_fn cmp;
-    Allocator allocator;
-} BTree;
+typedef struct BTree BTree;
 
-BTree btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 bool btree_insert(
     BTree *t, const void *elem); /* true=inserted false=duplicate */
 bool btree_contains(const BTree *t, const void *elem);

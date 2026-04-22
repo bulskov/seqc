@@ -6,17 +6,13 @@
 #include "arena/arena.h"
 #include "iter/iter.h"
 
-typedef struct
-{
-    void *data;
-    size_t len;
-    size_t cap;
-    size_t elem_size;
-    Allocator allocator;
-} Vec;
+typedef struct Vec Vec;
 
-Vec vec_create(size_t elem_size, Allocator allocator);
-Vec vec_create_size(size_t elem_size, size_t capacity, Allocator allocator);
+Vec *vec_create(size_t elem_size, Allocator allocator);
+Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator);
+size_t vec_len(const Vec *v);
+size_t vec_elem_size(const Vec *v);
+size_t vec_cap(const Vec *v);
 void vec_push(Vec *v, const void *elem);
 bool vec_pop(Vec *v, void *out); /* out may be NULL; false if empty */
 void *vec_get(const Vec *v, size_t i);

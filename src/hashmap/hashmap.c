@@ -3,6 +3,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct
+{
+    void *key;
+    void *value;
+    uint8_t psl; /* 0 = empty */
+} Bucket;
+
+struct HashMap
+{
+    Bucket *buckets;
+    size_t cap; /* always power of 2 */
+    size_t len;
+    size_t key_size;
+    size_t val_size;
+    hash_fn hash;
+    eq_fn eq;
+    Allocator allocator;
+};
+
 size_t hashmap_fnv1a(const void *key, size_t key_size)
 {
     if (key_size == 0 || key == NULL)
@@ -104,7 +123,7 @@ static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
     }
 }
 
-HashMap hashmap_create(
+HashMap *hashmap_create(
     size_t key_size,
     size_t val_size,
     hash_fn hash,
@@ -114,17 +133,22 @@ HashMap hashmap_create(
 
     if (!allocator.alloc || key_size == 0 || val_size == 0 || !hash || !eq)
     {
-        return (HashMap){0};
+        return NULL;
     }
+
+    HashMap *m =
+        allocator.alloc(allocator.ctx, sizeof(HashMap), _Alignof(HashMap));
+    if (!m)
+        return NULL;
 
     size_t cap = 16;
 
     Bucket *buckets =
         allocator.alloc(allocator.ctx, cap * sizeof(Bucket), _Alignof(Bucket));
     if (!buckets)
-        return (HashMap){0};
+        return NULL;
     memset(buckets, 0, cap * sizeof(Bucket));
-    return (HashMap){
+    *m = (HashMap){
         .buckets = buckets,
         .cap = cap,
         .len = 0,
@@ -133,6 +157,7 @@ HashMap hashmap_create(
         .hash = hash,
         .eq = eq,
         .allocator = allocator};
+    return m;
 }
 
 void hashmap_free(HashMap *map)
@@ -152,8 +177,10 @@ void hashmap_free(HashMap *map)
             }
         }
         map->allocator.free(map->allocator.ctx, map->buckets);
-        *map = (HashMap){0};
     }
+    Allocator al = map->allocator;
+    if (al.free)
+        al.free(al.ctx, map);
 }
 
 void hashmap_clear(HashMap *map)

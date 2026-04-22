@@ -2,6 +2,15 @@
 
 #include <string.h>
 
+struct List
+{
+    ListNode *head;
+    ListNode *tail;
+    size_t len;
+    size_t elem_size;
+    Allocator allocator;
+};
+
 /* Data lives immediately after the node header, padded to max_align_t so any
  * element type is correctly aligned. */
 static void *node_data(const ListNode *node)
@@ -27,14 +36,18 @@ static ListNode *list_make_node(const List *l, const void *elem)
     return node;
 }
 
-List list_create(size_t elem_size, Allocator allocator)
+List *list_create(size_t elem_size, Allocator allocator)
 {
-    return (List){
+    List *l = allocator.alloc(allocator.ctx, sizeof(List), _Alignof(List));
+    if (!l)
+        return NULL;
+    *l = (List){
         .head = NULL,
         .tail = NULL,
         .len = 0,
         .elem_size = elem_size,
         .allocator = allocator};
+    return l;
 }
 
 void list_push_front(List *l, const void *elem)
@@ -141,16 +154,10 @@ void list_free(List *l)
 {
     if (!l)
         return;
-    ListNode *cur = l->head;
-    while (cur)
-    {
-        ListNode *next = cur->next;
-        if (l->allocator.free)
-            l->allocator.free(l->allocator.ctx, cur);
-        cur = next;
-    }
-    l->head = l->tail = NULL;
-    l->len = 0;
+    list_clear(l);
+    Allocator al = l->allocator;
+    if (al.free)
+        al.free(al.ctx, l);
 }
 
 /* ---- iter -------------------------------------------------------------- */

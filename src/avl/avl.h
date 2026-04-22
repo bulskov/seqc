@@ -19,16 +19,9 @@ struct AVLNode
                 /* element data stored inline after the header */
 };
 
-typedef struct
-{
-    AVLNode *root;
-    size_t len;
-    size_t elem_size;
-    compare_fn cmp;
-    Allocator allocator;
-} AVLTree;
+typedef struct AVLTree AVLTree;
 
-AVLTree avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 bool avl_insert(
     AVLTree *t, const void *elem); /* true=inserted false=duplicate */
 bool avl_contains(const AVLTree *t, const void *elem);

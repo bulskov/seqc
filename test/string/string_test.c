@@ -145,11 +145,11 @@ Test(string, trim_no_whitespace)
 Test(string, builder_append_str)
 {
     Arena *a = arena_create(256);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append(&sb, STRING_LIT("hello"));
-    sb_append_char(&sb, ' ');
-    sb_append_cstr(&sb, "world");
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append(sb, STRING_LIT("hello"));
+    sb_append_char(sb, ' ');
+    sb_append_cstr(sb, "world");
+    String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("hello world")));
     arena_free(a);
 }
@@ -157,8 +157,8 @@ Test(string, builder_append_str)
 Test(string, builder_empty)
 {
     Arena *a = arena_create(256);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    String result = sb_finish(sb);
     cr_assert_eq(result.len, 0);
     arena_free(a);
 }
@@ -244,7 +244,7 @@ Test(string, split_no_delim)
 Test(string, hashmap_string_keys)
 {
     Arena *a = arena_create(1024);
-    HashMap map = hashmap_create(
+    HashMap *map = hashmap_create(
         sizeof(String),
         sizeof(int),
         string_hash,
@@ -254,18 +254,18 @@ Test(string, hashmap_string_keys)
     String k1 = STRING_LIT("foo");
     String k2 = STRING_LIT("bar");
     int v1 = 1, v2 = 2;
-    hashmap_set(&map, &k1, &v1);
-    hashmap_set(&map, &k2, &v2);
+    hashmap_set(map, &k1, &v1);
+    hashmap_set(map, &k2, &v2);
 
-    cr_assert_eq(*(int *)hashmap_get(&map, &k1), 1);
-    cr_assert_eq(*(int *)hashmap_get(&map, &k2), 2);
+    cr_assert_eq(*(int *)hashmap_get(map, &k1), 1);
+    cr_assert_eq(*(int *)hashmap_get(map, &k2), 2);
 
     /* Key from different pointer but same content must still hit */
     char buf[] = "foo";
     String k1_copy = string_from_cstr(buf);
-    cr_assert_eq(*(int *)hashmap_get(&map, &k1_copy), 1);
+    cr_assert_eq(*(int *)hashmap_get(map, &k1_copy), 1);
 
-    hashmap_free(&map);
+    hashmap_free(map);
     arena_free(a);
 }
 
@@ -274,9 +274,9 @@ Test(string, hashmap_string_keys)
 Test(string, sb_append_int_positive)
 {
     Arena *a = arena_create(256);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append_int(&sb, 42);
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append_int(sb, 42);
+    String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("42")));
     arena_free(a);
 }
@@ -284,9 +284,9 @@ Test(string, sb_append_int_positive)
 Test(string, sb_append_int_negative)
 {
     Arena *a = arena_create(256);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append_int(&sb, -123);
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append_int(sb, -123);
+    String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("-123")));
     arena_free(a);
 }
@@ -294,9 +294,9 @@ Test(string, sb_append_int_negative)
 Test(string, sb_append_int_zero)
 {
     Arena *a = arena_create(256);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append_int(&sb, 0);
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append_int(sb, 0);
+    String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("0")));
     arena_free(a);
 }
@@ -304,9 +304,9 @@ Test(string, sb_append_int_zero)
 Test(string, sb_append_fmt_basic)
 {
     Arena *a = arena_create(512);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append_fmt(&sb, "hello %s, you are %d years old", "world", 30);
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append_fmt(sb, "hello %s, you are %d years old", "world", 30);
+    String result = sb_finish(sb);
     cr_assert(
         string_equals(result, STRING_LIT("hello world, you are 30 years old")));
     arena_free(a);
@@ -315,12 +315,12 @@ Test(string, sb_append_fmt_basic)
 Test(string, sb_append_fmt_compose)
 {
     Arena *a = arena_create(512);
-    StringBuilder sb = sb_create(arena_allocator(a));
-    sb_append_cstr(&sb, "x=");
-    sb_append_fmt(&sb, "%d", 7);
-    sb_append_cstr(&sb, ", y=");
-    sb_append_fmt(&sb, "%.2f", 3.14);
-    String result = sb_finish(&sb);
+    StringBuilder *sb = sb_create(arena_allocator(a));
+    sb_append_cstr(sb, "x=");
+    sb_append_fmt(sb, "%d", 7);
+    sb_append_cstr(sb, ", y=");
+    sb_append_fmt(sb, "%.2f", 3.14);
+    String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("x=7, y=3.14")));
     arena_free(a);
 }

@@ -3,6 +3,15 @@
 #include <stdbool.h>
 #include <string.h>
 
+struct DList
+{
+    DListNode *head;
+    DListNode *tail;
+    size_t len;
+    size_t elem_size;
+    Allocator allocator;
+};
+
 /* Data lives immediately after the node header, padded to max_align_t. */
 static void *node_data(const DListNode *node)
 {
@@ -43,14 +52,18 @@ static void unlink_and_free(DList *l, DListNode *node)
     l->len--;
 }
 
-DList dlist_create(size_t elem_size, Allocator allocator)
+DList *dlist_create(size_t elem_size, Allocator allocator)
 {
-    return (DList){
+    DList *l = allocator.alloc(allocator.ctx, sizeof(DList), _Alignof(DList));
+    if (!l)
+        return NULL;
+    *l = (DList){
         .head = NULL,
         .tail = NULL,
         .len = 0,
         .elem_size = elem_size,
         .allocator = allocator};
+    return l;
 }
 
 void dlist_push_front(DList *l, const void *elem)
@@ -141,16 +154,10 @@ void dlist_free(DList *l)
 {
     if (!l)
         return;
-    DListNode *cur = l->head;
-    while (cur)
-    {
-        DListNode *next = cur->next;
-        if (l->allocator.free)
-            l->allocator.free(l->allocator.ctx, cur);
-        cur = next;
-    }
-    l->head = l->tail = NULL;
-    l->len = 0;
+    dlist_clear(l);
+    Allocator al = l->allocator;
+    if (al.free)
+        al.free(al.ctx, l);
 }
 
 /* ---- iter (forward) ---------------------------------------------------- */

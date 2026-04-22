@@ -27,17 +27,9 @@ typedef struct
     void *value;
 } OMapEntry;
 
-typedef struct
-{
-    OMNode *root;
-    size_t len;
-    size_t key_size;
-    size_t val_size;
-    compare_fn cmp;
-    Allocator allocator;
-} OMap;
+typedef struct OMap OMap;
 
-OMap omap_create(
+OMap *omap_create(
     size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator);
 
 /* Insert or update.  Returns true if a new key was inserted, false if updated.

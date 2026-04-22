@@ -3,6 +3,15 @@
 #include <stdbool.h>
 #include <string.h>
 
+struct BTree
+{
+    BTreeNode *root;
+    size_t len;
+    size_t elem_size;
+    compare_fn cmp;
+    Allocator allocator;
+};
+
 /* ---- node layout ------------------------------------------------------- */
 
 static void *node_data(const BTreeNode *node)
@@ -30,14 +39,18 @@ static BTreeNode *make_node(const BTree *t, const void *elem)
 
 /* ---- public API -------------------------------------------------------- */
 
-BTree btree_create(size_t elem_size, compare_fn cmp, Allocator allocator)
+BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator)
 {
-    return (BTree){
+    BTree *t = allocator.alloc(allocator.ctx, sizeof(BTree), _Alignof(BTree));
+    if (!t)
+        return NULL;
+    *t = (BTree){
         .root = NULL,
         .len = 0,
         .elem_size = elem_size,
         .cmp = cmp,
         .allocator = allocator};
+    return t;
 }
 
 bool btree_insert(BTree *t, const void *elem)
@@ -190,13 +203,18 @@ void btree_free(BTree *t)
     if (!t)
         return;
     free_subtree(t, t->root);
-    t->root = NULL;
-    t->len = 0;
+    Allocator al = t->allocator;
+    if (al.free)
+        al.free(al.ctx, t);
 }
 
 void btree_clear(BTree *t)
 {
-    btree_free(t);
+    if (!t)
+        return;
+    free_subtree(t, t->root);
+    t->root = NULL;
+    t->len = 0;
 }
 
 /* ---- iter: iterative in-order ----------------------------------------- */

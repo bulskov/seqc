@@ -6,17 +6,9 @@
 #include "iter/iter.h"
 
 /* Queue — FIFO ring buffer */
-typedef struct
-{
-    char *buf;
-    size_t cap;
-    size_t len;
-    size_t head; /* index of front element */
-    size_t elem_size;
-    Allocator allocator;
-} Queue;
+typedef struct Queue Queue;
 
-Queue queue_create(size_t elem_size, Allocator allocator);
+Queue *queue_create(size_t elem_size, Allocator allocator);
 void queue_push(Queue *q, const void *elem); /* enqueue at back */
 bool queue_pop(
     Queue *q, void *out);         /* dequeue from front; true=ok false=empty */

@@ -2,6 +2,16 @@
 
 #include <string.h>
 
+struct OMap
+{
+    OMNode *root;
+    size_t len;
+    size_t key_size;
+    size_t val_size;
+    compare_fn cmp;
+    Allocator allocator;
+};
+
 /* ---- node layout -------------------------------------------------------
  *
  *  [ OMNode header | ... pad ... | key (key_size) | ... pad ... | value
@@ -115,16 +125,20 @@ static OMNode *rebalance(OMNode *n)
 
 /* ---- public API -------------------------------------------------------- */
 
-OMap omap_create(
+OMap *omap_create(
     size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator)
 {
-    return (OMap){
+    OMap *m = allocator.alloc(allocator.ctx, sizeof(OMap), _Alignof(OMap));
+    if (!m)
+        return NULL;
+    *m = (OMap){
         .root = NULL,
         .len = 0,
         .key_size = key_size,
         .val_size = val_size,
         .cmp = cmp,
         .allocator = allocator};
+    return m;
 }
 
 /* ---- set (insert or update) ------------------------------------------- */
@@ -326,13 +340,18 @@ void omap_free(OMap *m)
     if (!m)
         return;
     free_subtree(m, m->root);
-    m->root = NULL;
-    m->len = 0;
+    Allocator al = m->allocator;
+    if (al.free)
+        al.free(al.ctx, m);
 }
 
 void omap_clear(OMap *m)
 {
-    omap_free(m);
+    if (!m)
+        return;
+    free_subtree(m, m->root);
+    m->root = NULL;
+    m->len = 0;
 }
 
 /* ---- iter: iterative in-order, yields OMapEntry ----------------------- */

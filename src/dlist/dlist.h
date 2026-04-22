@@ -15,16 +15,9 @@ struct DListNode
     DListNode *next;
 };
 
-typedef struct
-{
-    DListNode *head;
-    DListNode *tail;
-    size_t len;
-    size_t elem_size;
-    Allocator allocator;
-} DList;
+typedef struct DList DList;
 
-DList dlist_create(size_t elem_size, Allocator allocator);
+DList *dlist_create(size_t elem_size, Allocator allocator);
 void dlist_push_front(DList *l, const void *elem);
 void dlist_push_back(DList *l, const void *elem);
 bool dlist_pop_front(DList *l, void *out); /* out may be NULL */

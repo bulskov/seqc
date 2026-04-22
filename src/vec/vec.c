@@ -5,36 +5,66 @@
 
 #define INITIAL_CAP 16
 
-Vec vec_create(size_t elem_size, Allocator allocator)
+struct Vec
+{
+    void *data;
+    size_t len;
+    size_t cap;
+    size_t elem_size;
+    Allocator allocator;
+};
+
+Vec *vec_create(size_t elem_size, Allocator allocator)
 {
     if (elem_size == 0 || !allocator.alloc || !allocator.realloc)
     {
-        return (Vec){0};
+        return NULL;
     }
-
-    return (Vec){
+    Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
+    if (!v)
+        return NULL;
+    *v = (Vec){
         .data = NULL,
         .len = 0,
         .cap = 0,
         .elem_size = elem_size,
         .allocator = allocator};
+    return v;
 }
 
-Vec vec_create_size(size_t elem_size, size_t capacity, Allocator allocator)
+Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator)
 {
     if (elem_size == 0 || capacity == 0 || !allocator.alloc
         || !allocator.realloc)
     {
-        return (Vec){0};
+        return NULL;
     }
-
-    return (Vec){
+    Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
+    if (!v)
+        return NULL;
+    *v = (Vec){
         .data = allocator.alloc(
             allocator.ctx, capacity * elem_size, _Alignof(max_align_t)),
         .len = 0,
         .cap = capacity,
         .elem_size = elem_size,
         .allocator = allocator};
+    return v;
+}
+
+size_t vec_len(const Vec *v)
+{
+    return v ? v->len : 0;
+}
+
+size_t vec_elem_size(const Vec *v)
+{
+    return v ? v->elem_size : 0;
+}
+
+size_t vec_cap(const Vec *v)
+{
+    return v ? v->cap : 0;
 }
 
 void vec_push(Vec *v, const void *elem)
@@ -180,20 +210,11 @@ bool vec_contains(const Vec *v, pred_fn pred, void *ctx)
 
 void vec_free(Vec *v)
 {
-    if (!v || !v->data)
-    {
-        return; /* nothing to free */
-    }
-    // real free is not needed since we are using an arena, but we null out the
-    // fields
-
-    if (v->allocator.free)
-    {
+    if (!v)
+        return;
+    if (v->data && v->allocator.free)
         v->allocator.free(v->allocator.ctx, v->data);
-    }
-
-    v->allocator = (Allocator){0};
-    v->data = NULL;
-    v->len = 0;
-    v->cap = 0;
+    Allocator al = v->allocator;
+    if (al.free)
+        al.free(al.ctx, v);
 }

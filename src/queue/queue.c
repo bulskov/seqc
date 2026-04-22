@@ -5,15 +5,29 @@
 
 #define INITIAL_CAP 16
 
-Queue queue_create(size_t elem_size, Allocator allocator)
+struct Queue
 {
-    return (Queue){
+    char *buf;
+    size_t cap;
+    size_t len;
+    size_t head; /* index of front element */
+    size_t elem_size;
+    Allocator allocator;
+};
+
+Queue *queue_create(size_t elem_size, Allocator allocator)
+{
+    Queue *q = allocator.alloc(allocator.ctx, sizeof(Queue), _Alignof(Queue));
+    if (!q)
+        return NULL;
+    *q = (Queue){
         .buf = NULL,
         .cap = 0,
         .len = 0,
         .head = 0,
         .elem_size = elem_size,
         .allocator = allocator};
+    return q;
 }
 
 static void queue_grow(Queue *q)
@@ -95,14 +109,13 @@ void queue_clear(Queue *q)
 
 void queue_free(Queue *q)
 {
-    if (!q || !q->buf)
+    if (!q)
         return;
-    if (q->allocator.free)
+    if (q->buf && q->allocator.free)
         q->allocator.free(q->allocator.ctx, q->buf);
-    q->buf = NULL;
-    q->cap = 0;
-    q->len = 0;
-    q->head = 0;
+    Allocator al = q->allocator;
+    if (al.free)
+        al.free(al.ctx, q);
 }
 
 /* ---- iter -------------------------------------------------------------- */

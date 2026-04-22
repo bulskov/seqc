@@ -76,12 +76,9 @@ String string_trim_right(String s);
 
 /* --- Builder ------------------------------------------------------------ */
 
-typedef struct
-{
-    Vec chars;
-} StringBuilder;
+typedef struct StringBuilder StringBuilder;
 
-StringBuilder sb_create(Allocator allocator);
+StringBuilder *sb_create(Allocator allocator);
 void sb_append(StringBuilder *sb, String s);
 void sb_append_char(StringBuilder *sb, char c);
 void sb_append_cstr(StringBuilder *sb, const char *s);

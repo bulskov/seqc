@@ -594,10 +594,10 @@ static void repeat_n(const void *elem, Iter *out, void *ctx)
     int n = *(const int *)elem;
     Allocator *alloc = ctx;
     /* Build a small Vec of n copies and return an iter over it */
-    Vec v = vec_create(sizeof(int), *alloc);
+    Vec *v = vec_create(sizeof(int), *alloc);
     for (int i = 0; i < n; i++)
-        vec_push(&v, &n);
-    *out = vec_iter(&v);
+        vec_push(v, &n);
+    *out = vec_iter(v);
 }
 
 Test(iter, flat_map_expand)

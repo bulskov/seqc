@@ -123,12 +123,12 @@ String string_trim(String s)
 String string_replace(
     String s, String needle, String replacement, Allocator allocator)
 {
-    StringBuilder sb = sb_create(allocator);
+    StringBuilder *sb = sb_create(allocator);
     if (needle.len == 0)
     {
         /* Empty needle: return a copy unchanged */
-        sb_append(&sb, s);
-        return sb_finish(&sb);
+        sb_append(sb, s);
+        return sb_finish(sb);
     }
     size_t pos = 0;
     while (pos < s.len)
@@ -137,14 +137,14 @@ String string_replace(
         size_t found = string_find(remaining, needle);
         if (found == STRING_NOT_FOUND)
         {
-            sb_append(&sb, remaining);
+            sb_append(sb, remaining);
             break;
         }
-        sb_append(&sb, string_slice(remaining, 0, found));
-        sb_append(&sb, replacement);
+        sb_append(sb, string_slice(remaining, 0, found));
+        sb_append(sb, replacement);
         pos += found + needle.len;
     }
-    return sb_finish(&sb);
+    return sb_finish(sb);
 }
 
 /* --- Transformation (case / join) --------------------------------------- */
@@ -171,20 +171,32 @@ String string_to_lowercase(String s, Allocator allocator)
 
 /* --- Builder ------------------------------------------------------------ */
 
-StringBuilder sb_create(Allocator allocator)
+struct StringBuilder
 {
-    return (StringBuilder){vec_create(sizeof(char), allocator)};
+    Vec *chars;
+    Allocator allocator;
+};
+
+StringBuilder *sb_create(Allocator allocator)
+{
+    StringBuilder *sb = allocator.alloc(
+        allocator.ctx, sizeof(StringBuilder), _Alignof(StringBuilder));
+    if (!sb)
+        return NULL;
+    sb->chars = vec_create(sizeof(char), allocator);
+    sb->allocator = allocator;
+    return sb;
 }
 
 void sb_append(StringBuilder *sb, String s)
 {
     for (size_t i = 0; i < s.len; i++)
-        vec_push(&sb->chars, &s.ptr[i]);
+        vec_push(sb->chars, &s.ptr[i]);
 }
 
 void sb_append_char(StringBuilder *sb, char c)
 {
-    vec_push(&sb->chars, &c);
+    vec_push(sb->chars, &c);
 }
 
 void sb_append_cstr(StringBuilder *sb, const char *s)
@@ -194,7 +206,8 @@ void sb_append_cstr(StringBuilder *sb, const char *s)
 
 String sb_finish(const StringBuilder *sb)
 {
-    return (String){sb->chars.data, sb->chars.len};
+    Slice s = vec_as_slice(sb->chars);
+    return (String){(const char *)s.ptr, s.len};
 }
 
 void sb_append_int(StringBuilder *sb, long long value)
@@ -216,35 +229,34 @@ void sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
         return;
     /* Second pass: write into a stack buffer (common case) or heap */
     char stack_buf[256];
-    char *buf =
-        (size_t)n + 1 <= sizeof stack_buf
-            ? stack_buf
-            : sb->chars.allocator.alloc(
-                  sb->chars.allocator.ctx, (size_t)n + 1, _Alignof(char));
+    char *buf = (size_t)n + 1 <= sizeof stack_buf
+                    ? stack_buf
+                    : sb->allocator.alloc(
+                          sb->allocator.ctx, (size_t)n + 1, _Alignof(char));
     va_start(ap, fmt);
     vsnprintf(buf, (size_t)n + 1, fmt, ap);
     va_end(ap);
     for (int i = 0; i < n; i++)
         sb_append_char(sb, buf[i]);
-    if (buf != stack_buf && sb->chars.allocator.free)
-        sb->chars.allocator.free(sb->chars.allocator.ctx, buf);
+    if (buf != stack_buf && sb->allocator.free)
+        sb->allocator.free(sb->allocator.ctx, buf);
 }
 
 /* string_join is defined after the builder because it uses StringBuilder. */
 String string_join(Iter it, String sep, Allocator allocator)
 {
-    StringBuilder sb = sb_create(allocator);
+    StringBuilder *sb = sb_create(allocator);
     String token;
     bool first = true;
     while (it.next(&it, &token))
     {
         if (!first)
-            sb_append(&sb, sep);
-        sb_append(&sb, token);
+            sb_append(sb, sep);
+        sb_append(sb, token);
         first = false;
     }
     iter_drop(&it);
-    return sb_finish(&sb);
+    return sb_finish(sb);
 }
 
 /* --- string_to_int ------------------------------------------------------ */
