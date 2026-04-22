@@ -685,3 +685,39 @@ Test(hashmap, sys_alloc_resize_frees_old_buckets)
     }
     hashmap_free(m);
 }
+
+Test(hashmap, is_healthy_normal_load)
+{
+    Arena *a = arena_create(8192);
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+        arena_allocator(a));
+    for (int i = 0; i < 50; i++)
+    {
+        int v = i;
+        hashmap_set(m, &i, &v);
+    }
+    cr_assert(hashmap_is_healthy(m));
+    arena_free(a);
+}
+
+Test(hashmap, audit_normal_load)
+{
+    Arena *a = arena_create(8192);
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+        arena_allocator(a));
+    for (int i = 0; i < 50; i++)
+    {
+        int v = i;
+        hashmap_set(m, &i, &v);
+    }
+    HashMapStats s = hashmap_audit(m);
+    cr_assert_eq(s.len, 50);
+    cr_assert(s.cap >= 50);
+    cr_assert(s.load_factor > 0.0 && s.load_factor <= 1.0);
+    cr_assert(s.max_psl >= 1);
+    cr_assert(s.mean_psl >= 1.0);
+    cr_assert(s.is_healthy);
+    arena_free(a);
+}

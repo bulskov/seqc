@@ -322,3 +322,29 @@ Test(set, sys_alloc_remove_frees_key)
     cr_assert(!set_contains(s, &v));
     set_free(s);
 }
+
+Test(set, is_healthy_normal_load)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 50; i++)
+        set_add(s, &i);
+    cr_assert(set_is_healthy(s));
+    arena_free(a);
+}
+
+Test(set, audit_normal_load)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 50; i++)
+        set_add(s, &i);
+    SetStats st = set_audit(s);
+    cr_assert_eq(st.len, 50);
+    cr_assert(st.cap >= 50);
+    cr_assert(st.load_factor > 0.0 && st.load_factor <= 1.0);
+    cr_assert(st.max_psl >= 1);
+    cr_assert(st.mean_psl >= 1.0);
+    cr_assert(st.is_healthy);
+    arena_free(a);
+}

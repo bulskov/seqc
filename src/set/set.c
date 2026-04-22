@@ -1,5 +1,6 @@
 #include "set.h"
 
+#include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -17,6 +18,7 @@ struct Set
     size_t cap; /* always a power of 2 */
     size_t len;
     size_t elem_size;
+    uint8_t max_psl; /* highest PSL of any stored bucket; updated on every insert */
     hash_fn hash;
     eq_fn eq;
     Allocator allocator;
@@ -40,6 +42,8 @@ static void set_insert_raw(Set *s, SetBucket incoming)
         if (cur->psl == 0)
         {
             *cur = incoming;
+            if (incoming.psl > s->max_psl)
+                s->max_psl = incoming.psl;
             return;
         }
         /* Robin Hood: steal the slot from the "rich" (low psl) bucket */
@@ -47,9 +51,12 @@ static void set_insert_raw(Set *s, SetBucket incoming)
         {
             SetBucket tmp = *cur;
             *cur = incoming;
+            if (incoming.psl > s->max_psl)
+                s->max_psl = incoming.psl;
             incoming = tmp;
         }
         incoming.psl++;
+        assert(incoming.psl != 0); /* uint8_t overflow: degenerate hash function */
         slot = (slot + 1) & (s->cap - 1);
     }
 }
@@ -65,6 +72,7 @@ static void set_resize(Set *s)
     size_t old_cap = s->cap;
     s->buckets = nb;
     s->cap = new_cap;
+    s->max_psl = 0; /* recalculated during re-insertion below */
 
     for (size_t i = 0; i < old_cap; i++)
         if (old[i].psl > 0)
@@ -125,7 +133,7 @@ bool set_add(Set *s, const void *elem)
     }
     if (set_contains(s, elem))
         return false;
-    if (s->len * 4 >= s->cap * 3)
+    if (s->len * 4 >= s->cap * 3 || s->max_psl >= SET_PSL_THRESHOLD)
         set_resize(s);
     void *key = s->allocator.alloc(
         s->allocator.ctx, s->elem_size, _Alignof(max_align_t));
@@ -204,6 +212,42 @@ void set_clear(Set *s)
     }
     memset(s->buckets, 0, s->cap * sizeof(SetBucket));
     s->len = 0;
+    s->max_psl = 0;
+}
+
+/* ---- health / diagnostics ---------------------------------------------- */
+
+bool set_is_healthy(const Set *s)
+{
+    return s && s->max_psl <= SET_PSL_THRESHOLD / 2;
+}
+
+SetStats set_audit(const Set *s)
+{
+    if (!s)
+        return (SetStats){0};
+    double sum_psl = 0;
+    uint8_t max_psl = 0;
+    for (size_t i = 0; i < s->cap; i++)
+    {
+        uint8_t p = s->buckets[i].psl;
+        if (p != 0)
+        {
+            sum_psl += p;
+            if (p > max_psl)
+                max_psl = p;
+        }
+    }
+    double load_factor = s->cap > 0 ? (double)s->len / s->cap : 0.0;
+    double mean_psl = s->len > 0 ? sum_psl / (double)s->len : 0.0;
+    return (SetStats){
+        .len = s->len,
+        .cap = s->cap,
+        .load_factor = load_factor,
+        .max_psl = max_psl,
+        .mean_psl = mean_psl,
+        .is_healthy = mean_psl < 3.0 && max_psl <= SET_PSL_THRESHOLD / 2,
+    };
 }
 
 /* ---- iter -------------------------------------------------------------- */

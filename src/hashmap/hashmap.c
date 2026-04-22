@@ -1,4 +1,5 @@
 #include "hashmap.h"
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,7 @@ struct HashMap
     size_t len;
     size_t key_size;
     size_t val_size;
+    uint8_t max_psl; /* highest PSL of any stored bucket; updated on every insert */
     hash_fn hash;
     eq_fn eq;
     Allocator allocator;
@@ -90,6 +92,8 @@ static void hashmap_set_bucket(HashMap *map, size_t slot, Bucket *bucket)
     memcpy(b->key, bucket->key, map->key_size);
     memcpy(b->value, bucket->value, map->val_size);
     b->psl = bucket->psl;
+    if (bucket->psl > map->max_psl)
+        map->max_psl = bucket->psl;
 }
 
 static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
@@ -104,6 +108,7 @@ static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
     map->buckets = new_buckets;
     map->cap = new_cap;
     map->len = 0;
+    map->max_psl = 0; /* recalculated during re-insertion below */
 
     for (size_t i = 0; i < old_cap; i++)
     {
@@ -200,6 +205,7 @@ void hashmap_clear(HashMap *map)
     }
     memset(map->buckets, 0, map->cap * sizeof(Bucket));
     map->len = 0;
+    map->max_psl = 0;
 }
 
 size_t hashmap_len(const HashMap *map)
@@ -218,7 +224,8 @@ bool hashmap_set(HashMap *map, const void *key, const void *value)
     {
         return false; /* invalid map or key/value */
     }
-    if ((map->len + 1) * 4 > map->cap * 3)
+    if ((map->len + 1) * 4 > map->cap * 3 ||
+        map->max_psl >= HASHMAP_PSL_THRESHOLD)
     {
         hashmap_resize_and_rehash(map, map->cap * 2);
     }
@@ -247,9 +254,43 @@ bool hashmap_set(HashMap *map, const void *key, const void *value)
             bucket = temp;
         }
         bucket.psl++;
+        assert(bucket.psl != 0); /* uint8_t overflow: degenerate hash function */
         slot = (slot + 1) & (map->cap - 1);
     }
     return false;
+}
+
+bool hashmap_is_healthy(const HashMap *map)
+{
+    return map && map->max_psl <= HASHMAP_PSL_THRESHOLD / 2;
+}
+
+HashMapStats hashmap_audit(const HashMap *map)
+{
+    if (!map)
+        return (HashMapStats){0};
+    double sum_psl = 0;
+    uint8_t max_psl = 0;
+    for (size_t i = 0; i < map->cap; i++)
+    {
+        uint8_t p = map->buckets[i].psl;
+        if (p != 0)
+        {
+            sum_psl += p;
+            if (p > max_psl)
+                max_psl = p;
+        }
+    }
+    double load_factor = map->cap > 0 ? (double)map->len / map->cap : 0.0;
+    double mean_psl = map->len > 0 ? sum_psl / (double)map->len : 0.0;
+    return (HashMapStats){
+        .len = map->len,
+        .cap = map->cap,
+        .load_factor = load_factor,
+        .max_psl = max_psl,
+        .mean_psl = mean_psl,
+        .is_healthy = mean_psl < 3.0 && max_psl <= HASHMAP_PSL_THRESHOLD / 2,
+    };
 }
 
 bool hashmap_get(const HashMap *map, const void *key, void *out)

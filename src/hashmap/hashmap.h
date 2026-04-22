@@ -38,3 +38,26 @@ bool hashmap_delete(HashMap *map, const void *key);
  * Do not modify the map while iterating. */
 Iter hashmap_iter(const HashMap *map);
 Iter hashmap_iter_rev(const HashMap *map);
+
+/* --- Health / diagnostics ----------------------------------------------- */
+
+/* PSL above this triggers an automatic resize to protect against uint8_t
+ * overflow (max storable PSL is 255). Indicates a degenerate hash function. */
+#define HASHMAP_PSL_THRESHOLD 128
+
+typedef struct
+{
+    size_t len;
+    size_t cap;
+    double load_factor;
+    uint8_t max_psl;  /* highest probe-sequence length of any stored bucket */
+    double mean_psl;  /* average PSL over occupied buckets */
+    bool is_healthy;  /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
+} HashMapStats;
+
+/* O(1) — returns false when max_psl has exceeded HASHMAP_PSL_THRESHOLD/2,
+ * indicating a poor hash function. */
+bool hashmap_is_healthy(const HashMap *map);
+
+/* O(n) — full diagnostic scan; returns per-bucket statistics. */
+HashMapStats hashmap_audit(const HashMap *map);
