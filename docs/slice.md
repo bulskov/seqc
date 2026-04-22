@@ -47,6 +47,37 @@ for (size_t i = 0; i < s.len; i++) {
 
 ---
 
+### `slice_find`
+
+```c
+void *slice_find(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx);
+```
+
+Return a pointer to the first element for which `pred` returns `true`, or
+`NULL` if no such element exists. Linear scan.
+
+```c
+static bool is_negative(const void *elem, void *ctx) {
+    (void)ctx;
+    return *(const int *)elem < 0;
+}
+
+int nums[] = {3, -1, 4, -2};
+Slice s = {nums, 4, sizeof(int)};
+int *p = slice_find(s, is_negative, NULL);  // points to -1
+```
+
+### `slice_contains`
+
+```c
+bool slice_contains(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx);
+```
+
+Return `true` if any element satisfies `pred`. Equivalent to
+`slice_find(s, pred, ctx) != NULL`.
+
+---
+
 ## Creating a slice
 
 Slices are returned by:

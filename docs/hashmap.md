@@ -13,7 +13,7 @@ Open-addressing hash map using Robin Hood hashing.
 
 ```c
 typedef size_t (*hash_fn)(const void *key, size_t key_size);
-typedef int    (*eq_fn)(const void *a, const void *b, size_t key_size);
+typedef bool   (*eq_fn)(const void *a, const void *b, size_t key_size);
 ```
 
 ### `HashMap`
@@ -146,6 +146,22 @@ bool hashmap_delete(HashMap *map, const void *key);
 ```
 
 Remove a key. Returns `true` if removed, `false` if not found.
+
+---
+
+### `hashmap_contains`
+
+```c
+bool hashmap_contains(const HashMap *map, const void *key);
+```
+
+Return `true` if `key` is present in the map. Equivalent to
+`hashmap_get(map, key) != NULL` but expresses intent more clearly.
+
+```c
+if (hashmap_contains(&m, &k))
+    printf("key is present\n");
+```
 
 ---
 

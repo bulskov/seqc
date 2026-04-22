@@ -121,8 +121,9 @@ Iter iter_range(long long start, long long end, long long step,
 ```
 
 Yield `long long` integers from `start` (inclusive) to `end` (exclusive) with
-the given `step`. `step` must not be zero. Yields nothing if the range is
-already exhausted (e.g. `start >= end` with positive step).
+the given `step`. If `step` is zero an empty iterator is returned. Yields
+nothing if the range is already exhausted (e.g. `start >= end` with positive
+step).
 
 ```c
 /* 0, 1, 2, 3, 4 */

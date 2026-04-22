@@ -13,12 +13,12 @@ Open-addressing hash set using Robin Hood hashing.
 
 ```c
 typedef size_t (*set_hash_fn)(const void *key, size_t key_size);
-typedef int    (*set_eq_fn)(const void *a, const void *b, size_t key_size);
+typedef bool   (*set_eq_fn)(const void *a, const void *b, size_t key_size);
 ```
 
-Same signatures as [`hash_fn` / `eq_fn`](hashmap.md#types) in `hashmap`, so
-`hashmap_fnv1a`, `hashmap_eq_bytes`, `hashmap_fnv1a_str`, and `hashmap_eq_str`
-can be passed directly.
+Same signatures as [`hash_fn` / `eq_fn`](hashmap.md#types) in `hashmap`
+(both return `bool`), so `hashmap_fnv1a`, `hashmap_eq_bytes`,
+`hashmap_fnv1a_str`, and `hashmap_eq_str` can be passed directly.
 
 ### `Set`
 
@@ -110,6 +110,24 @@ Iterate over all elements in unspecified order. Yields elements of size
 
 ```c
 Iter it = set_iter(&s);
+int  v;
+while (it.next(&it, &v))
+    printf("%d\n", v);
+iter_drop(&it);
+```
+
+### `set_iter_rev`
+
+```c
+Iter set_iter_rev(const Set *s);
+```
+
+Iterate over all elements in reverse bucket-storage order. Same element set as
+`set_iter`, different traversal direction. Useful when you want to consume in
+the opposite order without collecting first.
+
+```c
+Iter it = set_iter_rev(&s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);

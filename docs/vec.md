@@ -191,6 +191,36 @@ Create a reverse [`Iter`](iter.md) over the Vec (last element first).
 
 ---
 
+### `vec_find`
+
+```c
+void *vec_find(const Vec *v, pred_fn pred, void *ctx);
+```
+
+Return a pointer to the first element for which `pred` returns `true`, or
+`NULL` if no such element exists. Linear scan.
+
+```c
+static bool is_negative(const void *elem, void *ctx) {
+    (void)ctx;
+    return *(const int *)elem < 0;
+}
+
+int *p = vec_find(&v, is_negative, NULL);
+if (p) printf("first negative: %d\n", *p);
+```
+
+### `vec_contains`
+
+```c
+bool vec_contains(const Vec *v, pred_fn pred, void *ctx);
+```
+
+Return `true` if any element satisfies `pred`. Equivalent to
+`vec_find(v, pred, ctx) != NULL`.
+
+---
+
 ### `vec_clear`
 
 ```c

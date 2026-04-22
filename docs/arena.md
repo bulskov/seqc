@@ -91,7 +91,27 @@ void arena_reset(Arena *a);
 ```
 
 Reset the bump position to zero, reusing all previously allocated blocks. Does
-not release memory back to the OS.
+not release memory back to the OS. All overflow blocks (if the arena grew
+beyond its initial capacity) are retained.
+
+---
+
+### `arena_reset_hard`
+
+```c
+void arena_reset_hard(Arena *a);
+```
+
+Like `arena_reset`, but also `munmap`s every overflow block, keeping only
+the original first block. Use this after a temporary allocation burst when
+you want to return pages to the OS rather than retain them.
+
+```c
+// process a large batch that temporarily inflates the arena
+arena_alloc(a, 4 * 1024 * 1024, 1);
+// ...
+arena_reset_hard(a); // shrinks back to the initial block
+```
 
 ---
 

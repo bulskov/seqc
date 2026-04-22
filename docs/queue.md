@@ -81,6 +81,27 @@ empty.
 
 ---
 
+### `queue_back`
+
+```c
+void *queue_back(const Queue *q);
+```
+
+Return a pointer to the back (most recently enqueued) element without
+removing it. Returns `NULL` if empty. Correctly handles the ring-buffer
+wrap-around.
+
+```c
+queue_push(&q, &(int){1});
+queue_push(&q, &(int){2});
+queue_push(&q, &(int){3});
+printf("front=%d back=%d\n",
+       *(int *)queue_peek(&q),   // 1
+       *(int *)queue_back(&q));  // 3
+```
+
+---
+
 ### `queue_is_empty` / `queue_len`
 
 ```c

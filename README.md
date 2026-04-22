@@ -131,7 +131,7 @@ int main(void) {
 | `queue_iter(&q)` | Queue elements front→back | [queue](docs/queue.md) |
 | `list_iter(&l)` | List elements front→back | [list](docs/list.md) |
 | `dlist_iter(&l)` / `dlist_iter_reverse(&l)` | DList forward / reverse | [dlist](docs/dlist.md) |
-| `set_iter(&s)` | Set elements (unordered) | [set](docs/set.md) |
+| `set_iter(&s)` / `set_iter_rev(&s)` | Set elements (unordered) | [set](docs/set.md) |
 | `iter_from_hashmap(&m)` | `HashMapEntry` pairs | [hashmap](docs/hashmap.md) |
 | `string_chars(s, al)` / `string_chars_rev(s, al)` | `char` values | [string](docs/string.md) |
 | `string_split(s, delim, al)` | `String` tokens | [string](docs/string.md) |
@@ -178,9 +178,6 @@ int main(void) {
 
 ### Missing API symmetry
 - `list_pop_back` is missing — `DList` has it; singly-linked list omission should at least be documented
-
-### Memory management
-- `arena_reset` retains all overflow blocks — use `arena_reset_hard` to free extra blocks and keep only the first
 
 ### Future sources
 - `iter_from_file` / `iter_lines` — I/O sources

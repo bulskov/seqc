@@ -97,6 +97,26 @@ size_t btree_len(const BTree *t);
 
 ---
 
+### `btree_height`
+
+```c
+int btree_height(const BTree *t);
+```
+
+Return the height of the tree (longest root-to-leaf path). Returns `0` for an
+empty tree, `1` for a single-node tree. Because `BTree` is unbalanced,
+height can be as large as `n` on sorted input.
+
+```c
+BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+int vals[] = {5, 3, 7, 1, 4, 6, 8};
+for (int i = 0; i < 7; i++)
+    btree_insert(&t, &vals[i]);
+printf("height=%d\n", btree_height(&t));  // 3
+```
+
+---
+
 ### `btree_iter`
 
 ```c

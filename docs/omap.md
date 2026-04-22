@@ -121,6 +121,28 @@ Pointer to the smallest / largest key. Returns `NULL` if empty.
 
 ---
 
+### `omap_min_entry` / `omap_max_entry`
+
+```c
+OMapEntry omap_min_entry(const OMap *m);
+OMapEntry omap_max_entry(const OMap *m);
+```
+
+Return the full [`OMapEntry`](#omapentry) (key + value pointer) at the
+minimum or maximum key in a single O(log n) walk. Both pointers point into
+live node storage — do not modify the map after calling.
+
+Prefer these over `omap_min_key` + `omap_get` when you need both the key and
+the value, since the latter would require two tree walks.
+
+```c
+OMapEntry lo = omap_min_entry(&m);
+OMapEntry hi = omap_max_entry(&m);
+printf("range [%d, %d]\n", *(int *)lo.key, *(int *)hi.key);
+```
+
+---
+
 ### `omap_len` / `omap_height`
 
 ```c
