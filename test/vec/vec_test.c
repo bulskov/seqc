@@ -8,7 +8,7 @@ Test(vec, create_is_empty)
     Arena *a = arena_create(256);
     Vec *v = vec_create(sizeof(int), arena_allocator(a));
     cr_assert_eq(vec_len(v), 0);
-    
+
     vec_free(v);
     arena_free(a);
 }
