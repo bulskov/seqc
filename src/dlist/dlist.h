@@ -33,5 +33,5 @@ bool dlist_is_empty(const DList *l);
 size_t dlist_len(const DList *l);
 Iter dlist_iter(const DList *l);         /* front→back */
 Iter dlist_iter_reverse(const DList *l); /* back→front */
-void dlist_clear(DList *l); /* remove all nodes */
+void dlist_clear(DList *l);              /* remove all nodes */
 void dlist_free(DList *l);

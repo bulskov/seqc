@@ -42,3 +42,4 @@ Iter avl_iter_rev(const AVLTree *t); /* descending, in-order   */
  * NULL lo/hi means unbounded on that side. */
 Iter avl_iter_range(const AVLTree *t, const void *lo, const void *hi);
 void avl_free(AVLTree *t);
+void avl_clear(AVLTree *t);

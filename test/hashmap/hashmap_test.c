@@ -244,3 +244,38 @@ Test(hashmap, delete_middle_of_cluster) {
   hashmap_free(&m);
   arena_free(a);
 }
+
+/* ---- hashmap_clear ----------------------------------------------------- */
+
+Test(hashmap, clear_empties_map) {
+  Arena *a = arena_create(4096);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  for (int i = 0; i < 5; i++) {
+    int v = i * 10;
+    hashmap_set(&m, &i, &v);
+  }
+  hashmap_clear(&m);
+  cr_assert_eq(hashmap_len(&m), 0);
+  for (int i = 0; i < 5; i++)
+    cr_assert_null(hashmap_get(&m, &i));
+  arena_free(a);
+}
+
+Test(hashmap, clear_allows_reuse) {
+  Arena *a = arena_create(4096);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  for (int i = 0; i < 3; i++) {
+    int v = i;
+    hashmap_set(&m, &i, &v);
+  }
+  hashmap_clear(&m);
+  int k = 99, v = 42;
+  hashmap_set(&m, &k, &v);
+  cr_assert_eq(hashmap_len(&m), 1);
+  int *got = hashmap_get(&m, &k);
+  cr_assert_not_null(got);
+  cr_assert_eq(*got, 42);
+  arena_free(a);
+}

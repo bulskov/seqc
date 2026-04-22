@@ -250,6 +250,8 @@ void avl_free(AVLTree *t) {
   t->len = 0;
 }
 
+void avl_clear(AVLTree *t) { avl_free(t); }
+
 /* ---- iter: iterative in-order ----------------------------------------- */
 
 #define AVL_ITER_STACK_INIT_CAP 16

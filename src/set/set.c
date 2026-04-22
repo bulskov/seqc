@@ -148,6 +148,18 @@ void set_free(Set *s) {
   s->len = 0;
 }
 
+void set_clear(Set *s) {
+  if (!s || !s->buckets)
+    return;
+  if (s->allocator.free) {
+    for (size_t i = 0; i < s->cap; i++)
+      if (s->buckets[i].psl > 0)
+        s->allocator.free(s->allocator.ctx, s->buckets[i].key);
+  }
+  memset(s->buckets, 0, s->cap * sizeof(SetBucket));
+  s->len = 0;
+}
+
 /* ---- iter -------------------------------------------------------------- */
 
 typedef struct {

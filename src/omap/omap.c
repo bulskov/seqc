@@ -251,6 +251,8 @@ void omap_free(OMap *m) {
   m->len = 0;
 }
 
+void omap_clear(OMap *m) { omap_free(m); }
+
 /* ---- iter: iterative in-order, yields OMapEntry ----------------------- */
 
 #define OMAP_ITER_STACK_INIT_CAP 16

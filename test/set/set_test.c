@@ -101,3 +101,28 @@ Test(set, grow_beyond_initial_cap) {
     cr_assert(set_contains(&s, &i));
   arena_free(a);
 }
+
+/* ---- set_clear --------------------------------------------------------- */
+
+Test(set, clear_empties_set) {
+  Arena *a = arena_create(1024);
+  Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+  for (int i = 0; i < 5; i++) set_add(&s, &i);
+  set_clear(&s);
+  cr_assert_eq(set_len(&s), 0);
+  for (int i = 0; i < 5; i++)
+    cr_assert(!set_contains(&s, &i));
+  arena_free(a);
+}
+
+Test(set, clear_allows_reuse) {
+  Arena *a = arena_create(1024);
+  Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+  for (int i = 0; i < 3; i++) set_add(&s, &i);
+  set_clear(&s);
+  int x = 42;
+  cr_assert(set_add(&s, &x));
+  cr_assert_eq(set_len(&s), 1);
+  cr_assert(set_contains(&s, &x));
+  arena_free(a);
+}

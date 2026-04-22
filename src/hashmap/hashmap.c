@@ -128,6 +128,21 @@ void hashmap_free(HashMap *map) {
   }
 }
 
+void hashmap_clear(HashMap *map) {
+  if (!map || !map->buckets)
+    return;
+  if (map->allocator.free) {
+    for (size_t i = 0; i < map->cap; i++) {
+      if (map->buckets[i].psl != 0) {
+        map->allocator.free(map->allocator.ctx, map->buckets[i].key);
+        map->allocator.free(map->allocator.ctx, map->buckets[i].value);
+      }
+    }
+  }
+  memset(map->buckets, 0, map->cap * sizeof(Bucket));
+  map->len = 0;
+}
+
 size_t hashmap_len(const HashMap *map) { return map ? map->len : 0; }
 
 bool hashmap_set(HashMap *map, const void *key, const void *value) {

@@ -339,3 +339,30 @@ Test(avl, iter_range_empty_result) {
   iter_drop(&it);
   arena_free(a);
 }
+
+/* ---- avl_clear --------------------------------------------------------- */
+
+Test(avl, clear_empties_tree) {
+  Arena *a = arena_create(1024);
+  AVLTree t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {3, 1, 5, 2, 4};
+  for (int i = 0; i < 5; i++) avl_insert(&t, &vals[i]);
+  avl_clear(&t);
+  cr_assert_eq(avl_len(&t), 0);
+  cr_assert_null(avl_min(&t));
+  cr_assert_null(avl_max(&t));
+  arena_free(a);
+}
+
+Test(avl, clear_allows_reuse) {
+  Arena *a = arena_create(1024);
+  AVLTree t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+  int vals[] = {3, 1, 5};
+  for (int i = 0; i < 3; i++) avl_insert(&t, &vals[i]);
+  avl_clear(&t);
+  int x = 42;
+  cr_assert(avl_insert(&t, &x));
+  cr_assert_eq(avl_len(&t), 1);
+  cr_assert(avl_contains(&t, &x));
+  arena_free(a);
+}

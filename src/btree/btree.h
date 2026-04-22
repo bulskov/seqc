@@ -39,3 +39,4 @@ Iter btree_iter_rev(const BTree *t); /* descending, in-order   */
  * NULL lo/hi means unbounded on that side. */
 Iter btree_iter_range(const BTree *t, const void *lo, const void *hi);
 void btree_free(BTree *t);
+void btree_clear(BTree *t);

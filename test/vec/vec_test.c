@@ -254,7 +254,8 @@ Test(vec, remove_last_element) {
 Test(vec, clear_resets_len) {
   Arena *a = arena_create(256);
   Vec v = vec_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 5; i++) vec_push(&v, &i);
+  for (int i = 0; i < 5; i++)
+    vec_push(&v, &i);
   size_t cap = v.cap;
   vec_clear(&v);
   cr_assert_eq(v.len, 0);
@@ -265,7 +266,8 @@ Test(vec, clear_resets_len) {
 Test(vec, clear_allows_reuse) {
   Arena *a = arena_create(256);
   Vec v = vec_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 3; i++) vec_push(&v, &i);
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
   vec_clear(&v);
   int x = 42;
   vec_push(&v, &x);

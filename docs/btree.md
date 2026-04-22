@@ -133,6 +133,18 @@ iter_drop(&it);
 
 ---
 
+### `btree_clear`
+
+```c
+void btree_clear(BTree *t);
+```
+
+Remove all elements. Every node is freed back to the allocator (a no-op for
+arena allocators) and `root` is set to NULL. The `BTree` struct remains valid
+and can be reused immediately.
+
+---
+
 ### `btree_free`
 
 ```c

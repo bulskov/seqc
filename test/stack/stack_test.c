@@ -96,7 +96,8 @@ Test(stack, pop_null_out_ok) {
 Test(stack, clear_empties_stack) {
   Arena *a = arena_create(256);
   Stack s = stack_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 4; i++) stack_push(&s, &i);
+  for (int i = 0; i < 4; i++)
+    stack_push(&s, &i);
   stack_clear(&s);
   cr_assert(stack_is_empty(&s));
   cr_assert_eq(stack_len(&s), 0);
@@ -106,7 +107,8 @@ Test(stack, clear_empties_stack) {
 Test(stack, clear_allows_reuse) {
   Arena *a = arena_create(256);
   Stack s = stack_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 3; i++) stack_push(&s, &i);
+  for (int i = 0; i < 3; i++)
+    stack_push(&s, &i);
   stack_clear(&s);
   int x = 99;
   stack_push(&s, &x);

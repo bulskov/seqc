@@ -133,6 +133,18 @@ iter_drop(&it);
 
 ---
 
+### `avl_clear`
+
+```c
+void avl_clear(AVLTree *t);
+```
+
+Remove all elements. Every node is freed back to the allocator (a no-op for
+arena allocators) and `root` is set to NULL. The `AVLTree` struct remains valid
+and can be reused immediately.
+
+---
+
 ### `avl_free`
 
 ```c

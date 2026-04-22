@@ -166,6 +166,18 @@ iter_drop(&it);
 
 ---
 
+### `omap_clear`
+
+```c
+void omap_clear(OMap *m);
+```
+
+Remove all key-value pairs. Every node is freed back to the allocator (a no-op
+for arena allocators) and `root` is set to NULL. The `OMap` struct remains
+valid and can be reused immediately.
+
+---
+
 ### `omap_free`
 
 ```c

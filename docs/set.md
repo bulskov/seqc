@@ -118,6 +118,19 @@ iter_drop(&it);
 
 ---
 
+### `set_clear`
+
+```c
+void set_clear(Set *s);
+```
+
+Remove all elements. Key copies are freed (no-op for arena allocators) and the
+bucket array is zeroed. The allocated bucket buffer is retained, so subsequent
+insertions will not reallocate until the load factor threshold is reached
+again.
+
+---
+
 ### `set_free`
 
 ```c

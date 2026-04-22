@@ -35,4 +35,5 @@ bool set_contains(const Set *s, const void *elem);
 bool set_remove(Set *s, const void *elem); /* true=removed false=not found */
 size_t set_len(const Set *s);
 void set_free(Set *s);
+void set_clear(Set *s);
 Iter set_iter(const Set *s); /* order unspecified */

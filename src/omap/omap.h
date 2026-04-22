@@ -60,3 +60,4 @@ Iter omap_iter_rev(const OMap *m);
 Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key);
 
 void omap_free(OMap *m);
+void omap_clear(OMap *m);

@@ -128,7 +128,8 @@ Test(pqueue, interleaved_push_pop) {
 Test(pqueue, clear_empties_queue) {
   Arena *a = arena_create(256);
   PQueue q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
-  for (int i = 5; i >= 1; i--) pqueue_push(&q, &i);
+  for (int i = 5; i >= 1; i--)
+    pqueue_push(&q, &i);
   pqueue_clear(&q);
   cr_assert(pqueue_is_empty(&q));
   cr_assert_eq(pqueue_len(&q), 0);
@@ -139,7 +140,8 @@ Test(pqueue, clear_allows_reuse) {
   Arena *a = arena_create(256);
   PQueue q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
   int vals[] = {5, 3, 7};
-  for (int i = 0; i < 3; i++) pqueue_push(&q, &vals[i]);
+  for (int i = 0; i < 3; i++)
+    pqueue_push(&q, &vals[i]);
   pqueue_clear(&q);
   int x = 42;
   pqueue_push(&q, &x);

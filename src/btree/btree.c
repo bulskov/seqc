@@ -154,6 +154,8 @@ void btree_free(BTree *t) {
   t->len = 0;
 }
 
+void btree_clear(BTree *t) { btree_free(t); }
+
 /* ---- iter: iterative in-order ----------------------------------------- */
 
 #define BTREE_ITER_STACK_INIT_CAP 16

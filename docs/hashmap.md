@@ -178,6 +178,19 @@ iter_drop(&it);
 
 ---
 
+### `hashmap_clear`
+
+```c
+void hashmap_clear(HashMap *map);
+```
+
+Remove all entries. Key and value copies are freed (no-op for arena
+allocators) and the bucket array is zeroed. The allocated bucket buffer is
+retained, so subsequent insertions will not reallocate until the load factor
+threshold is reached again.
+
+---
+
 ### `hashmap_free`
 
 ```c

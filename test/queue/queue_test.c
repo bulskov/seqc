@@ -120,7 +120,8 @@ Test(queue, iter_front_to_back) {
 Test(queue, clear_empties_queue) {
   Arena *a = arena_create(256);
   Queue q = queue_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 4; i++) queue_push(&q, &i);
+  for (int i = 0; i < 4; i++)
+    queue_push(&q, &i);
   queue_clear(&q);
   cr_assert(queue_is_empty(&q));
   cr_assert_eq(queue_len(&q), 0);
@@ -130,7 +131,8 @@ Test(queue, clear_empties_queue) {
 Test(queue, clear_allows_reuse) {
   Arena *a = arena_create(256);
   Queue q = queue_create(sizeof(int), arena_allocator(a));
-  for (int i = 0; i < 3; i++) queue_push(&q, &i);
+  for (int i = 0; i < 3; i++)
+    queue_push(&q, &i);
   queue_clear(&q);
   int x = 42;
   queue_push(&q, &x);

@@ -280,3 +280,36 @@ Test(omap, iter_range_empty_result) {
   iter_drop(&it);
   arena_free(a);
 }
+
+/* ---- omap_clear -------------------------------------------------------- */
+
+Test(omap, clear_empties_map) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  int keys[] = {3, 1, 5};
+  for (int i = 0; i < 3; i++) {
+    int v = keys[i] * 10;
+    omap_set(&m, &keys[i], &v);
+  }
+  omap_clear(&m);
+  cr_assert_eq(omap_len(&m), 0);
+  cr_assert_null(omap_min_key(&m));
+  cr_assert_null(omap_max_key(&m));
+  arena_free(a);
+}
+
+Test(omap, clear_allows_reuse) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  int keys[] = {3, 1, 5};
+  for (int i = 0; i < 3; i++) {
+    int v = 0;
+    omap_set(&m, &keys[i], &v);
+  }
+  omap_clear(&m);
+  int k = 42, v = 99;
+  cr_assert(omap_set(&m, &k, &v));
+  cr_assert_eq(omap_len(&m), 1);
+  cr_assert(omap_contains(&m, &k));
+  arena_free(a);
+}
