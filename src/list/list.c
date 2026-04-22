@@ -2,6 +2,13 @@
 
 #include <string.h>
 
+typedef struct ListNode ListNode;
+
+struct ListNode
+{
+    ListNode *next;
+};
+
 struct List
 {
     ListNode *head;

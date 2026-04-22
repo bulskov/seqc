@@ -8,11 +8,8 @@
 
 /* Singly-linked list.  Element data is stored inline immediately after each
  * node header, aligned to max_align_t. */
-typedef struct ListNode ListNode;
-struct ListNode
-{
-    ListNode *next;
-};
+
+ 
 
 typedef struct List List;
 
