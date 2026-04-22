@@ -7,6 +7,8 @@
 #include "iter/iter.h"
 #include "vec/vec.h"
 
+#include <stdarg.h>
+
 typedef struct {
   const char *ptr;
   size_t len;
@@ -54,6 +56,8 @@ StringBuilder sb_create(Allocator allocator);
 void sb_append(StringBuilder *sb, String s);
 void sb_append_char(StringBuilder *sb, char c);
 void sb_append_cstr(StringBuilder *sb, const char *s);
+void sb_append_int(StringBuilder *sb, long long value);
+void sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
 String sb_finish(const StringBuilder *sb); /* view — no copy      */
 
 /* --- HashMap helpers ---------------------------------------------------- */

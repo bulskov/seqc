@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 /* --- Construction ------------------------------------------------------- */
@@ -117,6 +118,36 @@ void sb_append_cstr(StringBuilder *sb, const char *s) {
 
 String sb_finish(const StringBuilder *sb) {
   return (String){sb->chars.data, sb->chars.len};
+}
+
+void sb_append_int(StringBuilder *sb, long long value) {
+  char buf[32];
+  int n = snprintf(buf, sizeof buf, "%lld", value);
+  if (n > 0)
+    sb_append_cstr(sb, buf);
+}
+
+void sb_append_fmt(StringBuilder *sb, const char *fmt, ...) {
+  /* First pass: measure */
+  va_list ap;
+  va_start(ap, fmt);
+  int n = vsnprintf(NULL, 0, fmt, ap);
+  va_end(ap);
+  if (n <= 0)
+    return;
+  /* Second pass: write into a stack buffer (common case) or heap */
+  char stack_buf[256];
+  char *buf = (size_t)n + 1 <= sizeof stack_buf
+                  ? stack_buf
+                  : sb->chars.allocator.alloc(sb->chars.allocator.ctx,
+                                              (size_t)n + 1, _Alignof(char));
+  va_start(ap, fmt);
+  vsnprintf(buf, (size_t)n + 1, fmt, ap);
+  va_end(ap);
+  for (int i = 0; i < n; i++)
+    sb_append_char(sb, buf[i]);
+  if (buf != stack_buf && sb->chars.allocator.free)
+    sb->chars.allocator.free(sb->chars.allocator.ctx, buf);
 }
 
 /* --- Iter sources ------------------------------------------------------- */

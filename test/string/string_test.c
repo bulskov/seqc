@@ -235,3 +235,54 @@ Test(string, hashmap_string_keys) {
   hashmap_free(&map);
   arena_free(a);
 }
+
+/* --- sb_append_int / sb_append_fmt ------------------------------------- */
+
+Test(string, sb_append_int_positive) {
+  Arena *a = arena_create(256);
+  StringBuilder sb = sb_create(arena_allocator(a));
+  sb_append_int(&sb, 42);
+  String result = sb_finish(&sb);
+  cr_assert(string_equals(result, STRING_LIT("42")));
+  arena_free(a);
+}
+
+Test(string, sb_append_int_negative) {
+  Arena *a = arena_create(256);
+  StringBuilder sb = sb_create(arena_allocator(a));
+  sb_append_int(&sb, -123);
+  String result = sb_finish(&sb);
+  cr_assert(string_equals(result, STRING_LIT("-123")));
+  arena_free(a);
+}
+
+Test(string, sb_append_int_zero) {
+  Arena *a = arena_create(256);
+  StringBuilder sb = sb_create(arena_allocator(a));
+  sb_append_int(&sb, 0);
+  String result = sb_finish(&sb);
+  cr_assert(string_equals(result, STRING_LIT("0")));
+  arena_free(a);
+}
+
+Test(string, sb_append_fmt_basic) {
+  Arena *a = arena_create(512);
+  StringBuilder sb = sb_create(arena_allocator(a));
+  sb_append_fmt(&sb, "hello %s, you are %d years old", "world", 30);
+  String result = sb_finish(&sb);
+  cr_assert(
+      string_equals(result, STRING_LIT("hello world, you are 30 years old")));
+  arena_free(a);
+}
+
+Test(string, sb_append_fmt_compose) {
+  Arena *a = arena_create(512);
+  StringBuilder sb = sb_create(arena_allocator(a));
+  sb_append_cstr(&sb, "x=");
+  sb_append_fmt(&sb, "%d", 7);
+  sb_append_cstr(&sb, ", y=");
+  sb_append_fmt(&sb, "%.2f", 3.14);
+  String result = sb_finish(&sb);
+  cr_assert(string_equals(result, STRING_LIT("x=7, y=3.14")));
+  arena_free(a);
+}
