@@ -60,6 +60,16 @@ typedef struct {
 
 Iter iter_enumerate(Iter source);
 
+/* Yields overlapping windows of size n as a Slice.
+ * The slice points into an internal buffer — copy if you need to keep it.
+ * Yields nothing if the source has fewer than n elements. */
+Iter iter_window(Iter source, size_t n);
+
+/* Yields non-overlapping chunks of size n as a Slice.
+ * The last chunk may be smaller than n.
+ * The slice points into an internal buffer — copy if you need to keep it. */
+Iter iter_chunks(Iter source, size_t n);
+
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
 Slice iter_collect(Iter it);

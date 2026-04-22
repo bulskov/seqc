@@ -434,3 +434,92 @@ Test(iter, enumerate_empty) {
   arena_scratch_pop(&sc);
   arena_free(arena);
 }
+
+/* ---- iter_window ------------------------------------------------------- */
+
+Test(iter, window_basic) {
+  int data[] = {1, 2, 3, 4, 5};
+  Slice s = {data, 5, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_window(iter_from_slice(s, scratch_allocator(&sc)), 3);
+  Slice w;
+  /* window [1,2,3] */
+  cr_assert(it.next(&it, &w));
+  cr_assert_eq(w.len, 3);
+  cr_assert_eq(*(int *)slice_get(w, 0), 1);
+  cr_assert_eq(*(int *)slice_get(w, 1), 2);
+  cr_assert_eq(*(int *)slice_get(w, 2), 3);
+  /* window [2,3,4] */
+  cr_assert(it.next(&it, &w));
+  cr_assert_eq(*(int *)slice_get(w, 0), 2);
+  cr_assert_eq(*(int *)slice_get(w, 2), 4);
+  /* window [3,4,5] */
+  cr_assert(it.next(&it, &w));
+  cr_assert_eq(*(int *)slice_get(w, 0), 3);
+  cr_assert_eq(*(int *)slice_get(w, 2), 5);
+  cr_assert_not(it.next(&it, &w));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, window_source_too_short) {
+  int data[] = {1, 2};
+  Slice s = {data, 2, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_window(iter_from_slice(s, scratch_allocator(&sc)), 3);
+  Slice w;
+  cr_assert_not(it.next(&it, &w));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_chunks ------------------------------------------------------- */
+
+Test(iter, chunks_even) {
+  int data[] = {1, 2, 3, 4, 5, 6};
+  Slice s = {data, 6, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 2);
+  Slice c;
+  cr_assert(it.next(&it, &c));
+  cr_assert_eq(c.len, 2);
+  cr_assert_eq(*(int *)slice_get(c, 0), 1);
+  cr_assert_eq(*(int *)slice_get(c, 1), 2);
+  cr_assert(it.next(&it, &c));
+  cr_assert_eq(c.len, 2);
+  cr_assert_eq(*(int *)slice_get(c, 0), 3);
+  cr_assert_eq(*(int *)slice_get(c, 1), 4);
+  cr_assert(it.next(&it, &c));
+  cr_assert_eq(c.len, 2);
+  cr_assert_eq(*(int *)slice_get(c, 0), 5);
+  cr_assert_eq(*(int *)slice_get(c, 1), 6);
+  cr_assert_not(it.next(&it, &c));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, chunks_remainder) {
+  int data[] = {1, 2, 3, 4, 5};
+  Slice s = {data, 5, sizeof(int)};
+  Arena *arena = arena_create(512);
+  Scratch sc = arena_scratch_push(arena);
+  Iter it = iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 2);
+  Slice c;
+  it.next(&it, &c);
+  cr_assert_eq(c.len, 2);
+  it.next(&it, &c);
+  cr_assert_eq(c.len, 2);
+  cr_assert(it.next(&it, &c));
+  cr_assert_eq(c.len, 1); /* remainder */
+  cr_assert_eq(*(int *)slice_get(c, 0), 5);
+  cr_assert_not(it.next(&it, &c));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}

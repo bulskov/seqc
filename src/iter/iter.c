@@ -477,3 +477,106 @@ Iter iter_enumerate(Iter source) {
                 .elem_size = sizeof(EnumEntry),
                 .allocator = source.allocator};
 }
+
+/* ---- iter_window ------------------------------------------------------- */
+
+typedef struct {
+  Iter source;
+  char *buf; /* n * elem_size bytes                  */
+  size_t n;
+  size_t elem_size;
+  int primed; /* 1 once the first window is filled    */
+  Allocator allocator;
+} WindowState;
+
+static int window_next(Iter *it, void *out) {
+  WindowState *s = it->state;
+  if (!s->primed) {
+    /* Fill first n elements */
+    for (size_t i = 0; i < s->n; i++) {
+      if (!s->source.next(&s->source, s->buf + i * s->elem_size))
+        return 0; /* source shorter than n */
+    }
+    s->primed = 1;
+  } else {
+    /* Shift left by one, read new element at end */
+    memmove(s->buf, s->buf + s->elem_size, (s->n - 1) * s->elem_size);
+    if (!s->source.next(&s->source, s->buf + (s->n - 1) * s->elem_size))
+      return 0;
+  }
+  Slice sl = {s->buf, s->n, s->elem_size};
+  memcpy(out, &sl, sizeof(Slice));
+  return 1;
+}
+
+static void window_drop(Iter *it) {
+  WindowState *s = it->state;
+  iter_drop(&s->source);
+  if (it->allocator.free) {
+    it->allocator.free(it->allocator.ctx, s->buf);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+Iter iter_window(Iter source, size_t n) {
+  WindowState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                          _Alignof(WindowState));
+  char *buf = source.allocator.alloc(source.allocator.ctx, n * source.elem_size,
+                                     _Alignof(max_align_t));
+  *s = (WindowState){source, buf, n, source.elem_size, 0, source.allocator};
+  return (Iter){.next = window_next,
+                .drop = window_drop,
+                .state = s,
+                .elem_size = sizeof(Slice),
+                .allocator = source.allocator};
+}
+
+/* ---- iter_chunks ------------------------------------------------------- */
+
+typedef struct {
+  Iter source;
+  char *buf; /* n * elem_size bytes */
+  size_t n;
+  size_t elem_size;
+  int done;
+  Allocator allocator;
+} ChunkState;
+
+static int chunk_next(Iter *it, void *out) {
+  ChunkState *s = it->state;
+  if (s->done)
+    return 0;
+  size_t count = 0;
+  while (count < s->n &&
+         s->source.next(&s->source, s->buf + count * s->elem_size))
+    count++;
+  if (count == 0)
+    return 0;
+  if (count < s->n)
+    s->done = 1; /* last partial chunk */
+  Slice sl = {s->buf, count, s->elem_size};
+  memcpy(out, &sl, sizeof(Slice));
+  return 1;
+}
+
+static void chunk_drop(Iter *it) {
+  ChunkState *s = it->state;
+  iter_drop(&s->source);
+  if (it->allocator.free) {
+    it->allocator.free(it->allocator.ctx, s->buf);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+Iter iter_chunks(Iter source, size_t n) {
+  ChunkState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                         _Alignof(ChunkState));
+  char *buf = source.allocator.alloc(source.allocator.ctx, n * source.elem_size,
+                                     _Alignof(max_align_t));
+  *s = (ChunkState){source, buf, n, source.elem_size, 0, source.allocator};
+  return (Iter){.next = chunk_next,
+                .drop = chunk_drop,
+                .state = s,
+                .elem_size = sizeof(Slice),
+                .allocator = source.allocator};
+}
