@@ -11,8 +11,10 @@ reducing across different data structures.
 
 `seqc` solves this with a small set of orthogonal abstractions:
 
-- **[Arena](docs/arena.md)** — a bump allocator. All heap ownership lives here. Callers decide lifetime;
-  a single `arena_free()` releases everything at once.
+- **[Arena](docs/arena.md)** — a bump allocator. Pass `arena_allocator(a)` to any
+  collection for bulk lifetime management; a single `arena_free()` releases everything
+  at once. Use `scratch_allocator(&sc)` for temporary work inside a loop, or
+  `sys_allocator()` when you need per-collection `malloc`/`free` lifetime control.
 - **[Slice](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
   materialising an iterator. Also the input to operations that need random access.
 - **[Iter](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
@@ -34,7 +36,10 @@ Vec / List / BTree / ...
 ## Design principles
 
 - **Lazy by default** — adaptor chains allocate nothing until a terminal is called.
-- **Caller owns memory** — arenas are passed in; the library never hides allocations.
+- **Caller owns memory** — allocators are passed in; the library never hides allocations.
+- **Allocator-agnostic** — every collection takes an `Allocator`. Arena, scratch, and
+  `sys_allocator()` (malloc/free) are all first-class. Different collections in the
+  same program can use different allocators.
 - **No macros** — readability and debuggability over syntax sugar.
 - **One job per type** — iterators transform, slices store, arenas own.
 - **`void *` is the abstraction** — generics via element size, not code generation.

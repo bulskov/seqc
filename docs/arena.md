@@ -15,14 +15,24 @@ block is exhausted. A single `arena_free()` releases all memory at once.
 typedef struct Allocator {
   alloc_fn   alloc;
   realloc_fn realloc;
-  free_fn    free;   /* no-op for arena allocators */
+  free_fn    free;   /* NULL for arena allocators */
   void      *ctx;
 } Allocator;
 ```
 
-Generic allocator interface passed to every container and iterator that needs to
-allocate memory. Obtain one from [`arena_allocator()`](#arena_allocator) or
-[`scratch_allocator()`](#scratch_allocator).
+Generic allocator interface passed to every container and iterator that needs
+to allocate memory. Every collection stores the `Allocator` it was created
+with, so a single program can freely mix allocators:
+
+| Source | Use when |
+|--------|----------|
+| [`arena_allocator(a)`](#arena_allocator) | bulk lifetime — free everything in one call |
+| [`scratch_allocator(&sc)`](#scratch_allocator) | temporary work inside a loop |
+| [`sys_allocator()`](#sys_allocator) | per-collection lifetime via `_free()`, or when no arena is available |
+
+Obtain one from [`arena_allocator()`](#arena_allocator),
+[`scratch_allocator()`](#scratch_allocator), or
+[`sys_allocator()`](#sys_allocator).
 
 ### `Scratch`
 
@@ -182,6 +192,56 @@ lifetime rather than the whole arena.
 
 ---
 
+### `sys_allocator` {#sys_allocator}
+
+```c
+Allocator sys_allocator(void);
+```
+
+Return an [`Allocator`](#allocator) backed by `malloc` / `realloc` / `free`.
+Every allocation is independent and must be released by calling the
+corresponding collection's `_free()` function.
+
+Use `sys_allocator()` when:
+
+- you want per-collection lifetime control rather than bulk-free via an arena
+- you want to integrate with tooling that tracks `malloc`/`free` pairs (e.g.
+  Valgrind, AddressSanitizer `malloc` interceptors)
+- you are writing a short-lived utility or test where setting up an arena is
+  unnecessary overhead
+
+```c
+// per-collection lifetime: caller is responsible for hashmap_free()
+HashMap m = hashmap_create(sizeof(int), sizeof(int),
+                           hashmap_fnv1a, hashmap_eq_bytes,
+                           sys_allocator());
+hashmap_set(&m, &k, &v);
+// ...
+hashmap_free(&m); // releases all bucket/key/value memory
+```
+
+Mixing allocators is explicitly supported — different collections in the same
+program can use different allocators:
+
+```c
+Arena *request_arena = arena_create(64 * 1024);
+
+// results live for the whole request (freed with the arena)
+Vec results = vec_create(sizeof(Result), arena_allocator(request_arena));
+
+// lookup table has its own lifetime, freed independently
+HashMap cache = hashmap_create(sizeof(int), sizeof(CacheEntry),
+                               hashmap_fnv1a, hashmap_eq_bytes,
+                               sys_allocator());
+
+// ... handle request ...
+
+arena_free(request_arena); // frees results
+hashmap_free(&cache);      // frees cache independently
+```
+
+---
+
 ### Query functions
 
 ```c
@@ -217,4 +277,24 @@ Arena *per_request = arena_create(64 * 1024);
 
 // process request using per_request allocator
 arena_reset(per_request);  // reset between requests
+```
+
+### Mixing arenas and sys_allocator
+
+```c
+Arena *a = arena_create(4096);
+
+// iterator chain: scratch-backed, freed at pop
+Scratch sc = arena_scratch_push(a);
+Slice sorted = iter_sort(vec_iter(&v), int_cmp, scratch_allocator(&sc));
+process(sorted);
+arena_scratch_pop(&sc); // sorted memory released
+
+// persistent lookup table: freed explicitly when the table is done
+HashMap index = hashmap_create(sizeof(char *), sizeof(int),
+                               hashmap_fnv1a_str, hashmap_eq_str,
+                               sys_allocator());
+build_index(&index, data);
+// ... use index across multiple requests ...
+hashmap_free(&index);
 ```
