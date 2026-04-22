@@ -33,6 +33,10 @@ void *arena_alloc(Arena *a, size_t size, size_t align);
 void *arena_realloc(Arena *a, void *ptr, size_t old_size, size_t new_size,
                     size_t align);
 void arena_reset(Arena *a);
+/* Like arena_reset but also frees all overflow blocks, keeping only the
+ * first.  Use when the arena grew large temporarily and you want to
+ * release the pages back to the OS. */
+void arena_reset_hard(Arena *a);
 void arena_free(Arena *a);
 size_t arena_total_allocated(const Arena *a);
 size_t arena_block_count(const Arena *a);

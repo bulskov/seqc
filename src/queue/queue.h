@@ -20,6 +20,7 @@ void queue_push(Queue *q, const void *elem); /* enqueue at back */
 bool queue_pop(Queue *q,
                void *out);        /* dequeue from front; true=ok false=empty */
 void *queue_peek(const Queue *q); /* front element; NULL if empty */
+void *queue_back(const Queue *q); /* back (last enqueued) element; NULL if empty */
 bool queue_is_empty(const Queue *q);
 size_t queue_len(const Queue *q);
 Iter queue_iter(const Queue *q);     /* front→back */

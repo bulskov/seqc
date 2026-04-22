@@ -48,6 +48,10 @@ bool omap_contains(const OMap *m, const void *key);
 bool omap_remove(OMap *m, const void *key); /* true=removed false=not found */
 void *omap_min_key(const OMap *m);          /* NULL if empty         */
 void *omap_max_key(const OMap *m);          /* NULL if empty         */
+/* Return the full entry (key+value pointers) at the min or max key.
+ * Returns an entry with both fields NULL if the map is empty. */
+OMapEntry omap_min_entry(const OMap *m);
+OMapEntry omap_max_entry(const OMap *m);
 size_t omap_len(const OMap *m);
 int omap_height(const OMap *m); /* 0 if empty            */
 

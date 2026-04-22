@@ -11,7 +11,7 @@ static size_t int_hash(const void *key, size_t key_size) {
   return (size_t)(*(const unsigned int *)key) * 2654435761u;
 }
 
-static int int_eq(const void *a, const void *b, size_t key_size) {
+static bool int_eq(const void *a, const void *b, size_t key_size) {
   (void)key_size;
   return *(const int *)a == *(const int *)b;
 }

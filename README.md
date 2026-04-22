@@ -173,5 +173,15 @@ int main(void) {
 
 ## Known gaps / roadmap
 
+### API correctness / consistency
+- `iter_collect` requires an allocator threaded into the iterator but this is undocumented and unguarded — NULL function pointer crash if omitted
+
+### Missing API symmetry
+- `list_pop_back` is missing — `DList` has it; singly-linked list omission should at least be documented
+
+### Memory management
+- `arena_reset` retains all overflow blocks — use `arena_reset_hard` to free extra blocks and keep only the first
+
+### Future sources
 - `iter_from_file` / `iter_lines` — I/O sources
-- Cross-platform: currently Linux / clang only
+- Cross-platform: `arena` uses `mmap`/`munmap` (`<sys/mman.h>`); needs `VirtualAlloc` path for Windows

@@ -1,8 +1,6 @@
 #include "vec.h"
 #include "arena/arena.h"
 
-#include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define INITIAL_CAP 16
@@ -127,6 +125,21 @@ void vec_remove(Vec *v, size_t i) {
 void vec_clear(Vec *v) {
   if (v)
     v->len = 0;
+}
+
+void *vec_find(const Vec *v, pred_fn pred, void *ctx) {
+  if (!v || !pred)
+    return NULL;
+  for (size_t i = 0; i < v->len; i++) {
+    void *elem = (char *)v->data + i * v->elem_size;
+    if (pred(elem, ctx))
+      return elem;
+  }
+  return NULL;
+}
+
+bool vec_contains(const Vec *v, pred_fn pred, void *ctx) {
+  return vec_find(v, pred, ctx) != NULL;
 }
 
 void vec_free(Vec *v) {

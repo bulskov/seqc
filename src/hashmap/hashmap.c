@@ -145,6 +145,10 @@ void hashmap_clear(HashMap *map) {
 
 size_t hashmap_len(const HashMap *map) { return map ? map->len : 0; }
 
+bool hashmap_contains(const HashMap *map, const void *key) {
+  return hashmap_get(map, key) != NULL;
+}
+
 bool hashmap_set(HashMap *map, const void *key, const void *value) {
   if (!map || !map->buckets || !key || !value) {
     return false; /* invalid map or key/value */

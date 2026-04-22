@@ -231,6 +231,24 @@ void *omap_max_key(const OMap *m) {
   return node_key(cur);
 }
 
+OMapEntry omap_min_entry(const OMap *m) {
+  if (!m || !m->root)
+    return (OMapEntry){NULL, NULL};
+  OMNode *cur = m->root;
+  while (cur->left)
+    cur = cur->left;
+  return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+}
+
+OMapEntry omap_max_entry(const OMap *m) {
+  if (!m || !m->root)
+    return (OMapEntry){NULL, NULL};
+  OMNode *cur = m->root;
+  while (cur->right)
+    cur = cur->right;
+  return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+}
+
 size_t omap_len(const OMap *m) { return m ? m->len : 0; }
 int omap_height(const OMap *m) { return m ? node_height(m->root) : 0; }
 

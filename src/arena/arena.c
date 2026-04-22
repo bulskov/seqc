@@ -156,6 +156,20 @@ void arena_reset(Arena *arena) {
   }
 }
 
+void arena_reset_hard(Arena *arena) {
+  /* Free all overflow blocks, keeping only the first (head) block */
+  MemBlock *head = arena->mem_head;
+  MemBlock *block = head->next;
+  while (block) {
+    MemBlock *next = block->next;
+    munmap(block->buf, block->cap);
+    block = next;
+  }
+  head->next = NULL;
+  head->pos = sizeof(Arena) + sizeof(MemBlock);
+  arena->mem_tail = head;
+}
+
 void arena_free(Arena *a) {
   MemBlock *block = a->mem_head;
   while (block) {

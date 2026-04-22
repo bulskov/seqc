@@ -137,6 +137,18 @@ void *btree_max(const BTree *t) {
 
 size_t btree_len(const BTree *t) { return t ? t->len : 0; }
 
+static int btree_height_node(const BTreeNode *n) {
+  if (!n)
+    return 0;
+  int l = btree_height_node(n->left);
+  int r = btree_height_node(n->right);
+  return 1 + (l > r ? l : r);
+}
+
+int btree_height(const BTree *t) {
+  return t ? btree_height_node(t->root) : 0;
+}
+
 static void free_subtree(BTree *t, BTreeNode *node) {
   if (!node)
     return;

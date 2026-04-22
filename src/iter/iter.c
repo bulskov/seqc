@@ -94,8 +94,6 @@ Iter iter_generate(generate_fn fn, void *ctx, size_t elem_size,
 
 /* ---- iter_range -------------------------------------------------------- */
 
-#include <limits.h>
-
 typedef struct {
   long long cur;
   long long end;
@@ -120,6 +118,8 @@ static void range_drop(Iter *it) {
 
 Iter iter_range(long long start, long long end, long long step,
                 Allocator allocator) {
+  if (step == 0)
+    return (Iter){0}; /* step=0 would loop forever; return empty iterator */
   RangeState *s =
       allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
   *s = (RangeState){start, end, step};

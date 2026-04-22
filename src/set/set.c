@@ -198,3 +198,40 @@ Iter set_iter(const Set *s) {
                 .elem_size = s->elem_size,
                 .allocator = s->allocator};
 }
+
+typedef struct {
+  const SetBucket *buckets;
+  size_t cap;
+  size_t pos; /* counts down from cap */
+  size_t elem_size;
+} SetIterRevState;
+
+static bool set_iter_rev_next(Iter *it, void *out) {
+  SetIterRevState *s = it->state;
+  while (s->pos > 0) {
+    const SetBucket *b = &s->buckets[--s->pos];
+    if (b->psl > 0) {
+      memcpy(out, b->key, s->elem_size);
+      return true;
+    }
+  }
+  return false;
+}
+
+static void set_iter_rev_drop(Iter *it) {
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, it->state);
+}
+
+Iter set_iter_rev(const Set *s) {
+  if (!s)
+    return (Iter){0};
+  SetIterRevState *state = s->allocator.alloc(s->allocator.ctx, sizeof *state,
+                                              _Alignof(SetIterRevState));
+  *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
+  return (Iter){.next = set_iter_rev_next,
+                .drop = set_iter_rev_drop,
+                .state = state,
+                .elem_size = s->elem_size,
+                .allocator = s->allocator};
+}

@@ -11,7 +11,7 @@
  * hashmap equivalents so hashmap_fnv1a / hashmap_eq_bytes etc. are usable
  * directly without casts. */
 typedef size_t (*set_hash_fn)(const void *key, size_t key_size);
-typedef int (*set_eq_fn)(const void *a, const void *b, size_t key_size);
+typedef bool (*set_eq_fn)(const void *a, const void *b, size_t key_size);
 
 typedef struct {
   void *key;
@@ -36,4 +36,5 @@ bool set_remove(Set *s, const void *elem); /* true=removed false=not found */
 size_t set_len(const Set *s);
 void set_free(Set *s);
 void set_clear(Set *s);
-Iter set_iter(const Set *s); /* order unspecified */
+Iter set_iter(const Set *s);     /* order unspecified */
+Iter set_iter_rev(const Set *s); /* reverse bucket-storage order */

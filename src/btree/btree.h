@@ -33,6 +33,7 @@ bool btree_remove(BTree *t,
 void *btree_min(const BTree *t);     /* NULL if empty          */
 void *btree_max(const BTree *t);     /* NULL if empty          */
 size_t btree_len(const BTree *t);
+int btree_height(const BTree *t);    /* 0 if empty             */
 Iter btree_iter(const BTree *t);     /* ascending, in-order    */
 Iter btree_iter_rev(const BTree *t); /* descending, in-order   */
 /* Ascending in-order, only elements where lo <= elem <= hi.

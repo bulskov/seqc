@@ -57,6 +57,13 @@ void *queue_peek(const Queue *q) {
   return q->buf + q->head * q->elem_size;
 }
 
+void *queue_back(const Queue *q) {
+  if (!q || q->len == 0)
+    return NULL;
+  size_t tail = (q->head + q->len - 1) % q->cap;
+  return q->buf + tail * q->elem_size;
+}
+
 bool queue_is_empty(const Queue *q) { return !q || q->len == 0; }
 
 size_t queue_len(const Queue *q) { return q ? q->len : 0; }

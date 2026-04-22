@@ -43,6 +43,7 @@ HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
 void hashmap_free(HashMap *map);
 void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);
+bool hashmap_contains(const HashMap *map, const void *key);
 bool hashmap_set(HashMap *map, const void *key, const void *value);
 void *hashmap_get(const HashMap *map, const void *key);
 bool hashmap_delete(HashMap *map, const void *key);
