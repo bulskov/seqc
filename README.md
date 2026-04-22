@@ -11,24 +11,24 @@ reducing across different data structures.
 
 `seqc` solves this with a small set of orthogonal abstractions:
 
-- **`Iter`** — a lazy, forward iterator. Any source (array, vec, list, ...) produces one.
-  Adaptors transform an `Iter` into another `Iter`. Nothing runs until a terminal is called.
-- **`Slice`** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
-  materialising an iterator. Also the input to operations that need random access (sort, etc.).
-- **`Arena`** — a bump allocator. All heap ownership lives here. Callers decide lifetime;
+- **[Arena](docs/arena.md)** — a bump allocator. All heap ownership lives here. Callers decide lifetime;
   a single `arena_free()` releases everything at once.
-- **`Vec`** — a growable array. Owns its buffer, produces an `Iter` or a `Slice` on demand.
+- **[Slice](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
+  materialising an iterator. Also the input to operations that need random access.
+- **[Iter](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
+  an `Iter` into another `Iter`. Nothing runs until a terminal is called.
+- **[Vec](docs/vec.md)** — a growable array. Owns its buffer, produces an `Iter` or a `Slice` on demand.
 
 The abstraction is intentionally `void *`-based. Type safety is the caller's responsibility.
 There are no macros in the public interface.
 
 ```
-Vec / array / ...
+Vec / List / BTree / ...
       │
       ▼
-    Iter ──[filter]──[map]──[take]──[skip]──► iter_collect(arena) ──► Slice
+    Iter ──[filter]──[map]──[take]──[skip]──► iter_collect() ──► Slice
       ▲                                              │
-      └──────────── iter_from_slice ─────────────────┘
+      └──────────── iter_from_slice ────────────────┘
 ```
 
 ## Design principles
@@ -51,82 +51,128 @@ ctest --test-dir build/debug --output-on-failure
 
 A `release` preset is also available.
 
-## What is implemented
+## Modules
 
-### `arena`
-Bump allocator backed by a single heap buffer. Grows automatically if capacity is exceeded.
+| Module | Description | Docs |
+|--------|-------------|------|
+| `arena` | Bump allocator with scratch checkpoints | [docs/arena.md](docs/arena.md) |
+| `slice` | Non-owning contiguous view | [docs/slice.md](docs/slice.md) |
+| `iter` | Lazy iterator pipeline — sources, adaptors, terminals | [docs/iter.md](docs/iter.md) |
+| `vec` | Growable array | [docs/vec.md](docs/vec.md) |
+| `stack` | LIFO wrapper over Vec | [docs/stack.md](docs/stack.md) |
+| `queue` | FIFO ring buffer | [docs/queue.md](docs/queue.md) |
+| `list` | Singly-linked list | [docs/list.md](docs/list.md) |
+| `dlist` | Doubly-linked list | [docs/dlist.md](docs/dlist.md) |
+| `set` | Open-addressing hash set (Robin Hood) | [docs/set.md](docs/set.md) |
+| `hashmap` | Open-addressing hash map (Robin Hood) | [docs/hashmap.md](docs/hashmap.md) |
+| `string` | Bounded string + StringBuilder + iter sources | [docs/string.md](docs/string.md) |
+| `btree` | Unbalanced binary search tree | [docs/btree.md](docs/btree.md) |
+| `avl` | Self-balancing AVL tree | [docs/avl.md](docs/avl.md) |
+| `omap` | Ordered map backed by AVL tree | [docs/omap.md](docs/omap.md) |
+| `pqueue` | Binary min-heap priority queue | [docs/pqueue.md](docs/pqueue.md) |
 
-| Function | Description |
-|---|---|
-| `arena_create(capacity)` | Allocate a new arena with an initial capacity |
-| `arena_alloc(arena, size, align)` | Bump-allocate `size` bytes with the given alignment |
-| `arena_reset(arena)` | Reset position to zero, reusing the buffer |
-| `arena_free(arena)` | Release all memory |
+## Quick example
 
-### `slice`
-A non-owning view into a contiguous block of elements.
+```c
+#include "arena/arena.h"
+#include "vec/vec.h"
+#include "iter/iter.h"
 
-| Function | Description |
-|---|---|
-| `slice_get(slice, i)` | Return a pointer to element `i` |
+static int is_even(const void *elem, void *ctx) {
+    return *(const int *)elem % 2 == 0;
+}
 
-### `iter`
-The core protocol. Every source and adaptor is an `Iter`.
+static void double_it(const void *in, void *out, void *ctx) {
+    *(int *)out = *(const int *)in * 2;
+}
 
-**Sources**
+static int int_cmp(const void *a, const void *b) {
+    return *(const int *)a - *(const int *)b;
+}
 
-| Function | Description |
-|---|---|
-| `iter_from_slice(slice)` | Iterate over a slice |
+int main(void) {
+    Arena *a = arena_create(4096);
+    Vec    v = vec_create(sizeof(int), arena_allocator(a));
 
-**Adaptors** (lazy — return a new `Iter`)
+    for (int i = 0; i < 10; i++)
+        vec_push(&v, &i);
 
-| Function | Description |
-|---|---|
-| `iter_filter(it, pred, ctx)` | Keep elements where `pred` returns non-zero |
-| `iter_map(it, fn, ctx, out_size)` | Transform each element to a (possibly different) type |
-| `iter_take(it, n)` | Yield at most `n` elements |
-| `iter_skip(it, n)` | Skip the first `n` elements |
+    // filter evens, double them, sort, collect
+    Slice result = iter_sort(
+                       iter_map(
+                           iter_filter(vec_iter(&v), is_even, NULL),
+                           double_it, NULL, sizeof(int)),
+                       int_cmp);
 
-**Terminals** (consume the iterator)
+    // result == {0, 4, 8, 12, 16}
+    for (size_t i = 0; i < result.len; i++)
+        printf("%d\n", *(int *)slice_get(result, i));
 
-| Function | Description |
-|---|---|
-| `iter_collect(it, arena)` | Materialise into an arena-owned `Slice` |
-| `iter_count(it)` | Count remaining elements |
-| `iter_foreach(it, fn, ctx)` | Call `fn` for each element |
-| `iter_reduce(it, acc, fn, ctx)` | Fold elements into an accumulator |
+    arena_free(a);
+}
+```
 
-### `vec`
-A growable, heap-owned array.
+## Iterator overview
 
-| Function | Description |
-|---|---|
-| `vec_create(elem_size)` | Create an empty vec |
-| `vec_push(vec, elem)` | Append a copy of `elem` |
-| `vec_get(vec, i)` | Pointer to element `i` |
-| `vec_as_slice(vec)` | Non-owning `Slice` view |
-| `vec_iter(vec)` | Create an `Iter` over the vec |
-| `vec_free(vec)` | Release the buffer |
+### Sources
 
-## Roadmap
+| Function | Yields | Docs |
+|----------|--------|------|
+| `iter_from_slice(s, al)` | Slice elements | [iter](docs/iter.md) |
+| `iter_from_slice_rev(s, al)` | Slice elements in reverse | [iter](docs/iter.md) |
+| `vec_iter(&v)` / `vec_iter_rev(&v)` | Vec elements | [vec](docs/vec.md) |
+| `stack_iter(&s)` | Stack elements bottom→top | [stack](docs/stack.md) |
+| `queue_iter(&q)` | Queue elements front→back | [queue](docs/queue.md) |
+| `list_iter(&l)` | List elements front→back | [list](docs/list.md) |
+| `dlist_iter(&l)` / `dlist_iter_reverse(&l)` | DList forward / reverse | [dlist](docs/dlist.md) |
+| `set_iter(&s)` | Set elements (unordered) | [set](docs/set.md) |
+| `iter_from_hashmap(&m)` | `HashMapEntry` pairs | [hashmap](docs/hashmap.md) |
+| `string_chars(s, al)` / `string_chars_rev(s, al)` | `char` values | [string](docs/string.md) |
+| `string_split(s, delim, al)` | `String` tokens | [string](docs/string.md) |
+| `btree_iter(&t)` / `btree_iter_rev(&t)` / `btree_iter_range(&t, lo, hi)` | BST elements | [btree](docs/btree.md) |
+| `avl_iter(&t)` / `avl_iter_rev(&t)` / `avl_iter_range(&t, lo, hi)` | AVL elements | [avl](docs/avl.md) |
+| `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)` | `OMapEntry` pairs | [omap](docs/omap.md) |
 
-### Next steps
+### Adaptors (lazy)
 
-- **`slice_sort(slice, arena, cmp)`** — sort into a new arena-owned slice; enables order-by
-- **`iter_zip(it_a, it_b)`** — pair elements from two iterators
-- **`iter_flat_map`** — each element produces a sub-iterator, results are flattened
-- **`iter_first` / `iter_any` / `iter_all`** — short-circuiting terminals
+| Function | Description | Docs |
+|----------|-------------|------|
+| `iter_filter(it, pred, ctx)` | Keep matching elements | [iter](docs/iter.md) |
+| `iter_map(it, fn, ctx, out_size)` | Transform each element | [iter](docs/iter.md) |
+| `iter_take(it, n)` | Yield at most n elements | [iter](docs/iter.md) |
+| `iter_skip(it, n)` | Skip first n elements | [iter](docs/iter.md) |
+| `iter_chain(a, b)` | Concatenate two iterators | [iter](docs/iter.md) |
+| `iter_zip(a, b)` | Interleave element pairs | [iter](docs/iter.md) |
+| `iter_enumerate(it)` | Pair each element with its index | [iter](docs/iter.md) |
+| `iter_window(it, n)` | Sliding window of size n (yields Slice) | [iter](docs/iter.md) |
+| `iter_chunks(it, n)` | Non-overlapping chunks of size n (yields Slice) | [iter](docs/iter.md) |
+| `iter_flat_map(it, fn, ctx, out_size)` | Expand each element into a sub-iterator | [iter](docs/iter.md) |
 
-### Data structures
+### Terminals (consume)
 
-- **`list`** — singly-linked list, arena-backed (no per-node `malloc`), exposes `Iter`
-- **`map`** — open-addressing hash map, exposes a key-value pair `Iter`
+| Function | Returns | Docs |
+|----------|---------|------|
+| `iter_collect(it)` | Arena-owned `Slice` | [iter](docs/iter.md) |
+| `iter_count(it)` | `size_t` count | [iter](docs/iter.md) |
+| `iter_foreach(it, fn, ctx)` | — (side-effects) | [iter](docs/iter.md) |
+| `iter_reduce(it, acc, fn, ctx)` | — (folds into acc) | [iter](docs/iter.md) |
+| `iter_sort(it, cmp)` | Sorted `Slice` | [iter](docs/iter.md) |
+| `iter_find(it, pred, ctx, out)` | `1`/`0` + first match | [iter](docs/iter.md) |
+| `iter_any(it, pred, ctx)` | `1` if any match | [iter](docs/iter.md) |
+| `iter_all(it, pred, ctx)` | `1` if all match | [iter](docs/iter.md) |
+| `iter_min(it, cmp, out)` | `1`/`0` + minimum | [iter](docs/iter.md) |
+| `iter_max(it, cmp, out)` | `1`/`0` + maximum | [iter](docs/iter.md) |
 
-### Later
+## Known gaps / roadmap
 
-- **Batch / chunk iterator** — `next_chunk(buf, max, written)` to amortise function-pointer
-  overhead and enable SIMD in adaptors
-- **`iter_from_file` / `iter_lines`** — I/O sources feeding the same pipeline
-- **Cross-platform support** — currently Linux/clang; MSVC and GCC compatibility
-- **`slice_sort` in-place variant** — for cases where a copy is unnecessary
+- `iter_take_while(pred)` / `iter_skip_while(pred)` — short-circuiting adaptors
+- `iter_generate(fn, ctx)` / `iter_range(start, end, step)` — generator sources
+- `vec_pop`, `vec_set`, `vec_insert`, `vec_remove`, `vec_reserve`
+- `clear` across sequential containers (Vec, Stack, Queue, List, DList, PQueue)
+- `stack_iter_rev`, `queue_iter_rev`
+- `hashmap_iter()` method (currently `iter_from_hashmap()`)
+- Set algebra: `set_union`, `set_intersection`, `set_difference`
+- String: `string_join`, `string_to_uppercase/lowercase`, `string_to_int`
+- `pqueue_build_from_vec` — O(n) heapify vs O(n log n) one-by-one
+- `iter_from_file` / `iter_lines` — I/O sources
+- Cross-platform: currently Linux / clang only
