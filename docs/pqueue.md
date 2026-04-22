@@ -68,11 +68,11 @@ Push a copy of `elem` and restore the heap property via sift-up. O(log n).
 ### `pqueue_pop`
 
 ```c
-int pqueue_pop(PQueue *q, void *out);
+bool pqueue_pop(PQueue *q, void *out);
 ```
 
 Remove and return the minimum element. Copies it into `*out` if `out` is not
-`NULL`. Returns `1` on success, `0` if empty. O(log n).
+`NULL`. Returns `true` on success, `false` if empty. O(log n).
 
 ```c
 int v;

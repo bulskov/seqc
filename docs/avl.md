@@ -49,17 +49,17 @@ AVLTree  t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 ### `avl_insert`
 
 ```c
-int avl_insert(AVLTree *t, const void *elem);
+bool avl_insert(AVLTree *t, const void *elem);
 ```
 
-Insert a copy of `elem`. Returns `1` if inserted, `0` if duplicate.
+Insert a copy of `elem`. Returns `true` if inserted, `false` if duplicate.
 
 ---
 
 ### `avl_contains`
 
 ```c
-int avl_contains(const AVLTree *t, const void *elem);
+bool avl_contains(const AVLTree *t, const void *elem);
 ```
 
 ---
@@ -67,10 +67,10 @@ int avl_contains(const AVLTree *t, const void *elem);
 ### `avl_remove`
 
 ```c
-int avl_remove(AVLTree *t, const void *elem);
+bool avl_remove(AVLTree *t, const void *elem);
 ```
 
-Remove `elem`. Returns `1` if removed, `0` if not found.
+Remove `elem`. Returns `true` if removed, `false` if not found.
 
 ---
 

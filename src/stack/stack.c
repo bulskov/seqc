@@ -12,14 +12,14 @@ void stack_push(Stack *s, const void *elem) {
   vec_push(&s->vec, elem);
 }
 
-int stack_pop(Stack *s, void *out) {
+bool stack_pop(Stack *s, void *out) {
   if (!s || s->vec.len == 0)
-    return 0;
+    return false;
   s->vec.len--;
   if (out)
     memcpy(out, (char *)s->vec.data + s->vec.len * s->vec.elem_size,
            s->vec.elem_size);
-  return 1;
+  return true;
 }
 
 void *stack_peek(const Stack *s) {
@@ -28,7 +28,7 @@ void *stack_peek(const Stack *s) {
   return (char *)s->vec.data + (s->vec.len - 1) * s->vec.elem_size;
 }
 
-int stack_is_empty(const Stack *s) { return !s || s->vec.len == 0; }
+bool stack_is_empty(const Stack *s) { return !s || s->vec.len == 0; }
 
 size_t stack_len(const Stack *s) { return s ? s->vec.len : 0; }
 

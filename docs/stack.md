@@ -49,11 +49,11 @@ Push a copy of `elem` onto the top.
 ### `stack_pop`
 
 ```c
-int stack_pop(Stack *s, void *out);
+bool stack_pop(Stack *s, void *out);
 ```
 
 Remove the top element. Copies it into `*out` if `out` is not `NULL`.
-Returns `1` on success, `0` if the stack is empty.
+Returns `true` on success, `false` if the stack is empty.
 
 ```c
 int val;

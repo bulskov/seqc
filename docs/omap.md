@@ -63,10 +63,10 @@ OMap   m = omap_create(sizeof(int), sizeof(double),
 ### `omap_set`
 
 ```c
-int omap_set(OMap *m, const void *key, const void *value);
+bool omap_set(OMap *m, const void *key, const void *value);
 ```
 
-Insert or update. Returns `1` if a new key was inserted, `0` if an existing
+Insert or update. Returns `true` if a new key was inserted, `false` if an existing
 key was updated.
 
 ```c
@@ -95,7 +95,7 @@ if (val) printf("%.2f\n", *val);
 ### `omap_contains`
 
 ```c
-int omap_contains(const OMap *m, const void *key);
+bool omap_contains(const OMap *m, const void *key);
 ```
 
 ---
@@ -103,10 +103,10 @@ int omap_contains(const OMap *m, const void *key);
 ### `omap_remove`
 
 ```c
-int omap_remove(OMap *m, const void *key);
+bool omap_remove(OMap *m, const void *key);
 ```
 
-Remove by key. Returns `1` if removed, `0` if not found.
+Remove by key. Returns `true` if removed, `false` if not found.
 
 ---
 

@@ -140,7 +140,9 @@ int main(void) {
 | `iter_filter(it, pred, ctx)` | Keep matching elements | [iter](docs/iter.md) |
 | `iter_map(it, fn, ctx, out_size)` | Transform each element | [iter](docs/iter.md) |
 | `iter_take(it, n)` | Yield at most n elements | [iter](docs/iter.md) |
+| `iter_take_while(it, pred, ctx)` | Yield while pred holds, stop at first miss | [iter](docs/iter.md) |
 | `iter_skip(it, n)` | Skip first n elements | [iter](docs/iter.md) |
+| `iter_skip_while(it, pred, ctx)` | Skip while pred holds, yield the rest | [iter](docs/iter.md) |
 | `iter_chain(a, b)` | Concatenate two iterators | [iter](docs/iter.md) |
 | `iter_zip(a, b)` | Interleave element pairs | [iter](docs/iter.md) |
 | `iter_enumerate(it)` | Pair each element with its index | [iter](docs/iter.md) |
@@ -157,15 +159,14 @@ int main(void) {
 | `iter_foreach(it, fn, ctx)` | — (side-effects) | [iter](docs/iter.md) |
 | `iter_reduce(it, acc, fn, ctx)` | — (folds into acc) | [iter](docs/iter.md) |
 | `iter_sort(it, cmp)` | Sorted `Slice` | [iter](docs/iter.md) |
-| `iter_find(it, pred, ctx, out)` | `1`/`0` + first match | [iter](docs/iter.md) |
-| `iter_any(it, pred, ctx)` | `1` if any match | [iter](docs/iter.md) |
-| `iter_all(it, pred, ctx)` | `1` if all match | [iter](docs/iter.md) |
-| `iter_min(it, cmp, out)` | `1`/`0` + minimum | [iter](docs/iter.md) |
-| `iter_max(it, cmp, out)` | `1`/`0` + maximum | [iter](docs/iter.md) |
+| `iter_find(it, pred, ctx, out)` | `bool` + first match | [iter](docs/iter.md) |
+| `iter_any(it, pred, ctx)` | `true` if any match | [iter](docs/iter.md) |
+| `iter_all(it, pred, ctx)` | `true` if all match | [iter](docs/iter.md) |
+| `iter_min(it, cmp, out)` | `bool` + minimum | [iter](docs/iter.md) |
+| `iter_max(it, cmp, out)` | `bool` + maximum | [iter](docs/iter.md) |
 
 ## Known gaps / roadmap
 
-- `iter_take_while(pred)` / `iter_skip_while(pred)` — short-circuiting adaptors
 - `iter_generate(fn, ctx)` / `iter_range(start, end, step)` — generator sources
 - `vec_pop`, `vec_set`, `vec_insert`, `vec_remove`, `vec_reserve`
 - `clear` across sequential containers (Vec, Stack, Queue, List, DList, PQueue)

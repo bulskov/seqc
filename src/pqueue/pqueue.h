@@ -25,12 +25,12 @@ void pqueue_push(PQueue *q, const void *elem);
 
 /* Copy the minimum element to *out (may be NULL to discard) and remove it.
  * Returns 1 on success, 0 if the queue is empty. */
-int pqueue_pop(PQueue *q, void *out);
+bool pqueue_pop(PQueue *q, void *out);
 
 /* Return a pointer to the minimum element without removing it.
  * Returns NULL if the queue is empty. */
 void *pqueue_peek(const PQueue *q);
 
 size_t pqueue_len(const PQueue *q);
-int pqueue_is_empty(const PQueue *q);
+bool pqueue_is_empty(const PQueue *q);
 void pqueue_free(PQueue *q);

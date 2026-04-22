@@ -50,10 +50,10 @@ BTree  t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
 ### `btree_insert`
 
 ```c
-int btree_insert(BTree *t, const void *elem);
+bool btree_insert(BTree *t, const void *elem);
 ```
 
-Insert a copy of `elem`. Returns `1` if inserted, `0` if a duplicate already
+Insert a copy of `elem`. Returns `true` if inserted, `false` if a duplicate already
 exists (duplicates are rejected).
 
 ---
@@ -61,20 +61,20 @@ exists (duplicates are rejected).
 ### `btree_contains`
 
 ```c
-int btree_contains(const BTree *t, const void *elem);
+bool btree_contains(const BTree *t, const void *elem);
 ```
 
-Return `1` if `elem` is present.
+Return `true` if `elem` is present.
 
 ---
 
 ### `btree_remove`
 
 ```c
-int btree_remove(BTree *t, const void *elem);
+bool btree_remove(BTree *t, const void *elem);
 ```
 
-Remove `elem`. Returns `1` if removed, `0` if not found.
+Remove `elem`. Returns `true` if removed, `false` if not found.
 
 ---
 

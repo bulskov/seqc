@@ -56,11 +56,11 @@ Enqueue a copy of `elem` at the back. Reallocates if full.
 ### `queue_pop`
 
 ```c
-int queue_pop(Queue *q, void *out);
+bool queue_pop(Queue *q, void *out);
 ```
 
 Dequeue the front element. Copies it into `*out` if `out` is not `NULL`.
-Returns `1` on success, `0` if empty.
+Returns `true` on success, `false` if empty.
 
 ```c
 int v;

@@ -64,30 +64,30 @@ Set    s = set_create(sizeof(int),
 ### `set_add`
 
 ```c
-int set_add(Set *s, const void *elem);
+bool set_add(Set *s, const void *elem);
 ```
 
-Add a copy of `elem`. Returns `1` if inserted, `0` if already present.
+Add a copy of `elem`. Returns `true` if inserted, `false` if already present.
 
 ---
 
 ### `set_contains`
 
 ```c
-int set_contains(const Set *s, const void *elem);
+bool set_contains(const Set *s, const void *elem);
 ```
 
-Return `1` if `elem` is in the set, `0` otherwise.
+Return `true` if `elem` is in the set, `false` otherwise.
 
 ---
 
 ### `set_remove`
 
 ```c
-int set_remove(Set *s, const void *elem);
+bool set_remove(Set *s, const void *elem);
 ```
 
-Remove `elem`. Returns `1` if removed, `0` if not found.
+Remove `elem`. Returns `true` if removed, `false` if not found.
 
 ---
 

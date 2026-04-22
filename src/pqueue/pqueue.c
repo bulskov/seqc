@@ -59,9 +59,9 @@ void pqueue_push(PQueue *q, const void *elem) {
   sift_up(q, q->data.len - 1);
 }
 
-int pqueue_pop(PQueue *q, void *out) {
+bool pqueue_pop(PQueue *q, void *out) {
   if (!q || q->data.len == 0)
-    return 0;
+    return false;
   if (out)
     memcpy(out, vec_get(&q->data, 0), q->data.elem_size);
   size_t last = q->data.len - 1;
@@ -70,7 +70,7 @@ int pqueue_pop(PQueue *q, void *out) {
   q->data.len--;
   if (q->data.len > 0)
     sift_down(q, 0);
-  return 1;
+  return true;
 }
 
 void *pqueue_peek(const PQueue *q) {
@@ -80,7 +80,7 @@ void *pqueue_peek(const PQueue *q) {
 }
 
 size_t pqueue_len(const PQueue *q) { return q ? q->data.len : 0; }
-int pqueue_is_empty(const PQueue *q) { return !q || q->data.len == 0; }
+bool pqueue_is_empty(const PQueue *q) { return !q || q->data.len == 0; }
 
 void pqueue_free(PQueue *q) {
   if (q)

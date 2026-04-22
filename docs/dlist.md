@@ -65,12 +65,12 @@ O(1) prepend / append.
 ### `dlist_pop_front` / `dlist_pop_back`
 
 ```c
-int dlist_pop_front(DList *l, void *out);
-int dlist_pop_back(DList *l, void *out);
+bool dlist_pop_front(DList *l, void *out);
+bool dlist_pop_back(DList *l, void *out);
 ```
 
 Remove from front or back. Copies into `*out` if not `NULL`.
-Returns `1` on success, `0` if empty.
+Returns `true` on success, `false` if empty.
 
 ```c
 // use as a deque

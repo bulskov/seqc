@@ -15,8 +15,8 @@ Nothing allocates or runs until a terminal is called.
 
 ```c
 struct Iter {
-  int  (*next)(Iter *it, void *out); /* write elem_size bytes; return 1 or 0 */
-  void (*drop)(Iter *it);            /* free internal state; NULL is valid    */
+  bool (*next)(Iter *it, void *out); /* write elem_size bytes; return true/false */
+  void (*drop)(Iter *it);            /* free internal state; NULL is valid       */
   void      *state;
   size_t     elem_size;
   Allocator  allocator;
@@ -42,7 +42,7 @@ to abandon an iterator early (e.g. after `iter_find`).
 
 | Type | Signature | Used by |
 |------|-----------|---------|
-| `pred_fn` | `int fn(const void *elem, void *ctx)` | `iter_filter`, `iter_find`, `iter_any`, `iter_all` |
+| `pred_fn` | `bool fn(const void *elem, void *ctx)` | `iter_filter`, `iter_find`, `iter_any`, `iter_all`, `iter_take_while`, `iter_skip_while` |
 | `map_fn` | `void fn(const void *in, void *out, void *ctx)` | `iter_map` |
 | `combine_fn` | `void fn(void *acc, const void *elem, void *ctx)` | `iter_reduce` |
 | `visitor_fn` | `void fn(const void *elem, void *ctx)` | `iter_foreach` |
@@ -155,6 +155,47 @@ Iter iter_skip(Iter source, size_t n);
 ```
 
 Discard the first `n` elements then yield the rest.
+
+---
+
+### `iter_take_while`
+
+```c
+Iter iter_take_while(Iter source, pred_fn pred, void *ctx);
+```
+
+Yield elements from `source` as long as `pred` returns `true`. Stops
+permanently at the first element that fails — that element is not yielded.
+
+```c
+static bool is_positive(const void *elem, void *ctx) {
+    return *(const int *)elem > 0;
+}
+
+// {3, 7, -1, 5} → yields 3, 7  (stops at -1)
+Iter it = iter_take_while(vec_iter(&v), is_positive, NULL);
+```
+
+---
+
+### `iter_skip_while`
+
+```c
+Iter iter_skip_while(Iter source, pred_fn pred, void *ctx);
+```
+
+Skip elements from `source` as long as `pred` returns `true`. Once the first
+element fails the predicate, that element and all subsequent elements are
+yielded unconditionally (even if they would satisfy the predicate).
+
+```c
+static bool is_positive(const void *elem, void *ctx) {
+    return *(const int *)elem > 0;
+}
+
+// {3, 7, -1, 5} → yields -1, 5  (skips 3 and 7)
+Iter it = iter_skip_while(vec_iter(&v), is_positive, NULL);
+```
 
 ---
 
@@ -363,31 +404,31 @@ Slice sorted = iter_sort(vec_iter(&v), int_cmp);
 ### `iter_find`
 
 ```c
-int iter_find(Iter it, pred_fn pred, void *ctx, void *out);
+bool iter_find(Iter it, pred_fn pred, void *ctx, void *out);
 ```
 
-Return `1` and write the first matching element to `*out` (may be `NULL`) if
-found; return `0` otherwise. The iterator is dropped after use.
+Return `true` and write the first matching element to `*out` (may be `NULL`) if
+found; return `false` otherwise. The iterator is dropped after use.
 
 ---
 
 ### `iter_any`
 
 ```c
-int iter_any(Iter it, pred_fn pred, void *ctx);
+bool iter_any(Iter it, pred_fn pred, void *ctx);
 ```
 
-Return `1` if any element satisfies `pred`. Short-circuits on first match.
+Return `true` if any element satisfies `pred`. Short-circuits on first match.
 
 ---
 
 ### `iter_all`
 
 ```c
-int iter_all(Iter it, pred_fn pred, void *ctx);
+bool iter_all(Iter it, pred_fn pred, void *ctx);
 ```
 
-Return `1` if every element satisfies `pred` (vacuously true for empty
+Return `true` if every element satisfies `pred` (vacuously true for empty
 iterators). Short-circuits on first failure.
 
 ---
@@ -395,22 +436,22 @@ iterators). Short-circuits on first failure.
 ### `iter_min`
 
 ```c
-int iter_min(Iter it, compare_fn cmp, void *out);
+bool iter_min(Iter it, compare_fn cmp, void *out);
 ```
 
-Write the minimum element to `*out` (`out` may be `NULL`). Returns `1` on
-success, `0` if the iterator was empty.
+Write the minimum element to `*out` (`out` may be `NULL`). Returns `true` on
+success, `false` if the iterator was empty.
 
 ---
 
 ### `iter_max`
 
 ```c
-int iter_max(Iter it, compare_fn cmp, void *out);
+bool iter_max(Iter it, compare_fn cmp, void *out);
 ```
 
-Write the maximum element to `*out` (`out` may be `NULL`). Returns `1` on
-success, `0` if the iterator was empty.
+Write the maximum element to `*out` (`out` may be `NULL`). Returns `true` on
+success, `false` if the iterator was empty.
 
 ---
 
@@ -421,7 +462,7 @@ success, `0` if the iterator was empty.
 #include "vec/vec.h"
 #include "iter/iter.h"
 
-static int is_even(const void *e, void *ctx)  { return *(const int *)e % 2 == 0; }
+static bool is_even(const void *e, void *ctx)  { return *(const int *)e % 2 == 0; }
 static void triple(const void *in, void *out, void *ctx) {
     *(int *)out = *(const int *)in * 3;
 }

@@ -290,7 +290,7 @@ static void skip_while_drop(Iter *it) {
 Iter iter_skip_while(Iter source, pred_fn pred, void *ctx) {
   SkipWhileState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
                                              _Alignof(SkipWhileState));
-  *s = (SkipWhileState){source, pred, ctx};
+  *s = (SkipWhileState){source, pred, ctx, false};
   return (Iter){.next = skip_while_next,
                 .drop = skip_while_drop,
                 .state = s,

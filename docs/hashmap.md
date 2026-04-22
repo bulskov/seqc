@@ -59,7 +59,7 @@ FNV-1a hash over the raw bytes of the key. Suitable for any fixed-size type
 ### `hashmap_eq_bytes`
 
 ```c
-int hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
+bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
 ```
 
 Bytewise equality. Suitable for any fixed-size type.
@@ -76,7 +76,7 @@ value. Use when the key type is `char *` (i.e. `key_size = sizeof(char *)`).
 ### `hashmap_eq_str`
 
 ```c
-int hashmap_eq_str(const void *a, const void *b, size_t key_size);
+bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 ```
 
 `strcmp`-based equality for `char *` keys.
@@ -110,10 +110,10 @@ HashMap  m  = hashmap_create(sizeof(int), sizeof(double),
 ### `hashmap_set`
 
 ```c
-int hashmap_set(HashMap *map, const void *key, const void *value);
+bool hashmap_set(HashMap *map, const void *key, const void *value);
 ```
 
-Insert or update. Returns `1` if a new key was inserted, `0` if an existing
+Insert or update. Returns `true` if a new key was inserted, `false` if an existing
 key was updated.
 
 ```c
@@ -142,10 +142,10 @@ if (val) printf("%.2f\n", *val);
 ### `hashmap_delete`
 
 ```c
-int hashmap_delete(HashMap *map, const void *key);
+bool hashmap_delete(HashMap *map, const void *key);
 ```
 
-Remove a key. Returns `1` if removed, `0` if not found.
+Remove a key. Returns `true` if removed, `false` if not found.
 
 ---
 

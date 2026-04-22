@@ -65,11 +65,11 @@ Prepend / append a copy of `elem`. Both are O(1).
 ### `list_pop_front`
 
 ```c
-int list_pop_front(List *l, void *out);
+bool list_pop_front(List *l, void *out);
 ```
 
 Remove the front element. Copies it into `*out` if not `NULL`.
-Returns `1` on success, `0` if empty.
+Returns `true` on success, `false` if empty.
 
 > **Note:** Popping from the back is O(n) on a singly-linked list and not
 > provided. Use [`dlist`](dlist.md) if you need O(1) pop from both ends.

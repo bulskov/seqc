@@ -78,10 +78,10 @@ Allocate an arena-owned null-terminated copy. Use when you need to pass a
 ### `string_equals`
 
 ```c
-int string_equals(String a, String b);
+bool string_equals(String a, String b);
 ```
 
-Return `1` if `a` and `b` have the same length and byte content.
+Return `true` if `a` and `b` have the same length and byte content.
 
 ### `string_compare`
 
@@ -107,14 +107,14 @@ static int string_cmp(const void *a, const void *b) {
 ### `string_starts_with` / `string_ends_with`
 
 ```c
-int string_starts_with(String s, String prefix);
-int string_ends_with(String s, String suffix);
+bool string_starts_with(String s, String prefix);
+bool string_ends_with(String s, String suffix);
 ```
 
 ### `string_contains`
 
 ```c
-int string_contains(String s, String needle);
+bool string_contains(String s, String needle);
 ```
 
 ### `string_find`
