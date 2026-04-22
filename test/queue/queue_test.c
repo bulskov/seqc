@@ -267,3 +267,18 @@ Test(queue, back_empty_returns_null)
     cr_assert_null(queue_back(&q));
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises queue_free ------------------------------- */
+
+Test(queue, sys_alloc_free_releases_memory)
+{
+    Allocator al = sys_allocator();
+    Queue q = queue_create(sizeof(int), al);
+    int vals[] = {1, 2, 3};
+    for (int i = 0; i < 3; i++)
+        queue_push(&q, &vals[i]);
+    cr_assert_eq(queue_len(&q), 3);
+    queue_free(&q);
+    cr_assert_null(q.buf);
+    cr_assert_eq(q.len, 0);
+}

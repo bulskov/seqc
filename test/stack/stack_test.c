@@ -160,3 +160,17 @@ Test(stack, iter_rev_empty)
     iter_drop(&it);
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises stack_free ------------------------------- */
+
+Test(stack, sys_alloc_free_releases_memory)
+{
+    Allocator al = sys_allocator();
+    Stack s = stack_create(sizeof(int), al);
+    for (int i = 0; i < 4; i++)
+        stack_push(&s, &i);
+    cr_assert_eq(stack_len(&s), 4);
+    stack_free(&s);
+    cr_assert_null(s.vec.data);
+    cr_assert_eq(s.vec.len, 0);
+}

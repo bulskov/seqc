@@ -182,3 +182,57 @@ Test(list, pop_back_null_out_allowed)
     cr_assert(list_is_empty(&l));
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises node-level free branches ----------------- */
+
+Test(list, sys_alloc_free_releases_nodes)
+{
+    Allocator al = sys_allocator();
+    List l = list_create(sizeof(int), al);
+    for (int i = 0; i < 4; i++)
+        list_push_back(&l, &i);
+    /* list_free walks the list and frees each node */
+    list_free(&l);
+    cr_assert(list_is_empty(&l));
+}
+
+Test(list, sys_alloc_pop_front_frees_node)
+{
+    Allocator al = sys_allocator();
+    List l = list_create(sizeof(int), al);
+    int v = 42;
+    list_push_back(&l, &v);
+    int out;
+    cr_assert(list_pop_front(&l, &out));
+    cr_assert_eq(out, 42);
+    list_free(&l);
+}
+
+Test(list, sys_alloc_pop_back_frees_node)
+{
+    Allocator al = sys_allocator();
+    List l = list_create(sizeof(int), al);
+    int vals[] = {1, 2, 3};
+    for (int i = 0; i < 3; i++)
+        list_push_back(&l, &vals[i]);
+    int out;
+    cr_assert(list_pop_back(&l, &out));
+    cr_assert_eq(out, 3);
+    cr_assert_eq(list_len(&l), 2);
+    list_free(&l);
+}
+
+Test(list, sys_alloc_clear_frees_all_nodes)
+{
+    Allocator al = sys_allocator();
+    List l = list_create(sizeof(int), al);
+    for (int i = 0; i < 5; i++)
+        list_push_back(&l, &i);
+    list_clear(&l);
+    cr_assert(list_is_empty(&l));
+    /* reuse after clear */
+    int x = 99;
+    list_push_back(&l, &x);
+    cr_assert_eq(list_len(&l), 1);
+    list_free(&l);
+}

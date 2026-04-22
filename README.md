@@ -178,26 +178,25 @@ The test suite uses [Criterion](https://github.com/Snaipe/Criterion).
 
 | Module | Lines | Functions | Branches |
 |--------|------:|----------:|---------:|
-| `arena` | 90% | 100% | 78% |
+| `arena` | 91% | 100% | 78% |
 | `slice` | 95% | 100% | 69% |
 | `iter` | 90% | 100% | 79% |
-| `vec` | 86% | 100% | 64% |
-| `stack` | 84% | 90% | 58% |
-| `queue` | 88% | 94% | 60% |
-| `list` | 92% | 100% | 68% |
+| `vec` | 88% | 100% | 65% |
+| `stack` | 92% | 100% | 62% |
+| `queue` | 95% | 100% | 68% |
+| `list` | 95% | 100% | 74% |
 | `dlist` | 92% | 100% | 65% |
-| `set` | 86% | 94% | 63% |
-| `hashmap` | 81% | 100% | 65% |
+| `set` | 95% | 100% | 78% |
+| `hashmap` | 90% | 100% | 74% |
 | `string` | 94% | 100% | 72% |
 | `btree` | 92% | 100% | 73% |
 | `avl` | 93% | 100% | 76% |
 | `omap` | 88% | 97% | 67% |
-| `pqueue` | 94% | 93% | 78% |
-| **Total** | **90%** | **99%** | **70%** |
+| `pqueue` | 98% | 100% | 80% |
+| **Total** | **92%** | **100%** | **73%** |
 
-The remaining branch gaps are structural: `allocator.free` branches (arena
-never frees individual nodes; exercising them requires a `malloc`-backed
-allocator) and defensive NULL-pointer guards spread across every module.
+The remaining branch gaps are defensive NULL-pointer guards and `align`
+parameters that are always `_Alignof(max_align_t)` in practice.
 
 ## Known gaps / roadmap
 

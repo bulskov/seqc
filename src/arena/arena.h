@@ -19,6 +19,12 @@ typedef struct Arena Arena;
 
 Allocator arena_allocator(Arena *arena);
 
+/* Allocator backed by malloc / realloc / free.
+ * Use when you need individual lifetime control over allocations or want
+ * to run the library without an arena.  Every alloc must be paired with
+ * a matching _free call on the owning collection. */
+Allocator sys_allocator(void);
+
 typedef struct
 {
     Arena *arena;

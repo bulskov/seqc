@@ -309,3 +309,17 @@ Test(pqueue, build_from_vec_single)
     cr_assert_eq(*(int *)pqueue_peek(&q), 42);
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises pqueue_free ------------------------------ */
+
+Test(pqueue, sys_alloc_free_releases_memory)
+{
+    Allocator al = sys_allocator();
+    PQueue q = pqueue_create(sizeof(int), int_cmp, al);
+    for (int i = 5; i >= 1; i--)
+        pqueue_push(&q, &i);
+    cr_assert_eq(pqueue_len(&q), 5);
+    cr_assert_eq(*(int *)pqueue_peek(&q), 1);
+    pqueue_free(&q);
+    cr_assert_eq(pqueue_len(&q), 0);
+}

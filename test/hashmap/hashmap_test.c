@@ -611,3 +611,68 @@ Test(hashmap, create_invalid_args_returns_zero_map)
     cr_assert_eq(m.len, 0);
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises all allocator.free branches -------------- */
+
+/*
+ * Use sys_allocator so that hashmap_free, hashmap_clear, hashmap_delete, and
+ * hashmap_resize_and_rehash all exercise their allocator.free branches.
+ */
+Test(hashmap, sys_alloc_free_releases_memory)
+{
+    Allocator al = sys_allocator();
+    HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                               hashmap_eq_bytes, al);
+    for (int i = 0; i < 5; i++)
+    {
+        int v = i * 10;
+        hashmap_set(&m, &i, &v);
+    }
+    cr_assert_eq(m.len, 5);
+    hashmap_free(&m);
+    cr_assert_null(m.buckets);
+    cr_assert_eq(m.len, 0);
+}
+
+Test(hashmap, sys_alloc_clear_frees_entries)
+{
+    Allocator al = sys_allocator();
+    HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                               hashmap_eq_bytes, al);
+    for (int i = 0; i < 4; i++)
+    {
+        int v = i;
+        hashmap_set(&m, &i, &v);
+    }
+    hashmap_clear(&m);
+    cr_assert_eq(hashmap_len(&m), 0);
+    /* map is still usable after clear */
+    int k = 99, v = 42;
+    hashmap_set(&m, &k, &v);
+    cr_assert_eq(*(int *)hashmap_get(&m, &k), 42);
+    hashmap_free(&m);
+}
+
+Test(hashmap, sys_alloc_resize_frees_old_buckets)
+{
+    /* Trigger resize (capacity doubles past 75% load) so that
+     * hashmap_resize_and_rehash frees the old bucket array and individual
+     * keys/values through the sys allocator. */
+    Allocator al = sys_allocator();
+    HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                               hashmap_eq_bytes, al);
+    /* Initial cap is 16; resize triggers when len > 12. */
+    for (int i = 0; i < 14; i++)
+    {
+        int v = i;
+        hashmap_set(&m, &i, &v);
+    }
+    cr_assert_eq(m.len, 14);
+    for (int i = 0; i < 14; i++)
+    {
+        int *got = hashmap_get(&m, &i);
+        cr_assert_not_null(got);
+        cr_assert_eq(*got, i);
+    }
+    hashmap_free(&m);
+}

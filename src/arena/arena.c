@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 
@@ -284,4 +285,37 @@ void arena_scratch_pop(Scratch *scratch)
 Allocator scratch_allocator(Scratch *scratch)
 {
     return arena_allocator(scratch->arena);
+}
+
+/* ---- sys_allocator ----------------------------------------------------- */
+
+static void *sys_alloc_fn(void *ctx, size_t size, size_t align)
+{
+    (void)ctx;
+    (void)align; /* malloc is aligned to _Alignof(max_align_t) */
+    return malloc(size);
+}
+
+static void *sys_realloc_fn(
+    void *ctx, void *ptr, size_t old_size, size_t new_size, size_t align)
+{
+    (void)ctx;
+    (void)old_size;
+    (void)align;
+    return realloc(ptr, new_size);
+}
+
+static void sys_free_fn(void *ctx, void *ptr)
+{
+    (void)ctx;
+    free(ptr);
+}
+
+Allocator sys_allocator(void)
+{
+    return (Allocator){
+        .alloc = sys_alloc_fn,
+        .realloc = sys_realloc_fn,
+        .free = sys_free_fn,
+        .ctx = NULL};
 }

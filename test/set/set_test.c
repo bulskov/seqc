@@ -283,3 +283,43 @@ Test(set, remove_absent_hits_empty_slot)
     cr_assert_eq(set_len(&s), 1);
     arena_free(a);
 }
+
+/* ---- sys_allocator: exercises all allocator.free branches -------------- */
+
+Test(set, sys_alloc_free_releases_memory)
+{
+    Allocator al = sys_allocator();
+    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    for (int i = 0; i < 5; i++)
+        set_add(&s, &i);
+    cr_assert_eq(set_len(&s), 5);
+    set_free(&s);
+    cr_assert_null(s.buckets);
+    cr_assert_eq(s.len, 0);
+}
+
+Test(set, sys_alloc_clear_frees_keys)
+{
+    Allocator al = sys_allocator();
+    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    for (int i = 0; i < 4; i++)
+        set_add(&s, &i);
+    set_clear(&s);
+    cr_assert_eq(set_len(&s), 0);
+    /* set is still usable after clear */
+    int x = 42;
+    cr_assert(set_add(&s, &x));
+    cr_assert(set_contains(&s, &x));
+    set_free(&s);
+}
+
+Test(set, sys_alloc_remove_frees_key)
+{
+    Allocator al = sys_allocator();
+    Set s = set_create(sizeof(int), int_hash, int_eq, al);
+    int v = 7;
+    set_add(&s, &v);
+    cr_assert(set_remove(&s, &v));
+    cr_assert(!set_contains(&s, &v));
+    set_free(&s);
+}

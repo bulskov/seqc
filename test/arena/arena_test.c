@@ -323,3 +323,21 @@ Test(arena, reset_hard_frees_overflow_blocks)
     cr_assert_eq(arena_block_count(a), 1);
     arena_free(a);
 }
+
+/* ---- sys_allocator ----------------------------------------------------- */
+
+Test(arena, sys_allocator_alloc_realloc_free)
+{
+    Allocator al = sys_allocator();
+    /* alloc */
+    int *p = al.alloc(al.ctx, sizeof(int), _Alignof(int));
+    cr_assert_not_null(p);
+    *p = 42;
+    cr_assert_eq(*p, 42);
+    /* realloc to a larger buffer */
+    int *p2 = al.realloc(al.ctx, p, sizeof(int), 4 * sizeof(int), _Alignof(int));
+    cr_assert_not_null(p2);
+    cr_assert_eq(p2[0], 42); /* first element preserved */
+    /* free */
+    al.free(al.ctx, p2);
+}
