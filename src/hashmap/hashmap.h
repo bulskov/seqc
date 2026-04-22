@@ -35,7 +35,9 @@ void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);
 bool hashmap_contains(const HashMap *map, const void *key);
 bool hashmap_set(HashMap *map, const void *key, const void *value);
-void *hashmap_get(const HashMap *map, const void *key);
+/* Copies the value for key into out (may be NULL to test for presence only).
+ * Returns true if the key was found, false otherwise. */
+bool hashmap_get(const HashMap *map, const void *key, void *out);
 bool hashmap_delete(HashMap *map, const void *key);
 Iter hashmap_iter(const HashMap *map);
 Iter hashmap_iter_rev(const HashMap *map);

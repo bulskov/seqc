@@ -22,9 +22,9 @@ Test(hashmap, str_set_and_get)
     const char *k = "hello";
     int v = 123;
     hashmap_set(m, &k, &v);
-    int *got = hashmap_get(m, &k);
-    cr_assert_not_null(got);
-    cr_assert_eq(*got, 123);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 123);
     hashmap_free(m);
     arena_free(a);
 }
@@ -38,8 +38,11 @@ Test(hashmap, str_distinct_keys)
     int v1 = 1, v2 = 2;
     hashmap_set(m, &k1, &v1);
     hashmap_set(m, &k2, &v2);
-    cr_assert_eq(*(int *)hashmap_get(m, &k1), 1);
-    cr_assert_eq(*(int *)hashmap_get(m, &k2), 2);
+    int got1, got2;
+    cr_assert(hashmap_get(m, &k1, &got1));
+    cr_assert_eq(got1, 1);
+    cr_assert(hashmap_get(m, &k2, &got2));
+    cr_assert_eq(got2, 2);
     hashmap_free(m);
     arena_free(a);
 }
@@ -53,7 +56,9 @@ Test(hashmap, str_update_existing)
     hashmap_set(m, &k, &v1);
     hashmap_set(m, &k, &v2);
     cr_assert_eq(hashmap_len(m), 1);
-    cr_assert_eq(*(int *)hashmap_get(m, &k), 99);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 99);
     hashmap_free(m);
     arena_free(a);
 }
@@ -66,7 +71,7 @@ Test(hashmap, str_delete)
     int v = 7;
     hashmap_set(m, &k, &v);
     cr_assert_eq(hashmap_delete(m, &k), 1);
-    cr_assert_null(hashmap_get(m, &k));
+    cr_assert(!hashmap_get(m, &k, NULL));
     hashmap_free(m);
     arena_free(a);
 }
@@ -82,9 +87,9 @@ Test(hashmap, str_equal_content_different_pointer)
     const char *k2 = buf2;
     int v = 42;
     hashmap_set(m, &k1, &v);
-    int *got = hashmap_get(m, &k2);
-    cr_assert_not_null(got);
-    cr_assert_eq(*got, 42);
+    int got;
+    cr_assert(hashmap_get(m, &k2, &got));
+    cr_assert_eq(got, 42);
     hashmap_free(m);
     arena_free(a);
 }
@@ -114,9 +119,9 @@ Test(hashmap, set_and_get)
         arena_allocator(a));
     int k = 1, v = 42;
     hashmap_set(m, &k, &v);
-    int *got = hashmap_get(m, &k);
-    cr_assert_not_null(got);
-    cr_assert_eq(*got, 42);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 42);
     hashmap_free(m);
     arena_free(a);
 }
@@ -131,7 +136,7 @@ Test(hashmap, get_missing_returns_null)
         hashmap_eq_bytes,
         arena_allocator(a));
     int k = 99;
-    cr_assert_null(hashmap_get(m, &k));
+    cr_assert(!hashmap_get(m, &k, NULL));
     hashmap_free(m);
     arena_free(a);
 }
@@ -149,7 +154,9 @@ Test(hashmap, set_updates_existing_key)
     hashmap_set(m, &k, &v1);
     hashmap_set(m, &k, &v2);
     cr_assert_eq(hashmap_len(m), 1);
-    cr_assert_eq(*(int *)hashmap_get(m, &k), 20);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 20);
     hashmap_free(m);
     arena_free(a);
 }
@@ -166,7 +173,7 @@ Test(hashmap, delete_existing)
     int k = 7, v = 77;
     hashmap_set(m, &k, &v);
     cr_assert_eq(hashmap_delete(m, &k), 1);
-    cr_assert_null(hashmap_get(m, &k));
+    cr_assert(!hashmap_get(m, &k, NULL));
     cr_assert_eq(hashmap_len(m), 0);
     hashmap_free(m);
     arena_free(a);
@@ -200,7 +207,9 @@ Test(hashmap, delete_and_reinsert)
     hashmap_set(m, &k, &v1);
     hashmap_delete(m, &k);
     hashmap_set(m, &k, &v2);
-    cr_assert_eq(*(int *)hashmap_get(m, &k), 300);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 300);
     hashmap_free(m);
     arena_free(a);
 }
@@ -222,9 +231,9 @@ Test(hashmap, many_entries_triggers_resize)
     cr_assert_eq(hashmap_len(m), 100);
     for (int i = 0; i < 100; i++)
     {
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i * 10);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i * 10);
     }
     hashmap_free(m);
     arena_free(a);
@@ -304,14 +313,14 @@ Test(hashmap, delete_middle_of_cluster)
     }
     int mid = 5;
     hashmap_delete(m, &mid);
-    cr_assert_null(hashmap_get(m, &mid));
+    cr_assert(!hashmap_get(m, &mid, NULL));
     for (int i = 0; i < 10; i++)
     {
         if (i == mid)
             continue;
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i);
     }
     hashmap_free(m);
     arena_free(a);
@@ -336,7 +345,7 @@ Test(hashmap, clear_empties_map)
     hashmap_clear(m);
     cr_assert_eq(hashmap_len(m), 0);
     for (int i = 0; i < 5; i++)
-        cr_assert_null(hashmap_get(m, &i));
+        cr_assert(!hashmap_get(m, &i, NULL));
     arena_free(a);
 }
 
@@ -358,9 +367,9 @@ Test(hashmap, clear_allows_reuse)
     int k = 99, v = 42;
     hashmap_set(m, &k, &v);
     cr_assert_eq(hashmap_len(m), 1);
-    int *got = hashmap_get(m, &k);
-    cr_assert_not_null(got);
-    cr_assert_eq(*got, 42);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 42);
     arena_free(a);
 }
 
@@ -507,9 +516,9 @@ Test(hashmap, collision_probe_set_and_get)
     cr_assert_eq(hashmap_len(m), 4);
     for (int i = 1; i <= 4; i++)
     {
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i * 10);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i * 10);
     }
     arena_free(a);
 }
@@ -537,9 +546,9 @@ Test(hashmap, robin_hood_displacement)
     cr_assert_eq(hashmap_len(m), 4);
     for (int i = 1; i <= 4; i++)
     {
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i * 10);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i * 10);
     }
     arena_free(a);
 }
@@ -568,14 +577,14 @@ Test(hashmap, collision_delete_probe_and_backward_shift)
      * and then backward-shifts key 4 into the vacated slot. */
     int k = 3;
     cr_assert(hashmap_delete(m, &k));
-    cr_assert_null(hashmap_get(m, &k));
+    cr_assert(!hashmap_get(m, &k, NULL));
     for (int i = 1; i <= 4; i++)
     {
         if (i == 3)
             continue;
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i * 10);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i * 10);
     }
     cr_assert_eq(hashmap_len(m), 3);
     arena_free(a);
@@ -647,7 +656,9 @@ Test(hashmap, sys_alloc_clear_frees_entries)
     /* map is still usable after clear */
     int k = 99, v = 42;
     hashmap_set(m, &k, &v);
-    cr_assert_eq(*(int *)hashmap_get(m, &k), 42);
+    int got;
+    cr_assert(hashmap_get(m, &k, &got));
+    cr_assert_eq(got, 42);
     hashmap_free(m);
 }
 
@@ -668,9 +679,9 @@ Test(hashmap, sys_alloc_resize_frees_old_buckets)
     cr_assert_eq(hashmap_len(m), 14);
     for (int i = 0; i < 14; i++)
     {
-        int *got = hashmap_get(m, &i);
-        cr_assert_not_null(got);
-        cr_assert_eq(*got, i);
+        int got;
+        cr_assert(hashmap_get(m, &i, &got));
+        cr_assert_eq(got, i);
     }
     hashmap_free(m);
 }

@@ -15,14 +15,20 @@ size_t vec_elem_size(const Vec *v);
 size_t vec_cap(const Vec *v);
 void vec_push(Vec *v, const void *elem);
 bool vec_pop(Vec *v, void *out); /* out may be NULL; false if empty */
+/* Returns pointer into the backing buffer at index i.
+ * Invalidated by any call that may reallocate (vec_push, vec_insert,
+ * vec_reserve) or shift elements (vec_insert, vec_remove). */
 void *vec_get(const Vec *v, size_t i);
+/* Safe copy-out variant: copies element at i into out. Returns false if out of
+ * bounds or out is NULL. No pointer stability concerns. */
+bool vec_get_copy(const Vec *v, size_t i, void *out);
 void vec_set(Vec *v, size_t i, const void *elem); /* overwrite element at i */
 void vec_insert(Vec *v, size_t i, const void *elem); /* shift [i..] right */
 void vec_remove(Vec *v, size_t i);                   /* shift [i+1..] left */
 void vec_reserve(Vec *v, size_t capacity); /* ensure cap >= capacity */
 Slice vec_as_slice(const Vec *v);
 /* Linear search using pred(elem, ctx). Returns pointer to first match or NULL.
- */
+ * Same invalidation rules as vec_get. */
 void *vec_find(const Vec *v, pred_fn pred, void *ctx);
 bool vec_contains(const Vec *v, pred_fn pred, void *ctx);
 Iter vec_iter(const Vec *v);

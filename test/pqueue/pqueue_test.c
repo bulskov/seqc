@@ -21,7 +21,7 @@ Test(pqueue, empty_on_create)
     PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 0);
     cr_assert(pqueue_is_empty(q));
-    cr_assert_null(pqueue_peek(q));
+    cr_assert(!pqueue_peek(q, NULL));
     int out;
     cr_assert_not(pqueue_pop(q, &out));
     arena_free(a);
@@ -35,7 +35,9 @@ Test(pqueue, push_and_peek)
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
     cr_assert_eq(pqueue_len(q), 5);
-    cr_assert_eq(*(int *)pqueue_peek(q), 1); /* min always at front */
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 1); /* min always at front */
     arena_free(a);
 }
 
@@ -66,7 +68,9 @@ Test(pqueue, max_heap_via_reverse_cmp)
     int vals[] = {3, 1, 9, 5, 7};
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
-    cr_assert_eq(*(int *)pqueue_peek(q), 9); /* max at front */
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 9); /* max at front */
     int prev, cur;
     pqueue_pop(q, &prev);
     while (pqueue_pop(q, &cur))
@@ -86,7 +90,9 @@ Test(pqueue, pop_discard_null_out)
         pqueue_push(q, &vals[i]);
     cr_assert(pqueue_pop(q, NULL)); /* discard min without crash */
     cr_assert_eq(pqueue_len(q), 2);
-    cr_assert_eq(*(int *)pqueue_peek(q), 2);
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 2);
     arena_free(a);
 }
 
@@ -259,7 +265,9 @@ Test(pqueue, build_from_vec_pop_yields_ascending)
         vec_push(v, &vals[i]);
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 10);
-    cr_assert_eq(*(int *)pqueue_peek(q), 0);
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 0);
     int prev, cur;
     pqueue_pop(q, &prev);
     while (pqueue_pop(q, &cur))
@@ -294,7 +302,7 @@ Test(pqueue, build_from_vec_empty)
     Vec *v = vec_create(sizeof(int), arena_allocator(a));
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert(pqueue_is_empty(q));
-    cr_assert_null(pqueue_peek(q));
+    cr_assert(!pqueue_peek(q, NULL));
     arena_free(a);
 }
 
@@ -306,7 +314,9 @@ Test(pqueue, build_from_vec_single)
     vec_push(v, &x);
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 1);
-    cr_assert_eq(*(int *)pqueue_peek(q), 42);
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 42);
     arena_free(a);
 }
 
@@ -319,7 +329,9 @@ Test(pqueue, sys_alloc_free_releases_memory)
     for (int i = 5; i >= 1; i--)
         pqueue_push(q, &i);
     cr_assert_eq(pqueue_len(q), 5);
-    cr_assert_eq(*(int *)pqueue_peek(q), 1);
+    int peeked;
+    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(peeked, 1);
     pqueue_free(q);
     /* memory released — verified by sys_allocator not leaking */
 }

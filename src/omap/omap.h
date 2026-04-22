@@ -36,13 +36,15 @@ OMap *omap_create(
  */
 bool omap_set(OMap *m, const void *key, const void *value);
 
-/* Returns pointer to the stored value, or NULL if not found. */
-void *omap_get(const OMap *m, const void *key);
+/* Copies the value for key into out (may be NULL to test for presence only).
+ * Returns true if the key was found, false otherwise. */
+bool omap_get(const OMap *m, const void *key, void *out);
 
 bool omap_contains(const OMap *m, const void *key);
 bool omap_remove(OMap *m, const void *key); /* true=removed false=not found */
-void *omap_min_key(const OMap *m);          /* NULL if empty         */
-void *omap_max_key(const OMap *m);          /* NULL if empty         */
+/* Copy the min/max key into out (may be NULL). Returns false if empty. */
+bool omap_min_key(const OMap *m, void *out);
+bool omap_max_key(const OMap *m, void *out);
 /* Return the full entry (key+value pointers) at the min or max key.
  * Returns an entry with both fields NULL if the map is empty. */
 OMapEntry omap_min_entry(const OMap *m);

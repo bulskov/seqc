@@ -127,11 +127,13 @@ bool pqueue_pop(PQueue *q, void *out)
     return true;
 }
 
-void *pqueue_peek(const PQueue *q)
+bool pqueue_peek(const PQueue *q, void *out)
 {
     if (!q || vec_len(q->data) == 0)
-        return NULL;
-    return vec_get(q->data, 0);
+        return false;
+    if (out)
+        memcpy(out, vec_get(q->data, 0), vec_elem_size(q->data));
+    return true;
 }
 
 size_t pqueue_len(const PQueue *q)

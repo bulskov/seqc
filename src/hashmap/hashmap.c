@@ -209,7 +209,7 @@ size_t hashmap_len(const HashMap *map)
 
 bool hashmap_contains(const HashMap *map, const void *key)
 {
-    return hashmap_get(map, key) != NULL;
+    return hashmap_get(map, key, NULL);
 }
 
 bool hashmap_set(HashMap *map, const void *key, const void *value)
@@ -252,23 +252,21 @@ bool hashmap_set(HashMap *map, const void *key, const void *value)
     return false;
 }
 
-void *hashmap_get(const HashMap *map, const void *key)
+bool hashmap_get(const HashMap *map, const void *key, void *out)
 {
     if (!map || !map->buckets || !key)
-    {
-        return NULL; /* invalid map or key */
-    }
+        return false;
     size_t slot = hashmap_get_slot(map, key);
 
     while (1)
-    { /* probe until we find an empty slot or a match */
+    {
         if (map->buckets[slot].psl == 0)
-        {
-            return NULL;
-        }
+            return false;
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
-            return map->buckets[slot].value;
+            if (out)
+                memcpy(out, map->buckets[slot].value, map->val_size);
+            return true;
         }
         slot = (slot + 1) & (map->cap - 1);
     }

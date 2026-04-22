@@ -23,8 +23,9 @@ Test(omap, empty_on_create)
     Arena *a = arena_create(256);
     OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
     cr_assert_eq(omap_len(m), 0);
-    cr_assert_null(omap_min_key(m));
-    cr_assert_null(omap_max_key(m));
+    int mk;
+    cr_assert(!omap_min_key(m, &mk));
+    cr_assert(!omap_max_key(m, &mk));
     arena_free(a);
 }
 
@@ -39,9 +40,10 @@ Test(omap, set_and_get)
     omap_set(m, &k2, &v2);
     omap_set(m, &k3, &v3);
     cr_assert_eq(omap_len(m), 3);
-    cr_assert_eq(*(int *)omap_get(m, &k1), 100);
-    cr_assert_eq(*(int *)omap_get(m, &k2), 200);
-    cr_assert_eq(*(int *)omap_get(m, &k3), 300);
+    int gv;
+    cr_assert(omap_get(m, &k1, &gv)); cr_assert_eq(gv, 100);
+    cr_assert(omap_get(m, &k2, &gv)); cr_assert_eq(gv, 200);
+    cr_assert(omap_get(m, &k3, &gv)); cr_assert_eq(gv, 300);
     arena_free(a);
 }
 
@@ -53,7 +55,9 @@ Test(omap, update_existing_key)
     cr_assert_eq(omap_set(m, &k, &v1), 1); /* inserted */
     cr_assert_eq(omap_set(m, &k, &v2), 0); /* updated  */
     cr_assert_eq(omap_len(m), 1);
-    cr_assert_eq(*(int *)omap_get(m, &k), 99);
+    int gv;
+    cr_assert(omap_get(m, &k, &gv));
+    cr_assert_eq(gv, 99);
     arena_free(a);
 }
 
@@ -62,7 +66,7 @@ Test(omap, get_missing_returns_null)
     Arena *a = arena_create(256);
     OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
     int k = 42;
-    cr_assert_null(omap_get(m, &k));
+    cr_assert(!omap_get(m, &k, NULL));
     arena_free(a);
 }
 
@@ -86,8 +90,9 @@ Test(omap, min_max_keys)
     int v = 0;
     for (int i = 0; i < 6; i++)
         omap_set(m, &keys[i], &v);
-    cr_assert_eq(*(int *)omap_min_key(m), 1);
-    cr_assert_eq(*(int *)omap_max_key(m), 9);
+    int minv, maxv;
+    cr_assert(omap_min_key(m, &minv)); cr_assert_eq(minv, 1);
+    cr_assert(omap_max_key(m, &maxv)); cr_assert_eq(maxv, 9);
     arena_free(a);
 }
 
@@ -180,7 +185,9 @@ Test(omap, string_keys)
     omap_set(m, &k1, &v1);
     omap_set(m, &k2, &v2);
     omap_set(m, &k3, &v3);
-    cr_assert_eq(*(int *)omap_get(m, &k2), 2);
+    int gv;
+    cr_assert(omap_get(m, &k2, &gv));
+    cr_assert_eq(gv, 2);
     /* iterator must yield keys in lexicographic order: apple, banana, cherry */
     Scratch sc = arena_scratch_push(a);
     Iter it = omap_iter(m);
@@ -321,8 +328,9 @@ Test(omap, clear_empties_map)
     }
     omap_clear(m);
     cr_assert_eq(omap_len(m), 0);
-    cr_assert_null(omap_min_key(m));
-    cr_assert_null(omap_max_key(m));
+    int mk;
+    cr_assert(!omap_min_key(m, &mk));
+    cr_assert(!omap_max_key(m, &mk));
     arena_free(a);
 }
 

@@ -183,10 +183,10 @@ bool omap_set(OMap *m, const void *key, const void *value)
 
 /* ---- get --------------------------------------------------------------- */
 
-void *omap_get(const OMap *m, const void *key)
+bool omap_get(const OMap *m, const void *key, void *out)
 {
     if (!m || !key)
-        return NULL;
+        return false;
     OMNode *cur = m->root;
     while (cur)
     {
@@ -196,14 +196,18 @@ void *omap_get(const OMap *m, const void *key)
         else if (c > 0)
             cur = cur->right;
         else
-            return node_val(cur, m->key_size);
+        {
+            if (out)
+                memcpy(out, node_val(cur, m->key_size), m->val_size);
+            return true;
+        }
     }
-    return NULL;
+    return false;
 }
 
 bool omap_contains(const OMap *m, const void *key)
 {
-    return omap_get(m, key) != NULL;
+    return omap_get(m, key, NULL);
 }
 
 /* ---- remove ------------------------------------------------------------ */
@@ -276,24 +280,28 @@ bool omap_remove(OMap *m, const void *key)
 
 /* ---- min / max --------------------------------------------------------- */
 
-void *omap_min_key(const OMap *m)
+bool omap_min_key(const OMap *m, void *out)
 {
     if (!m || !m->root)
-        return NULL;
+        return false;
     OMNode *cur = m->root;
     while (cur->left)
         cur = cur->left;
-    return node_key(cur);
+    if (out)
+        memcpy(out, node_key(cur), m->key_size);
+    return true;
 }
 
-void *omap_max_key(const OMap *m)
+bool omap_max_key(const OMap *m, void *out)
 {
     if (!m || !m->root)
-        return NULL;
+        return false;
     OMNode *cur = m->root;
     while (cur->right)
         cur = cur->right;
-    return node_key(cur);
+    if (out)
+        memcpy(out, node_key(cur), m->key_size);
+    return true;
 }
 
 OMapEntry omap_min_entry(const OMap *m)

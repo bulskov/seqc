@@ -96,6 +96,14 @@ void *vec_get(const Vec *v, size_t i)
     return (char *)v->data + i * v->elem_size;
 }
 
+bool vec_get_copy(const Vec *v, size_t i, void *out)
+{
+    if (!v || i >= v->len || !out)
+        return false;
+    memcpy(out, (char *)v->data + i * v->elem_size, v->elem_size);
+    return true;
+}
+
 Slice vec_as_slice(const Vec *v)
 {
     if (!v)

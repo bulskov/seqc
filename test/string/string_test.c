@@ -257,13 +257,15 @@ Test(string, hashmap_string_keys)
     hashmap_set(map, &k1, &v1);
     hashmap_set(map, &k2, &v2);
 
-    cr_assert_eq(*(int *)hashmap_get(map, &k1), 1);
-    cr_assert_eq(*(int *)hashmap_get(map, &k2), 2);
+    int g1, g2;
+    cr_assert(hashmap_get(map, &k1, &g1)); cr_assert_eq(g1, 1);
+    cr_assert(hashmap_get(map, &k2, &g2)); cr_assert_eq(g2, 2);
 
     /* Key from different pointer but same content must still hit */
     char buf[] = "foo";
     String k1_copy = string_from_cstr(buf);
-    cr_assert_eq(*(int *)hashmap_get(map, &k1_copy), 1);
+    int g1c;
+    cr_assert(hashmap_get(map, &k1_copy, &g1c)); cr_assert_eq(g1c, 1);
 
     hashmap_free(map);
     arena_free(a);
