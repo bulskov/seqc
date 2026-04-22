@@ -207,12 +207,6 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ### API / encapsulation (should fix before publishing)
 
-- **Internal structs in public headers** — `Bucket`, `SetBucket`, and the fields
-  `buckets`, `cap`, `psl` inside `HashMap`, `Set`, and `Vec` are visible to
-  callers. Any internal layout change is a breaking change with no warning.
-  Fix: forward-declare opaque handles, or at minimum move `Bucket`/`SetBucket`
-  into the `.c` files.
-
 - **`hashmap_get` pointer stability undocumented** — returns a raw pointer into
   the backing array; any subsequent `hashmap_set` that triggers a resize silently
   invalidates it. Header needs a "do not cache; invalidated by resize" note.
