@@ -68,6 +68,13 @@ Iter vec_iter(const Vec *v) {
   return iter_from_slice(vec_as_slice(v), v->allocator);
 }
 
+Iter vec_iter_rev(const Vec *v) {
+  if (!v) {
+    return (Iter){0};
+  }
+  return iter_from_slice_rev(vec_as_slice(v), v->allocator);
+}
+
 void vec_free(Vec *v) {
   if (!v || !v->data) {
     return; /* nothing to free */

@@ -5,6 +5,14 @@ add_library(seqc STATIC
     vec/vec.c
     hashmap/hashmap.c
     string/string.c
+    stack/stack.c
+    queue/queue.c
+    list/list.c
+    set/set.c
+    dlist/dlist.c
+    btree/btree.c
+    avl/avl.c
+    omap/omap.c
 )
 
 target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

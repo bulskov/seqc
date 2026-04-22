@@ -32,6 +32,7 @@ static inline void iter_drop(Iter *it) {
 /* --- Sources ------------------------------------------------------------ */
 
 Iter iter_from_slice(Slice s, Allocator allocator);
+Iter iter_from_slice_rev(Slice s, Allocator allocator);
 
 /* --- Adaptors (take ownership of source) -------------------------------- */
 

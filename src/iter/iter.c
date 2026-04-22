@@ -43,6 +43,26 @@ Iter iter_from_slice(Slice s, Allocator allocator) {
                 .allocator = allocator};
 }
 
+static int slice_rev_next(Iter *it, void *out) {
+  SliceIterState *s = it->state;
+  if (!s->pos)
+    return 0;
+  s->pos--;
+  memcpy(out, s->ptr + s->pos * s->elem_size, s->elem_size);
+  return 1;
+}
+
+Iter iter_from_slice_rev(Slice s, Allocator allocator) {
+  SliceIterState *state =
+      allocator.alloc(allocator.ctx, sizeof *state, _Alignof(SliceIterState));
+  *state = (SliceIterState){s.ptr, s.len, s.elem_size, s.len};
+  return (Iter){.next = slice_rev_next,
+                .drop = slice_drop,
+                .state = state,
+                .elem_size = s.elem_size,
+                .allocator = allocator};
+}
+
 /* ---- iter_filter ------------------------------------------------------- */
 
 typedef struct {

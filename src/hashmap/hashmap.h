@@ -41,6 +41,7 @@ typedef struct {
 HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
                        Allocator allocator);
 void hashmap_free(HashMap *map);
+size_t hashmap_len(const HashMap *map);
 int hashmap_set(HashMap *map, const void *key, const void *value);
 void *hashmap_get(const HashMap *map, const void *key);
 int hashmap_delete(HashMap *map, const void *key);

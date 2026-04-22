@@ -127,6 +127,8 @@ void hashmap_free(HashMap *map) {
   }
 }
 
+size_t hashmap_len(const HashMap *map) { return map ? map->len : 0; }
+
 int hashmap_set(HashMap *map, const void *key, const void *value) {
   if (!map || !map->buckets || !key || !value) {
     return 0; /* invalid map or key/value */

@@ -85,3 +85,19 @@ Test(vec, iter_collect_round_trip) {
   vec_free(&v);
   arena_free(a);
 }
+
+Test(vec, iter_rev) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 5; i++)
+    vec_push(&v, &i);
+  Iter it = vec_iter_rev(&v);
+  int val;
+  for (int expected = 4; expected >= 0; expected--) {
+    cr_assert(it.next(&it, &val));
+    cr_assert_eq(val, expected);
+  }
+  cr_assert_not(it.next(&it, &val));
+  iter_drop(&it);
+  arena_free(a);
+}

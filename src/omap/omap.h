@@ -1,0 +1,57 @@
+#pragma once
+
+#include <stddef.h>
+
+#include "arena/arena.h"
+#include "iter/iter.h"
+
+/* Ordered map backed by an AVL tree.
+ * Keys are kept sorted by compare_fn; all operations are O(log n).
+ * compare_fn: same signature as iter_sort — negative / zero / positive. */
+
+typedef struct OMNode OMNode;
+struct OMNode {
+  OMNode *left;
+  OMNode *right;
+  int height;
+  /* key data then value data stored inline after the header */
+};
+
+/* Pointer-pair yielded by omap_iter — points directly into the live node.
+ * Do not modify the tree while iterating. */
+typedef struct {
+  void *key;
+  void *value;
+} OMapEntry;
+
+typedef struct {
+  OMNode *root;
+  size_t len;
+  size_t key_size;
+  size_t val_size;
+  compare_fn cmp;
+  Allocator allocator;
+} OMap;
+
+OMap omap_create(size_t key_size, size_t val_size, compare_fn cmp,
+                 Allocator allocator);
+
+/* Insert or update.  Returns 1 if a new key was inserted, 0 if updated. */
+int omap_set(OMap *m, const void *key, const void *value);
+
+/* Returns pointer to the stored value, or NULL if not found. */
+void *omap_get(const OMap *m, const void *key);
+
+int omap_contains(const OMap *m, const void *key);
+int omap_remove(OMap *m, const void *key); /* 1=removed 0=not found */
+void *omap_min_key(const OMap *m);         /* NULL if empty         */
+void *omap_max_key(const OMap *m);         /* NULL if empty         */
+size_t omap_len(const OMap *m);
+int omap_height(const OMap *m); /* 0 if empty            */
+
+/* Yields OMapEntry in ascending key order */
+Iter omap_iter(const OMap *m);
+/* Yields OMapEntry in descending key order */
+Iter omap_iter_rev(const OMap *m);
+
+void omap_free(OMap *m);

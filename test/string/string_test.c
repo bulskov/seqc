@@ -152,6 +152,23 @@ Test(string, chars_count) {
   arena_free(a);
 }
 
+Test(string, chars_rev) {
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  Iter it = string_chars_rev(STRING_LIT("abc"), scratch_allocator(&sc));
+  char c;
+  it.next(&it, &c);
+  cr_assert_eq(c, 'c');
+  it.next(&it, &c);
+  cr_assert_eq(c, 'b');
+  it.next(&it, &c);
+  cr_assert_eq(c, 'a');
+  cr_assert_not(it.next(&it, &c));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
 Test(string, split_basic) {
   Arena *a = arena_create(256);
   Scratch sc = arena_scratch_push(a);

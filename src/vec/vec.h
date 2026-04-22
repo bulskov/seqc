@@ -19,4 +19,5 @@ void vec_push(Vec *v, const void *elem);
 void *vec_get(const Vec *v, size_t i);
 Slice vec_as_slice(const Vec *v);
 Iter vec_iter(const Vec *v);
+Iter vec_iter_rev(const Vec *v);
 void vec_free(Vec *v);

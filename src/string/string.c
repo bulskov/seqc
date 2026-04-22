@@ -126,6 +126,11 @@ Iter string_chars(String s, Allocator allocator) {
   return iter_from_slice(sl, allocator);
 }
 
+Iter string_chars_rev(String s, Allocator allocator) {
+  Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
+  return iter_from_slice_rev(sl, allocator);
+}
+
 /* ---- string_split ------------------------------------------------------ */
 
 typedef struct {

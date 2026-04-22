@@ -68,6 +68,8 @@ int string_key_eq(const void *a, const void *b, size_t key_size);
 
 /* Yields char, one per character */
 Iter string_chars(String s, Allocator allocator);
+/* Yields char in reverse order */
+Iter string_chars_rev(String s, Allocator allocator);
 
 /* Yields String tokens split by delim */
 Iter string_split(String s, String delim, Allocator allocator);
