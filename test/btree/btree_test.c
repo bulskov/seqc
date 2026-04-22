@@ -257,7 +257,8 @@ Test(btree, clear_empties_tree) {
   Arena *a = arena_create(1024);
   BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
   int vals[] = {3, 1, 5, 2, 4};
-  for (int i = 0; i < 5; i++) btree_insert(&t, &vals[i]);
+  for (int i = 0; i < 5; i++)
+    btree_insert(&t, &vals[i]);
   btree_clear(&t);
   cr_assert_eq(btree_len(&t), 0);
   cr_assert_null(btree_min(&t));
@@ -269,7 +270,8 @@ Test(btree, clear_allows_reuse) {
   Arena *a = arena_create(1024);
   BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
   int vals[] = {3, 1, 5};
-  for (int i = 0; i < 3; i++) btree_insert(&t, &vals[i]);
+  for (int i = 0; i < 3; i++)
+    btree_insert(&t, &vals[i]);
   btree_clear(&t);
   int x = 42;
   cr_assert(btree_insert(&t, &x));

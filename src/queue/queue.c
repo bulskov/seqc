@@ -116,3 +116,42 @@ Iter queue_iter(const Queue *q) {
                 .elem_size = q->elem_size,
                 .allocator = q->allocator};
 }
+
+/* ---- iter_rev ---------------------------------------------------------- */
+
+typedef struct {
+  const char *buf;
+  size_t tail; /* index of the next element to yield (walking backward) */
+  size_t cap;
+  size_t remaining;
+  size_t elem_size;
+} QueueIterRevState;
+
+static bool queue_iter_rev_next(Iter *it, void *out) {
+  QueueIterRevState *s = it->state;
+  if (s->remaining == 0 || s->cap == 0)
+    return false;
+  memcpy(out, s->buf + s->tail * s->elem_size, s->elem_size);
+  s->tail = (s->tail + s->cap - 1) % s->cap;
+  s->remaining--;
+  return true;
+}
+
+static void queue_iter_rev_drop(Iter *it) {
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, it->state);
+}
+
+Iter queue_iter_rev(const Queue *q) {
+  if (!q)
+    return (Iter){0};
+  QueueIterRevState *s = q->allocator.alloc(q->allocator.ctx, sizeof *s,
+                                            _Alignof(QueueIterRevState));
+  size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
+  *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
+  return (Iter){.next = queue_iter_rev_next,
+                .drop = queue_iter_rev_drop,
+                .state = s,
+                .elem_size = q->elem_size,
+                .allocator = q->allocator};
+}

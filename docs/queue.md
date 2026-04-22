@@ -100,6 +100,16 @@ Iterate from front to back without modifying the queue.
 
 ---
 
+### `queue_iter_rev`
+
+```c
+Iter queue_iter_rev(const Queue *q);
+```
+
+Iterate from back to front. Correctly handles the ring-buffer wrap-around.
+
+---
+
 ### `queue_clear`
 
 ```c

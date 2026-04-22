@@ -117,3 +117,34 @@ Test(stack, clear_allows_reuse) {
   cr_assert_eq(out, 99);
   arena_free(a);
 }
+
+/* ---- stack_iter_rev ---------------------------------------------------- */
+
+Test(stack, iter_rev_top_to_bottom) {
+  Arena *a = arena_create(512);
+  Stack s = stack_create(sizeof(int), arena_allocator(a));
+  int vals[] = {10, 20, 30};
+  push_ints(&s, vals, 3);
+  /* iter_rev goes top→bottom: 30, 20, 10 */
+  Iter it = stack_iter_rev(&s);
+  int got[3];
+  size_t i = 0;
+  while (it.next(&it, &got[i]))
+    i++;
+  iter_drop(&it);
+  cr_assert_eq(i, 3);
+  cr_assert_eq(got[0], 30);
+  cr_assert_eq(got[1], 20);
+  cr_assert_eq(got[2], 10);
+  arena_free(a);
+}
+
+Test(stack, iter_rev_empty) {
+  Arena *a = arena_create(256);
+  Stack s = stack_create(sizeof(int), arena_allocator(a));
+  Iter it = stack_iter_rev(&s);
+  int v;
+  cr_assert(!it.next(&it, &v));
+  iter_drop(&it);
+  arena_free(a);
+}

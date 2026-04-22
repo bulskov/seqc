@@ -346,7 +346,8 @@ Test(avl, clear_empties_tree) {
   Arena *a = arena_create(1024);
   AVLTree t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
   int vals[] = {3, 1, 5, 2, 4};
-  for (int i = 0; i < 5; i++) avl_insert(&t, &vals[i]);
+  for (int i = 0; i < 5; i++)
+    avl_insert(&t, &vals[i]);
   avl_clear(&t);
   cr_assert_eq(avl_len(&t), 0);
   cr_assert_null(avl_min(&t));
@@ -358,7 +359,8 @@ Test(avl, clear_allows_reuse) {
   Arena *a = arena_create(1024);
   AVLTree t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
   int vals[] = {3, 1, 5};
-  for (int i = 0; i < 3; i++) avl_insert(&t, &vals[i]);
+  for (int i = 0; i < 3; i++)
+    avl_insert(&t, &vals[i]);
   avl_clear(&t);
   int x = 42;
   cr_assert(avl_insert(&t, &x));

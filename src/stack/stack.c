@@ -38,6 +38,12 @@ Iter stack_iter(const Stack *s) {
   return vec_iter(&s->vec);
 }
 
+Iter stack_iter_rev(const Stack *s) {
+  if (!s)
+    return (Iter){0};
+  return vec_iter_rev(&s->vec);
+}
+
 void stack_clear(Stack *s) {
   if (s)
     vec_clear(&s->vec);

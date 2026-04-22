@@ -107,7 +107,8 @@ Test(set, grow_beyond_initial_cap) {
 Test(set, clear_empties_set) {
   Arena *a = arena_create(1024);
   Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-  for (int i = 0; i < 5; i++) set_add(&s, &i);
+  for (int i = 0; i < 5; i++)
+    set_add(&s, &i);
   set_clear(&s);
   cr_assert_eq(set_len(&s), 0);
   for (int i = 0; i < 5; i++)
@@ -118,7 +119,8 @@ Test(set, clear_empties_set) {
 Test(set, clear_allows_reuse) {
   Arena *a = arena_create(1024);
   Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-  for (int i = 0; i < 3; i++) set_add(&s, &i);
+  for (int i = 0; i < 3; i++)
+    set_add(&s, &i);
   set_clear(&s);
   int x = 42;
   cr_assert(set_add(&s, &x));

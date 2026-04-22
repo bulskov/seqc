@@ -102,6 +102,18 @@ int    pqueue_is_empty(const PQueue *q);
 
 ---
 
+### `pqueue_iter`
+
+```c
+Iter pqueue_iter(const PQueue *q);
+```
+
+Iterate over elements in **heap-storage order** (not priority order). Useful
+for inspection or bulk processing. The queue is not modified. To consume
+elements in priority order, use `pqueue_pop` in a loop.
+
+---
+
 ### `pqueue_clear`
 
 ```c

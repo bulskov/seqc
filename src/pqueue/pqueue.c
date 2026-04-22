@@ -91,3 +91,9 @@ void pqueue_free(PQueue *q) {
   if (q)
     vec_free(&q->data);
 }
+
+Iter pqueue_iter(const PQueue *q) {
+  if (!q)
+    return (Iter){0};
+  return vec_iter(&q->data);
+}

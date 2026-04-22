@@ -94,6 +94,16 @@ want to `pop` elements one at a time rather than iterate.
 
 ---
 
+### `stack_iter_rev`
+
+```c
+Iter stack_iter_rev(const Stack *s);
+```
+
+Iterate from **top to bottom** (reverse insertion order — LIFO order).
+
+---
+
 ### `stack_clear`
 
 ```c

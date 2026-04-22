@@ -169,7 +169,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- `stack_iter_rev`, `queue_iter_rev`
 - `hashmap_iter()` method (currently `iter_from_hashmap()`)
 - Set algebra: `set_union`, `set_intersection`, `set_difference`
 - String: `string_join`, `string_to_uppercase/lowercase`, `string_to_int`

@@ -142,3 +142,62 @@ Test(queue, clear_allows_reuse) {
   cr_assert(queue_is_empty(&q));
   arena_free(a);
 }
+
+/* ---- queue_iter_rev ---------------------------------------------------- */
+
+Test(queue, iter_rev_back_to_front) {
+  Arena *a = arena_create(512);
+  Queue q = queue_create(sizeof(int), arena_allocator(a));
+  int vals[] = {10, 20, 30};
+  for (int i = 0; i < 3; i++)
+    queue_push(&q, &vals[i]);
+  Scratch sc = arena_scratch_push(a);
+  Iter it = queue_iter_rev(&q);
+  int got[3];
+  size_t n = 0;
+  while (it.next(&it, &got[n]))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 3);
+  cr_assert_eq(got[0], 30);
+  cr_assert_eq(got[1], 20);
+  cr_assert_eq(got[2], 10);
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
+Test(queue, iter_rev_wraps_ring_buffer) {
+  /* Push 5, pop 2 to shift head, then check rev order covers the wrap */
+  Arena *a = arena_create(512);
+  Queue q = queue_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 3, 4, 5};
+  for (int i = 0; i < 5; i++)
+    queue_push(&q, &vals[i]);
+  int discard;
+  queue_pop(&q, &discard); /* remove 1 */
+  queue_pop(&q, &discard); /* remove 2 */
+  /* queue is now: 3 4 5 (front→back) */
+  Scratch sc = arena_scratch_push(a);
+  Iter it = queue_iter_rev(&q);
+  int got[3];
+  size_t n = 0;
+  while (it.next(&it, &got[n]))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 3);
+  cr_assert_eq(got[0], 5);
+  cr_assert_eq(got[1], 4);
+  cr_assert_eq(got[2], 3);
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
+Test(queue, iter_rev_empty) {
+  Arena *a = arena_create(256);
+  Queue q = queue_create(sizeof(int), arena_allocator(a));
+  Iter it = queue_iter_rev(&q);
+  int v;
+  cr_assert(!it.next(&it, &v));
+  iter_drop(&it);
+  arena_free(a);
+}
