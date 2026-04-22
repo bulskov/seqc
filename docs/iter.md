@@ -108,7 +108,8 @@ static bool fib_next(void *out, void *ctx) {
 FibState state = {0, 1};
 Slice first10 = iter_collect(
     iter_take(iter_generate(fib_next, &state, sizeof(long long),
-                            arena_allocator(a)), 10));
+                            arena_allocator(a)), 10),
+    arena_allocator(a));
 ```
 
 ---
@@ -378,14 +379,18 @@ Terminals consume the iterator and free its resources.
 ### `iter_collect` {#iter_collect}
 
 ```c
-Slice iter_collect(Iter it);
+Slice iter_collect(Iter it, Allocator allocator);
 ```
 
-Materialise all elements into an arena-owned [`Slice`](slice.md). The arena
-used is the one embedded in `it.allocator`.
+Materialise all elements into an arena-owned [`Slice`](slice.md). `allocator`
+determines which arena owns the returned memory. Pass the same arena you used
+for the iterator chain, or any other arena whose lifetime exceeds the slice.
 
 ```c
-Slice s = iter_collect(iter_map(vec_iter(&v), double_fn, NULL, sizeof(double)));
+Arena *a = arena_create(4096);
+Slice s = iter_collect(
+    iter_map(vec_iter(&v), double_fn, NULL, sizeof(double)),
+    arena_allocator(a));
 ```
 
 ---
@@ -441,17 +446,18 @@ iter_reduce(vec_iter(&v), &total, sum, NULL);
 ### `iter_sort` {#iter_sort}
 
 ```c
-Slice iter_sort(Iter it, compare_fn cmp);
+Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator);
 ```
 
-Collect all elements into an arena-owned [`Slice`](slice.md) then sort in
-place using `cmp`. Returns the sorted slice.
+Collect all elements into `allocator` then sort in place using `cmp`. Returns
+the sorted [`Slice`](slice.md).
 
 ```c
 static int int_cmp(const void *a, const void *b) {
     return *(const int *)a - *(const int *)b;
 }
-Slice sorted = iter_sort(vec_iter(&v), int_cmp);
+Arena *a = arena_create(4096);
+Slice sorted = iter_sort(vec_iter(&v), int_cmp, arena_allocator(a));
 ```
 
 ---
@@ -532,19 +538,11 @@ int main(void) {
     for (int i = 10; i >= 1; i--) vec_push(&v, &i);
 
     // keep evens, triple, sort ascending
-    Iter  it     = iter_sort(
-                       iter_map(
-                           iter_filter(vec_iter(&v), is_even, NULL),
-                           triple, NULL, sizeof(int)),
-                       int_cmp);
-    // it is already a Slice from iter_sort
-    // but to iterate: use iter_from_slice
-    // Here iter_sort returns Slice directly, so:
     Slice result = iter_sort(
                        iter_map(
                            iter_filter(vec_iter(&v), is_even, NULL),
                            triple, NULL, sizeof(int)),
-                       int_cmp);
+                       int_cmp, arena_allocator(a));
     // result = {6, 12, 18, 24, 30}
 
     arena_free(a);

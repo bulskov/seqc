@@ -99,13 +99,15 @@ Iter iter_flat_map(
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
-Slice iter_collect(Iter it);
+/* Materialise the iterator into an arena-owned Slice.
+ * `allocator` determines which arena owns the returned memory. */
+Slice iter_collect(Iter it, Allocator allocator);
 size_t iter_count(Iter it);
 void iter_foreach(Iter it, visitor_fn visit, void *ctx);
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx);
 
-/* Collects and sorts in-place using cmp; returns sorted Slice */
-Slice iter_sort(Iter it, compare_fn cmp);
+/* Collects into `allocator` and sorts in-place using cmp; returns sorted Slice */
+Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator);
 
 /* Returns 1 and writes first match to *out (may be NULL) if found */
 bool iter_find(Iter it, pred_fn pred, void *ctx, void *out);

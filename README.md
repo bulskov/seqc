@@ -106,7 +106,7 @@ int main(void) {
                        iter_map(
                            iter_filter(vec_iter(&v), is_even, NULL),
                            double_it, NULL, sizeof(int)),
-                       int_cmp);
+                       int_cmp, arena_allocator(a));
 
     // result == {0, 4, 8, 12, 16}
     for (size_t i = 0; i < result.len; i++)
@@ -160,11 +160,11 @@ int main(void) {
 
 | Function | Returns | Docs |
 |----------|---------|------|
-| `iter_collect(it)` | Arena-owned `Slice` | [iter](docs/iter.md) |
+| `iter_collect(it, al)` | Arena-owned `Slice` | [iter](docs/iter.md) |
 | `iter_count(it)` | `size_t` count | [iter](docs/iter.md) |
 | `iter_foreach(it, fn, ctx)` | — (side-effects) | [iter](docs/iter.md) |
 | `iter_reduce(it, acc, fn, ctx)` | — (folds into acc) | [iter](docs/iter.md) |
-| `iter_sort(it, cmp)` | Sorted `Slice` | [iter](docs/iter.md) |
+| `iter_sort(it, cmp, al)` | Sorted `Slice` | [iter](docs/iter.md) |
 | `iter_find(it, pred, ctx, out)` | `bool` + first match | [iter](docs/iter.md) |
 | `iter_any(it, pred, ctx)` | `true` if any match | [iter](docs/iter.md) |
 | `iter_all(it, pred, ctx)` | `true` if all match | [iter](docs/iter.md) |
@@ -172,9 +172,6 @@ int main(void) {
 | `iter_max(it, cmp, out)` | `bool` + maximum | [iter](docs/iter.md) |
 
 ## Known gaps / roadmap
-
-### API correctness / consistency
-- `iter_collect` requires an allocator threaded into the iterator but this is undocumented and unguarded — NULL function pointer crash if omitted
 
 ### Missing API symmetry
 - `list_pop_back` is missing — `DList` has it; singly-linked list omission should at least be documented

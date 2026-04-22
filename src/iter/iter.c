@@ -1,6 +1,7 @@
 #include "iter.h"
 #include "arena/arena.h"
 
+#include <alloca.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -433,23 +434,22 @@ Iter iter_skip_while(Iter source, pred_fn pred, void *ctx)
 
 /* ---- terminals --------------------------------------------------------- */
 
-Slice iter_collect(Iter it)
+Slice iter_collect(Iter it, Allocator allocator)
 {
     const size_t elem_size = it.elem_size;
     size_t cap = 16;
     size_t len = 0;
-    char *buf = it.allocator.alloc(
-        it.allocator.ctx, cap * elem_size, _Alignof(max_align_t));
-    char *tmp =
-        it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+    char *buf = allocator.alloc(
+        allocator.ctx, cap * elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(elem_size);
 
     while (it.next(&it, tmp))
     {
         if (len == cap)
         {
             cap *= 2;
-            buf = it.allocator.realloc(
-                it.allocator.ctx,
+            buf = allocator.realloc(
+                allocator.ctx,
                 buf,
                 len * elem_size,
                 cap * elem_size,
@@ -459,67 +459,46 @@ Slice iter_collect(Iter it)
         len++;
     }
 
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, tmp);
-    }
     iter_drop(&it);
 
     if (len == 0)
     {
-        if (it.allocator.free)
-        {
-            it.allocator.free(it.allocator.ctx, buf);
-        }
+        if (allocator.free)
+            allocator.free(allocator.ctx, buf);
         return (Slice){NULL, 0, elem_size};
     }
 
-    void *out = it.allocator.alloc(
-        it.allocator.ctx, len * elem_size, _Alignof(max_align_t));
+    void *out = allocator.alloc(
+        allocator.ctx, len * elem_size, _Alignof(max_align_t));
     memcpy(out, buf, len * elem_size);
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, buf);
-    }
+    if (allocator.free)
+        allocator.free(allocator.ctx, buf);
     return (Slice){out, len, elem_size};
 }
 
 size_t iter_count(Iter it)
 {
     size_t n = 0;
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     while (it.next(&it, tmp))
         n++;
-    if (it.allocator.free)
-        it.allocator.free(it.allocator.ctx, tmp);
     iter_drop(&it);
     return n;
 }
 
 void iter_foreach(Iter it, visitor_fn visit, void *ctx)
 {
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     while (it.next(&it, tmp))
         visit(tmp, ctx);
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, tmp);
-    }
     iter_drop(&it);
 }
 
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx)
 {
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     while (it.next(&it, tmp))
         combine(acc, tmp, ctx);
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, tmp);
-    }
     iter_drop(&it);
 }
 
@@ -620,9 +599,9 @@ Iter iter_zip(Iter a, Iter b)
 
 /* ---- iter_sort --------------------------------------------------------- */
 
-Slice iter_sort(Iter it, compare_fn cmp)
+Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator)
 {
-    Slice s = iter_collect(it);
+    Slice s = iter_collect(it, allocator);
     if (s.len > 1)
         qsort(s.ptr, s.len, s.elem_size, cmp);
     return s;
@@ -632,8 +611,7 @@ Slice iter_sort(Iter it, compare_fn cmp)
 
 bool iter_find(Iter it, pred_fn pred, void *ctx, void *out)
 {
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     bool found = false;
     while (it.next(&it, tmp))
     {
@@ -645,8 +623,6 @@ bool iter_find(Iter it, pred_fn pred, void *ctx, void *out)
             break;
         }
     }
-    if (it.allocator.free)
-        it.allocator.free(it.allocator.ctx, tmp);
     iter_drop(&it);
     return found;
 }
@@ -655,14 +631,11 @@ bool iter_find(Iter it, pred_fn pred, void *ctx, void *out)
 
 bool iter_any(Iter it, pred_fn pred, void *ctx)
 {
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     bool found = false;
     while (!found && it.next(&it, tmp))
         if (pred(tmp, ctx))
             found = true;
-    if (it.allocator.free)
-        it.allocator.free(it.allocator.ctx, tmp);
     iter_drop(&it);
     return found;
 }
@@ -671,14 +644,11 @@ bool iter_any(Iter it, pred_fn pred, void *ctx)
 
 bool iter_all(Iter it, pred_fn pred, void *ctx)
 {
-    void *tmp = it.allocator.alloc(
-        it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
+    char *tmp = alloca(it.elem_size);
     bool all = true;
     while (all && it.next(&it, tmp))
         if (!pred(tmp, ctx))
             all = false;
-    if (it.allocator.free)
-        it.allocator.free(it.allocator.ctx, tmp);
     iter_drop(&it);
     return all;
 }
@@ -924,10 +894,8 @@ Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size)
 bool iter_min(Iter it, compare_fn cmp, void *out)
 {
     size_t elem_size = it.elem_size;
-    char *best =
-        it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
-    char *cur =
-        it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+    char *best = alloca(elem_size);
+    char *cur = alloca(elem_size);
     bool found = false;
     while (it.next(&it, cur))
     {
@@ -937,11 +905,6 @@ bool iter_min(Iter it, compare_fn cmp, void *out)
     }
     if (found && out)
         memcpy(out, best, elem_size);
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, best);
-        it.allocator.free(it.allocator.ctx, cur);
-    }
     iter_drop(&it);
     return found;
 }
@@ -949,10 +912,8 @@ bool iter_min(Iter it, compare_fn cmp, void *out)
 bool iter_max(Iter it, compare_fn cmp, void *out)
 {
     size_t elem_size = it.elem_size;
-    char *best =
-        it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
-    char *cur =
-        it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+    char *best = alloca(elem_size);
+    char *cur = alloca(elem_size);
     bool found = false;
     while (it.next(&it, cur))
     {
@@ -962,11 +923,6 @@ bool iter_max(Iter it, compare_fn cmp, void *out)
     }
     if (found && out)
         memcpy(out, best, elem_size);
-    if (it.allocator.free)
-    {
-        it.allocator.free(it.allocator.ctx, best);
-        it.allocator.free(it.allocator.ctx, cur);
-    }
     iter_drop(&it);
     return found;
 }
