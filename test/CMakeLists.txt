@@ -1,5 +1,10 @@
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(CRITERION REQUIRED IMPORTED_TARGET criterion)
+pkg_check_modules(CRITERION QUIET IMPORTED_TARGET criterion)
+
+if(NOT CRITERION_FOUND)
+    message(WARNING "Criterion not found; skipping test targets. Install criterion to build tests, or configure with -DBUILD_TESTING=OFF to disable test discovery.")
+    return()
+endif()
 
 function(add_criterion_test name source)
     add_executable(${name} ${source})

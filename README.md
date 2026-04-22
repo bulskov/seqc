@@ -41,13 +41,17 @@ Vec / List / BTree / ...
 
 ## Building
 
-Requires: `clang`, `cmake >= 3.20`, `ninja`, `criterion` (test framework).
+Requires: `clang`, `cmake >= 3.20`, `ninja`.
+Optional: `criterion` for building the test suite.
 
 ```sh
 cmake --preset debug
 cmake --build --preset debug
 ctest --test-dir build/debug --output-on-failure
 ```
+
+If Criterion is not installed, the library still configures and builds, but test targets are skipped.
+To silence the warning explicitly, configure with `-DBUILD_TESTING=OFF`.
 
 A `release` preset is also available.
 
@@ -169,7 +173,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- Set algebra: `set_union`, `set_intersection`, `set_difference`
 - String: `string_join`, `string_to_uppercase/lowercase`, `string_to_int`
 - `pqueue_build_from_vec` — O(n) heapify vs O(n log n) one-by-one
 - `iter_from_file` / `iter_lines` — I/O sources

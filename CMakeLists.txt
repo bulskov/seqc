@@ -7,5 +7,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 add_subdirectory(src)
 
-enable_testing()
-add_subdirectory(test)
+include(CTest)
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()
