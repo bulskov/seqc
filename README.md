@@ -224,8 +224,9 @@ parameters that are always `_Alignof(max_align_t)` in practice.
   and create an inconsistent interface: some `Iter`s would need an allocator
   passed later, some would not. With an arena the cost is negligible.
 
-- **`list_pop_back` is O(n)** — documented, but the cost is easy to miss in a
-  hot loop. Could add a note in the module docs.
+- ~~**`list_pop_back` is O(n)**~~ — documented in [docs/list.md](docs/list.md):
+  `list_pop_back` must walk to the second-to-last node; use
+  [`dlist`](docs/dlist.md) if you need O(1) pop from both ends.
 
 ### Future sources
 - `iter_from_file` / `iter_lines` — I/O sources
