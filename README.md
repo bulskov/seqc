@@ -120,6 +120,8 @@ int main(void) {
 |----------|--------|------|
 | `iter_from_slice(s, al)` | Slice elements | [iter](docs/iter.md) |
 | `iter_from_slice_rev(s, al)` | Slice elements in reverse | [iter](docs/iter.md) |
+| `iter_generate(fn, ctx, elem_size, al)` | Stateful generator; stops when `fn` returns `false` | [iter](docs/iter.md) |
+| `iter_range(start, end, step, al)` | `long long` integer range | [iter](docs/iter.md) |
 | `vec_iter(&v)` / `vec_iter_rev(&v)` | Vec elements | [vec](docs/vec.md) |
 | `stack_iter(&s)` | Stack elements bottom→top | [stack](docs/stack.md) |
 | `queue_iter(&q)` | Queue elements front→back | [queue](docs/queue.md) |
@@ -167,7 +169,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- `iter_generate(fn, ctx)` / `iter_range(start, end, step)` — generator sources
 - `vec_pop`, `vec_set`, `vec_insert`, `vec_remove`, `vec_reserve`
 - `clear` across sequential containers (Vec, Stack, Queue, List, DList, PQueue)
 - `stack_iter_rev`, `queue_iter_rev`

@@ -754,3 +754,111 @@ Test(iter, skip_while_yields_all_after_first_miss) {
   arena_scratch_pop(&sc);
   arena_free(arena);
 }
+
+/* ---- iter_generate ----------------------------------------------------- */
+
+/* Counts up from an int state; stops when it reaches 5 */
+static bool count_up(void *out, void *ctx) {
+  int *n = ctx;
+  if (*n >= 5)
+    return false;
+  *(int *)out = (*n)++;
+  return true;
+}
+
+Test(iter, generate_basic) {
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int state = 0;
+  Slice result = iter_collect(
+      iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)));
+  cr_assert_eq(result.len, 5);
+  for (size_t i = 0; i < result.len; i++)
+    cr_assert_eq(*(int *)slice_get(result, i), (int)i);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, generate_empty_when_fn_false_immediately) {
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  int state = 5; /* already at limit — fn returns false immediately */
+  size_t n = iter_count(
+      iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, generate_with_take) {
+  /* Generate is infinite without take; take limits it */
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int state = 0;
+  /* reuse count_up but stop at 5 naturally; just verify take works too */
+  size_t n = iter_count(iter_take(
+      iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)),
+      3));
+  cr_assert_eq(n, 3);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_range -------------------------------------------------------- */
+
+Test(iter, range_basic) {
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_range(0, 5, 1, scratch_allocator(&sc)));
+  cr_assert_eq(result.len, 5);
+  for (size_t i = 0; i < result.len; i++)
+    cr_assert_eq(*(long long *)slice_get(result, i), (long long)i);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, range_step_two) {
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_range(0, 10, 2, scratch_allocator(&sc)));
+  /* 0, 2, 4, 6, 8 */
+  cr_assert_eq(result.len, 5);
+  cr_assert_eq(*(long long *)slice_get(result, 0), 0LL);
+  cr_assert_eq(*(long long *)slice_get(result, 4), 8LL);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, range_negative_step) {
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_range(5, 0, -1, scratch_allocator(&sc)));
+  /* 5, 4, 3, 2, 1 */
+  cr_assert_eq(result.len, 5);
+  cr_assert_eq(*(long long *)slice_get(result, 0), 5LL);
+  cr_assert_eq(*(long long *)slice_get(result, 4), 1LL);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, range_empty_when_start_equals_end) {
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(iter_range(3, 3, 1, scratch_allocator(&sc)));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, range_empty_wrong_direction) {
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  /* positive step but start > end */
+  size_t n = iter_count(iter_range(5, 0, 1, scratch_allocator(&sc)));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}

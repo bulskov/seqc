@@ -36,6 +36,18 @@ static inline void iter_drop(Iter *it) {
 Iter iter_from_slice(Slice s, Allocator allocator);
 Iter iter_from_slice_rev(Slice s, Allocator allocator);
 
+/* Calls fn(out, ctx) on each call to next; stops when fn returns false.
+ * fn writes exactly elem_size bytes into out on each successful call. */
+typedef bool (*generate_fn)(void *out, void *ctx);
+Iter iter_generate(generate_fn fn, void *ctx, size_t elem_size,
+                   Allocator allocator);
+
+/* Yields long long integers from start (inclusive) to end (exclusive) by
+ * step.  step must not be zero.  Yields nothing if the range is empty
+ * (e.g. start >= end with positive step). */
+Iter iter_range(long long start, long long end, long long step,
+                Allocator allocator);
+
 /* --- Adaptors (take ownership of source) -------------------------------- */
 
 Iter iter_filter(Iter source, pred_fn pred, void *ctx);

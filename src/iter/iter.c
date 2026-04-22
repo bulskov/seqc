@@ -63,6 +63,73 @@ Iter iter_from_slice_rev(Slice s, Allocator allocator) {
                 .allocator = allocator};
 }
 
+/* ---- iter_generate ----------------------------------------------------- */
+
+typedef struct {
+  generate_fn fn;
+  void *ctx;
+} GenerateState;
+
+static bool generate_next(Iter *it, void *out) {
+  GenerateState *s = it->state;
+  return s->fn(out, s->ctx);
+}
+
+static void generate_drop(Iter *it) {
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, it->state);
+}
+
+Iter iter_generate(generate_fn fn, void *ctx, size_t elem_size,
+                   Allocator allocator) {
+  GenerateState *s =
+      allocator.alloc(allocator.ctx, sizeof *s, _Alignof(GenerateState));
+  *s = (GenerateState){fn, ctx};
+  return (Iter){.next = generate_next,
+                .drop = generate_drop,
+                .state = s,
+                .elem_size = elem_size,
+                .allocator = allocator};
+}
+
+/* ---- iter_range -------------------------------------------------------- */
+
+#include <limits.h>
+
+typedef struct {
+  long long cur;
+  long long end;
+  long long step;
+} RangeState;
+
+static bool range_next(Iter *it, void *out) {
+  RangeState *s = it->state;
+  if (s->step > 0 && s->cur >= s->end)
+    return false;
+  if (s->step < 0 && s->cur <= s->end)
+    return false;
+  memcpy(out, &s->cur, sizeof(long long));
+  s->cur += s->step;
+  return true;
+}
+
+static void range_drop(Iter *it) {
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, it->state);
+}
+
+Iter iter_range(long long start, long long end, long long step,
+                Allocator allocator) {
+  RangeState *s =
+      allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
+  *s = (RangeState){start, end, step};
+  return (Iter){.next = range_next,
+                .drop = range_drop,
+                .state = s,
+                .elem_size = sizeof(long long),
+                .allocator = allocator};
+}
+
 /* ---- iter_filter ------------------------------------------------------- */
 
 typedef struct {

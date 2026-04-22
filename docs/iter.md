@@ -78,6 +78,60 @@ Iter iter_from_slice_rev(Slice s, Allocator allocator);
 
 Same as `iter_from_slice` but yields elements in reverse order.
 
+---
+
+### `iter_generate`
+
+```c
+typedef bool (*generate_fn)(void *out, void *ctx);
+Iter iter_generate(generate_fn fn, void *ctx, size_t elem_size,
+                   Allocator allocator);
+```
+
+Create an iterator that calls `fn(out, ctx)` on each `next` call. `fn` writes
+`elem_size` bytes into `out` and returns `true` to continue or `false` to
+signal exhaustion. Useful for stateful generators or wrapping external sources.
+
+```c
+/* Fibonacci generator */
+typedef struct { long long a, b; } FibState;
+
+static bool fib_next(void *out, void *ctx) {
+    FibState *s = ctx;
+    *(long long *)out = s->a;
+    long long tmp = s->a + s->b;
+    s->a = s->b;
+    s->b = tmp;
+    return true;  /* infinite — pair with iter_take */
+}
+
+FibState state = {0, 1};
+Slice first10 = iter_collect(
+    iter_take(iter_generate(fib_next, &state, sizeof(long long),
+                            arena_allocator(a)), 10));
+```
+
+---
+
+### `iter_range`
+
+```c
+Iter iter_range(long long start, long long end, long long step,
+                Allocator allocator);
+```
+
+Yield `long long` integers from `start` (inclusive) to `end` (exclusive) with
+the given `step`. `step` must not be zero. Yields nothing if the range is
+already exhausted (e.g. `start >= end` with positive step).
+
+```c
+/* 0, 1, 2, 3, 4 */
+Iter it = iter_range(0, 5, 1, arena_allocator(a));
+
+/* 10, 8, 6, 4, 2 */
+Iter it = iter_range(10, 0, -2, arena_allocator(a));
+```
+
 Other sources live on their respective modules:
 
 | Source | Module |
