@@ -74,7 +74,8 @@ Iter iter_chunks(Iter source, size_t n);
  * *sub with a sub-iterator.  All sub-iterators are drained in order.
  * out_elem_size must match the elem_size of every sub-iterator produced. */
 typedef void (*flat_map_fn)(const void *elem, Iter *out, void *ctx);
-Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size);
+Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx,
+                   size_t out_elem_size);
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
@@ -94,3 +95,11 @@ int iter_any(Iter it, pred_fn pred, void *ctx);
 
 /* Returns 1 if all elements satisfy pred (vacuously true for empty) */
 int iter_all(Iter it, pred_fn pred, void *ctx);
+
+/* Write the minimum element to *out; returns 1 on success, 0 if empty.
+ * out may be NULL to simply test for emptiness. */
+int iter_min(Iter it, compare_fn cmp, void *out);
+
+/* Write the maximum element to *out; returns 1 on success, 0 if empty.
+ * out may be NULL to simply test for emptiness. */
+int iter_max(Iter it, compare_fn cmp, void *out);

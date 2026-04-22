@@ -533,7 +533,8 @@ static void repeat_n(const void *elem, Iter *out, void *ctx) {
   Allocator *alloc = ctx;
   /* Build a small Vec of n copies and return an iter over it */
   Vec v = vec_create(sizeof(int), *alloc);
-  for (int i = 0; i < n; i++) vec_push(&v, &n);
+  for (int i = 0; i < n; i++)
+    vec_push(&v, &n);
   *out = vec_iter(&v);
 }
 
@@ -543,8 +544,8 @@ Test(iter, flat_map_expand) {
   Arena *arena = arena_create(1024);
   Scratch sc = arena_scratch_push(arena);
   Allocator alloc = scratch_allocator(&sc);
-  Iter it = iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc,
-                          sizeof(int));
+  Iter it =
+      iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc, sizeof(int));
   int expected[] = {1, 2, 2, 3, 3, 3};
   int val;
   for (int i = 0; i < 6; i++) {
@@ -562,11 +563,67 @@ Test(iter, flat_map_empty_source) {
   Arena *arena = arena_create(256);
   Scratch sc = arena_scratch_push(arena);
   Allocator alloc = scratch_allocator(&sc);
-  Iter it = iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc,
-                          sizeof(int));
+  Iter it =
+      iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc, sizeof(int));
   int val;
   cr_assert_not(it.next(&it, &val));
   iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_min / iter_max ----------------------------------------------- */
+
+Test(iter, min_basic) {
+  int data[] = {5, 3, 8, 1, 9, 2};
+  Slice s = {data, 6, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int result;
+  cr_assert(
+      iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &result));
+  cr_assert_eq(result, 1);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, max_basic) {
+  int data[] = {5, 3, 8, 1, 9, 2};
+  Slice s = {data, 6, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int result;
+  cr_assert(
+      iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &result));
+  cr_assert_eq(result, 9);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, min_max_empty_returns_0) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  cr_assert_not(
+      iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, NULL));
+  sc = arena_scratch_push(arena);
+  cr_assert_not(
+      iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, NULL));
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, min_max_single_element) {
+  int data[] = {42};
+  Slice s = {data, 1, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  int mn, mx;
+  iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &mn);
+  sc = arena_scratch_push(arena);
+  iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &mx);
+  cr_assert_eq(mn, 42);
+  cr_assert_eq(mx, 42);
   arena_scratch_pop(&sc);
   arena_free(arena);
 }

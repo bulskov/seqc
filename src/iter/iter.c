@@ -584,14 +584,14 @@ Iter iter_chunks(Iter source, size_t n) {
 /* ---- iter_flat_map ----------------------------------------------------- */
 
 typedef struct {
-  Iter        source;       /* outer iterator                        */
+  Iter source; /* outer iterator                        */
   flat_map_fn fn;
-  void       *ctx;
-  void       *elem_buf;     /* one element from source               */
-  Iter        sub;          /* current sub-iterator (zeroed = none)  */
-  int         sub_active;   /* 1 when sub holds a live iterator      */
-  size_t      out_elem_size;
-  Allocator   allocator;
+  void *ctx;
+  void *elem_buf; /* one element from source               */
+  Iter sub;       /* current sub-iterator (zeroed = none)  */
+  int sub_active; /* 1 when sub holds a live iterator      */
+  size_t out_elem_size;
+  Allocator allocator;
 } FlatMapState;
 
 static int flat_map_next(Iter *it, void *out) {
@@ -626,22 +626,67 @@ static void flat_map_drop(Iter *it) {
 
 Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx,
                    size_t out_elem_size) {
-  FlatMapState *s = source.allocator.alloc(source.allocator.ctx,
-                                           sizeof *s, _Alignof(FlatMapState));
-  void *elem_buf = source.allocator.alloc(source.allocator.ctx,
-                                          source.elem_size,
-                                          _Alignof(max_align_t));
-  *s = (FlatMapState){.source       = source,
-                      .fn           = fn,
-                      .ctx          = ctx,
-                      .elem_buf     = elem_buf,
-                      .sub          = {0},
-                      .sub_active   = 0,
+  FlatMapState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                           _Alignof(FlatMapState));
+  void *elem_buf = source.allocator.alloc(
+      source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+  *s = (FlatMapState){.source = source,
+                      .fn = fn,
+                      .ctx = ctx,
+                      .elem_buf = elem_buf,
+                      .sub = {0},
+                      .sub_active = 0,
                       .out_elem_size = out_elem_size,
-                      .allocator    = source.allocator};
-  return (Iter){.next      = flat_map_next,
-                .drop      = flat_map_drop,
-                .state     = s,
+                      .allocator = source.allocator};
+  return (Iter){.next = flat_map_next,
+                .drop = flat_map_drop,
+                .state = s,
                 .elem_size = out_elem_size,
                 .allocator = source.allocator};
+}
+
+/* ---- iter_min / iter_max ----------------------------------------------- */
+
+int iter_min(Iter it, compare_fn cmp, void *out) {
+  size_t elem_size = it.elem_size;
+  char *best =
+      it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+  char *cur =
+      it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+  int found = 0;
+  while (it.next(&it, cur)) {
+    if (!found || cmp(cur, best) < 0)
+      memcpy(best, cur, elem_size);
+    found = 1;
+  }
+  if (found && out)
+    memcpy(out, best, elem_size);
+  if (it.allocator.free) {
+    it.allocator.free(it.allocator.ctx, best);
+    it.allocator.free(it.allocator.ctx, cur);
+  }
+  iter_drop(&it);
+  return found;
+}
+
+int iter_max(Iter it, compare_fn cmp, void *out) {
+  size_t elem_size = it.elem_size;
+  char *best =
+      it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+  char *cur =
+      it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
+  int found = 0;
+  while (it.next(&it, cur)) {
+    if (!found || cmp(cur, best) > 0)
+      memcpy(best, cur, elem_size);
+    found = 1;
+  }
+  if (found && out)
+    memcpy(out, best, elem_size);
+  if (it.allocator.free) {
+    it.allocator.free(it.allocator.ctx, best);
+    it.allocator.free(it.allocator.ctx, cur);
+  }
+  iter_drop(&it);
+  return found;
 }
