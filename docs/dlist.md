@@ -118,6 +118,17 @@ Reverse [`Iter`](iter.md) from back to front.
 
 ---
 
+### `dlist_clear`
+
+```c
+void dlist_clear(DList *l);
+```
+
+Remove all nodes. Each node's memory is returned to the allocator (a no-op for
+arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
+
+---
+
 ### `dlist_free`
 
 ```c

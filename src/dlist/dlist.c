@@ -103,6 +103,20 @@ bool dlist_is_empty(const DList *l) { return !l || l->len == 0; }
 
 size_t dlist_len(const DList *l) { return l ? l->len : 0; }
 
+void dlist_clear(DList *l) {
+  if (!l)
+    return;
+  DListNode *cur = l->head;
+  while (cur) {
+    DListNode *next = cur->next;
+    if (l->allocator.free)
+      l->allocator.free(l->allocator.ctx, cur);
+    cur = next;
+  }
+  l->head = l->tail = NULL;
+  l->len = 0;
+}
+
 void dlist_free(DList *l) {
   if (!l)
     return;

@@ -148,3 +148,27 @@ Test(dlist, free_does_not_crash) {
   cr_assert(dlist_is_empty(&l));
   arena_free(a);
 }
+
+/* ---- dlist_clear ------------------------------------------------------- */
+
+Test(dlist, clear_empties_list) {
+  Arena *a = arena_create(256);
+  DList l = dlist_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 4; i++) dlist_push_back(&l, &i);
+  dlist_clear(&l);
+  cr_assert(dlist_is_empty(&l));
+  cr_assert_eq(dlist_len(&l), 0);
+  arena_free(a);
+}
+
+Test(dlist, clear_allows_reuse) {
+  Arena *a = arena_create(512);
+  DList l = dlist_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++) dlist_push_back(&l, &i);
+  dlist_clear(&l);
+  int x = 99;
+  dlist_push_back(&l, &x);
+  cr_assert_eq(dlist_len(&l), 1);
+  cr_assert_eq(*(int *)dlist_front(&l), 99);
+  arena_free(a);
+}

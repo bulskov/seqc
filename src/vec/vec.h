@@ -26,4 +26,5 @@ void vec_reserve(Vec *v, size_t capacity); /* ensure cap >= capacity */
 Slice vec_as_slice(const Vec *v);
 Iter vec_iter(const Vec *v);
 Iter vec_iter_rev(const Vec *v);
+void vec_clear(Vec *v); /* reset len to 0, keep buffer */
 void vec_free(Vec *v);

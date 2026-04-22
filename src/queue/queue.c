@@ -61,6 +61,13 @@ bool queue_is_empty(const Queue *q) { return !q || q->len == 0; }
 
 size_t queue_len(const Queue *q) { return q ? q->len : 0; }
 
+void queue_clear(Queue *q) {
+  if (q) {
+    q->len = 0;
+    q->head = 0;
+  }
+}
+
 void queue_free(Queue *q) {
   if (!q || !q->buf)
     return;

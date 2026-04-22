@@ -82,6 +82,11 @@ void *pqueue_peek(const PQueue *q) {
 size_t pqueue_len(const PQueue *q) { return q ? q->data.len : 0; }
 bool pqueue_is_empty(const PQueue *q) { return !q || q->data.len == 0; }
 
+void pqueue_clear(PQueue *q) {
+  if (q)
+    vec_clear(&q->data);
+}
+
 void pqueue_free(PQueue *q) {
   if (q)
     vec_free(&q->data);

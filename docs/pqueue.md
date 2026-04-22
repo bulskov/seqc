@@ -102,6 +102,16 @@ int    pqueue_is_empty(const PQueue *q);
 
 ---
 
+### `pqueue_clear`
+
+```c
+void pqueue_clear(PQueue *q);
+```
+
+Empty the priority queue. The underlying Vec buffer is retained.
+
+---
+
 ### `pqueue_free`
 
 ```c

@@ -23,4 +23,5 @@ void *queue_peek(const Queue *q); /* front element; NULL if empty */
 bool queue_is_empty(const Queue *q);
 size_t queue_len(const Queue *q);
 Iter queue_iter(const Queue *q); /* front→back */
+void queue_clear(Queue *q); /* empty the queue, keep buffer */
 void queue_free(Queue *q);

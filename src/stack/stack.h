@@ -15,4 +15,5 @@ void *stack_peek(const Stack *s);    /* pointer to top; NULL if empty */
 bool stack_is_empty(const Stack *s);
 size_t stack_len(const Stack *s);
 Iter stack_iter(const Stack *s); /* bottom→top */
+void stack_clear(Stack *s); /* empty the stack, keep buffer */
 void stack_free(Stack *s);

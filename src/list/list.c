@@ -82,6 +82,20 @@ bool list_is_empty(const List *l) { return !l || l->len == 0; }
 
 size_t list_len(const List *l) { return l ? l->len : 0; }
 
+void list_clear(List *l) {
+  if (!l)
+    return;
+  ListNode *cur = l->head;
+  while (cur) {
+    ListNode *next = cur->next;
+    if (l->allocator.free)
+      l->allocator.free(l->allocator.ctx, cur);
+    cur = next;
+  }
+  l->head = l->tail = NULL;
+  l->len = 0;
+}
+
 void list_free(List *l) {
   if (!l)
     return;

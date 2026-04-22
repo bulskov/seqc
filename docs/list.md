@@ -106,6 +106,17 @@ Forward [`Iter`](iter.md) from front to back.
 
 ---
 
+### `list_clear`
+
+```c
+void list_clear(List *l);
+```
+
+Remove all nodes. Each node's memory is returned to the allocator (a no-op for
+arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
+
+---
+
 ### `list_free`
 
 ```c

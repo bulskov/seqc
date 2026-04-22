@@ -169,7 +169,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- `clear` across sequential containers (Vec, Stack, Queue, List, DList, PQueue)
 - `stack_iter_rev`, `queue_iter_rev`
 - `hashmap_iter()` method (currently `iter_from_hashmap()`)
 - Set algebra: `set_union`, `set_intersection`, `set_difference`

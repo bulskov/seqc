@@ -31,4 +31,5 @@ void *list_back(const List *l);  /* pointer to tail data; NULL if empty */
 bool list_is_empty(const List *l);
 size_t list_len(const List *l);
 Iter list_iter(const List *l); /* front→back */
+void list_clear(List *l); /* remove all nodes */
 void list_free(List *l);

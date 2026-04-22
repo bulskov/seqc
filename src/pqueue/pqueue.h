@@ -33,4 +33,5 @@ void *pqueue_peek(const PQueue *q);
 
 size_t pqueue_len(const PQueue *q);
 bool pqueue_is_empty(const PQueue *q);
+void pqueue_clear(PQueue *q); /* empty the queue, keep buffer */
 void pqueue_free(PQueue *q);

@@ -100,6 +100,16 @@ Iterate from front to back without modifying the queue.
 
 ---
 
+### `queue_clear`
+
+```c
+void queue_clear(Queue *q);
+```
+
+Empty the queue. The ring-buffer is retained and `head` is reset to zero.
+
+---
+
 ### `queue_free`
 
 ```c

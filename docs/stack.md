@@ -94,6 +94,16 @@ want to `pop` elements one at a time rather than iterate.
 
 ---
 
+### `stack_clear`
+
+```c
+void stack_clear(Stack *s);
+```
+
+Empty the stack. The underlying Vec buffer is retained.
+
+---
+
 ### `stack_free`
 
 ```c

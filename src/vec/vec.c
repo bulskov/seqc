@@ -124,6 +124,11 @@ void vec_remove(Vec *v, size_t i) {
   v->len--;
 }
 
+void vec_clear(Vec *v) {
+  if (v)
+    v->len = 0;
+}
+
 void vec_free(Vec *v) {
   if (!v || !v->data) {
     return; /* nothing to free */

@@ -191,6 +191,17 @@ Create a reverse [`Iter`](iter.md) over the Vec (last element first).
 
 ---
 
+### `vec_clear`
+
+```c
+void vec_clear(Vec *v);
+```
+
+Reset `len` to zero. The allocated buffer is retained, so subsequent pushes
+will not reallocate until capacity is exhausted again.
+
+---
+
 ### `vec_free`
 
 ```c

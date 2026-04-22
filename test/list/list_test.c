@@ -94,3 +94,27 @@ Test(list, free_does_not_crash) {
   cr_assert(list_is_empty(&l));
   arena_free(a);
 }
+
+/* ---- list_clear -------------------------------------------------------- */
+
+Test(list, clear_empties_list) {
+  Arena *a = arena_create(256);
+  List l = list_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 4; i++) list_push_back(&l, &i);
+  list_clear(&l);
+  cr_assert(list_is_empty(&l));
+  cr_assert_eq(list_len(&l), 0);
+  arena_free(a);
+}
+
+Test(list, clear_allows_reuse) {
+  Arena *a = arena_create(512);
+  List l = list_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++) list_push_back(&l, &i);
+  list_clear(&l);
+  int x = 99;
+  list_push_back(&l, &x);
+  cr_assert_eq(list_len(&l), 1);
+  cr_assert_eq(*(int *)list_front(&l), 99);
+  arena_free(a);
+}

@@ -90,3 +90,28 @@ Test(stack, pop_null_out_ok) {
   cr_assert(stack_is_empty(&s));
   arena_free(a);
 }
+
+/* ---- stack_clear ------------------------------------------------------- */
+
+Test(stack, clear_empties_stack) {
+  Arena *a = arena_create(256);
+  Stack s = stack_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 4; i++) stack_push(&s, &i);
+  stack_clear(&s);
+  cr_assert(stack_is_empty(&s));
+  cr_assert_eq(stack_len(&s), 0);
+  arena_free(a);
+}
+
+Test(stack, clear_allows_reuse) {
+  Arena *a = arena_create(256);
+  Stack s = stack_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++) stack_push(&s, &i);
+  stack_clear(&s);
+  int x = 99;
+  stack_push(&s, &x);
+  int out;
+  cr_assert(stack_pop(&s, &out));
+  cr_assert_eq(out, 99);
+  arena_free(a);
+}
