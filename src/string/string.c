@@ -231,6 +231,23 @@ bool string_to_int(String s, long long *out) {
   return true;
 }
 
+bool string_to_double(String s, double *out) {
+  if (!s.ptr || s.len == 0)
+    return false;
+  char buf[64];
+  if (s.len >= sizeof buf)
+    return false;
+  memcpy(buf, s.ptr, s.len);
+  buf[s.len] = '\0';
+  char *end;
+  errno = 0;
+  double val = strtod(buf, &end);
+  if (end == buf || *end != '\0' || errno == ERANGE)
+    return false;
+  *out = val;
+  return true;
+}
+
 /* --- Iter sources ------------------------------------------------------- */
 
 Iter string_chars(String s, Allocator allocator) {

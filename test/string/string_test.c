@@ -334,14 +334,16 @@ Test(string, replace_with_empty_replacement) {
 
 Test(string, to_uppercase_basic) {
   Arena *a = arena_create(256);
-  String r = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+  String r =
+      string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
   cr_assert(string_equals(r, STRING_LIT("HELLO WORLD!")));
   arena_free(a);
 }
 
 Test(string, to_lowercase_basic) {
   Arena *a = arena_create(256);
-  String r = string_to_lowercase(STRING_LIT("Hello World!"), arena_allocator(a));
+  String r =
+      string_to_lowercase(STRING_LIT("Hello World!"), arena_allocator(a));
   cr_assert(string_equals(r, STRING_LIT("hello world!")));
   arena_free(a);
 }
@@ -428,4 +430,45 @@ Test(string, to_int_invalid_alpha) {
 Test(string, to_int_trailing_garbage) {
   long long val;
   cr_assert_not(string_to_int(STRING_LIT("42abc"), &val));
+}
+
+/* --- string_to_double --------------------------------------------------- */
+
+Test(string, to_double_positive) {
+  double val;
+  cr_assert(string_to_double(STRING_LIT("3.14"), &val));
+  cr_assert_float_eq(val, 3.14, 1e-9);
+}
+
+Test(string, to_double_negative) {
+  double val;
+  cr_assert(string_to_double(STRING_LIT("-2.5"), &val));
+  cr_assert_float_eq(val, -2.5, 1e-9);
+}
+
+Test(string, to_double_integer_value) {
+  double val;
+  cr_assert(string_to_double(STRING_LIT("42"), &val));
+  cr_assert_float_eq(val, 42.0, 1e-9);
+}
+
+Test(string, to_double_scientific) {
+  double val;
+  cr_assert(string_to_double(STRING_LIT("1.5e2"), &val));
+  cr_assert_float_eq(val, 150.0, 1e-9);
+}
+
+Test(string, to_double_empty) {
+  double val;
+  cr_assert_not(string_to_double(STRING_LIT(""), &val));
+}
+
+Test(string, to_double_invalid) {
+  double val;
+  cr_assert_not(string_to_double(STRING_LIT("abc"), &val));
+}
+
+Test(string, to_double_trailing_garbage) {
+  double val;
+  cr_assert_not(string_to_double(STRING_LIT("1.5x"), &val));
 }

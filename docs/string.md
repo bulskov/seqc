@@ -207,6 +207,23 @@ if (string_to_int(STRING_LIT("-42"), &val))
     printf("%lld\n", val);  // -42
 ```
 
+### `string_to_double`
+
+```c
+bool string_to_double(String s, double *out);
+```
+
+Parse `s` as a floating-point number (same syntax accepted by `strtod`). On
+success writes the result to `*out` and returns `true`. Returns `false` if `s`
+is empty, contains non-numeric characters, has trailing garbage, or the value
+overflows to infinity. No allocation is performed.
+
+```c
+double val;
+if (string_to_double(STRING_LIT("3.14"), &val))
+    printf("%f\n", val);  // 3.140000
+```
+
 ---
 
 ## Views (zero-copy)

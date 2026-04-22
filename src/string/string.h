@@ -61,6 +61,11 @@ String string_join(Iter it, String sep, Allocator allocator);
  * is outside the range of long long. */
 bool string_to_int(String s, long long *out);
 
+/* Parse a double from s.  Writes to *out and returns true on success.
+ * Returns false if s is empty, contains non-numeric characters, or the value
+ * overflows to infinity. */
+bool string_to_double(String s, double *out);
+
 /* --- Views (zero-copy) -------------------------------------------------- */
 
 String string_slice(String s, size_t start, size_t end);
