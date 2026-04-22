@@ -173,6 +173,5 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- `pqueue_build_from_vec` — O(n) heapify vs O(n log n) one-by-one
 - `iter_from_file` / `iter_lines` — I/O sources
 - Cross-platform: currently Linux / clang only

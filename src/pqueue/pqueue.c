@@ -52,6 +52,25 @@ static void sift_down(PQueue *q, size_t i) {
 
 /* ---- public API -------------------------------------------------------- */
 
+PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator) {
+  PQueue q;
+  q.cmp  = cmp;
+  q.data = vec_create_size(v->elem_size, v->len, allocator);
+  if (v->len > 0) {
+    memcpy(q.data.data, v->data, v->len * v->elem_size);
+    q.data.len = v->len;
+    /* Floyd's heapify: sift down every non-leaf from bottom up, O(n) */
+    if (v->len > 1) {
+      size_t i = v->len / 2;
+      do {
+        i--;
+        sift_down(&q, i);
+      } while (i > 0);
+    }
+  }
+  return q;
+}
+
 void pqueue_push(PQueue *q, const void *elem) {
   if (!q || !elem)
     return;

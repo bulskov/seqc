@@ -2,6 +2,7 @@
 
 #include "arena/arena.h"
 #include "pqueue/pqueue.h"
+#include "vec/vec.h"
 
 static int int_cmp(const void *a, const void *b) {
   return *(const int *)a - *(const int *)b;
@@ -226,5 +227,62 @@ Test(pqueue, iter_rev_empty) {
   int v;
   cr_assert(!it.next(&it, &v));
   iter_drop(&it);
+  arena_free(a);
+}
+
+/* ---- pqueue_build_from_vec --------------------------------------------- */
+
+Test(pqueue, build_from_vec_pop_yields_ascending) {
+  Arena *a = arena_create(1024);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {9, 3, 7, 1, 5, 2, 8, 4, 6, 0};
+  for (int i = 0; i < 10; i++)
+    vec_push(&v, &vals[i]);
+  PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+  cr_assert_eq(pqueue_len(&q), 10);
+  cr_assert_eq(*(int *)pqueue_peek(&q), 0);
+  int prev, cur;
+  pqueue_pop(&q, &prev);
+  while (pqueue_pop(&q, &cur)) {
+    cr_assert_leq(prev, cur);
+    prev = cur;
+  }
+  cr_assert(pqueue_is_empty(&q));
+  arena_free(a);
+}
+
+Test(pqueue, build_from_vec_does_not_modify_source) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {3, 1, 2};
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &vals[i]);
+  PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+  /* Original vec must be unchanged */
+  cr_assert_eq(v.len, 3);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 3);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 1);
+  cr_assert_eq(*(int *)vec_get(&v, 2), 2);
+  (void)q;
+  arena_free(a);
+}
+
+Test(pqueue, build_from_vec_empty) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+  cr_assert(pqueue_is_empty(&q));
+  cr_assert_null(pqueue_peek(&q));
+  arena_free(a);
+}
+
+Test(pqueue, build_from_vec_single) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int x = 42;
+  vec_push(&v, &x);
+  PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+  cr_assert_eq(pqueue_len(&q), 1);
+  cr_assert_eq(*(int *)pqueue_peek(&q), 42);
   arena_free(a);
 }

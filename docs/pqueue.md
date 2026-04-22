@@ -55,6 +55,35 @@ PQueue max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a));
 
 ---
 
+### `pqueue_build_from_vec`
+
+```c
+PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator);
+```
+
+Build a priority queue from a copy of `v`'s elements using Floyd's O(n)
+bottom-up heapify algorithm. This is faster than pushing elements one by one
+(O(n log n)) when the full data set is known upfront. The source `Vec` is not
+modified. The returned `PQueue` owns its own allocation independent of `v`.
+
+```c
+Arena  *a = arena_create(4096);
+Vec     v = vec_create(sizeof(int), arena_allocator(a));
+int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
+for (int i = 0; i < 10; i++)
+    vec_push(&v, &data[i]);
+
+PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+// Identical to pushing all elements one-by-one but O(n) instead of O(n log n)
+
+int v_out;
+while (pqueue_pop(&q, &v_out))
+    printf("%d\n", v_out);  // 0 1 2 3 4 5 6 7 8 9
+arena_free(a);
+```
+
+---
+
 ### `pqueue_push`
 
 ```c
