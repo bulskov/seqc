@@ -46,6 +46,21 @@ size_t string_find(String s, String needle); /* STRING_NOT_FOUND if absent */
 String string_replace(String s, String needle, String replacement,
                       Allocator allocator);
 
+/* Return a new arena-allocated copy of s with all ASCII letters uppercased. */
+String string_to_uppercase(String s, Allocator allocator);
+
+/* Return a new arena-allocated copy of s with all ASCII letters lowercased. */
+String string_to_lowercase(String s, Allocator allocator);
+
+/* Join all String values yielded by it, separated by sep.
+ * Consumes and drops the iterator.  Result is arena-allocated via allocator. */
+String string_join(Iter it, String sep, Allocator allocator);
+
+/* Parse a base-10 integer from s.  Writes to *out and returns true on success.
+ * Returns false if s is empty, contains non-numeric characters, or the value
+ * is outside the range of long long. */
+bool string_to_int(String s, long long *out);
+
 /* --- Views (zero-copy) -------------------------------------------------- */
 
 String string_slice(String s, size_t start, size_t end);

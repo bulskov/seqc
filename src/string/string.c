@@ -1,8 +1,10 @@
 #include "string.h"
 
 #include <ctype.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* --- Construction ------------------------------------------------------- */
@@ -124,6 +126,26 @@ String string_replace(String s, String needle, String replacement,
   return sb_finish(&sb);
 }
 
+/* --- Transformation (case / join) --------------------------------------- */
+
+String string_to_uppercase(String s, Allocator allocator) {
+  if (!s.ptr || s.len == 0)
+    return (String){NULL, 0};
+  char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+  for (size_t i = 0; i < s.len; i++)
+    buf[i] = (char)toupper((unsigned char)s.ptr[i]);
+  return (String){buf, s.len};
+}
+
+String string_to_lowercase(String s, Allocator allocator) {
+  if (!s.ptr || s.len == 0)
+    return (String){NULL, 0};
+  char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+  for (size_t i = 0; i < s.len; i++)
+    buf[i] = (char)tolower((unsigned char)s.ptr[i]);
+  return (String){buf, s.len};
+}
+
 /* --- Builder ------------------------------------------------------------ */
 
 StringBuilder sb_create(Allocator allocator) {
@@ -173,6 +195,40 @@ void sb_append_fmt(StringBuilder *sb, const char *fmt, ...) {
     sb_append_char(sb, buf[i]);
   if (buf != stack_buf && sb->chars.allocator.free)
     sb->chars.allocator.free(sb->chars.allocator.ctx, buf);
+}
+
+/* string_join is defined after the builder because it uses StringBuilder. */
+String string_join(Iter it, String sep, Allocator allocator) {
+  StringBuilder sb = sb_create(allocator);
+  String token;
+  bool first = true;
+  while (it.next(&it, &token)) {
+    if (!first)
+      sb_append(&sb, sep);
+    sb_append(&sb, token);
+    first = false;
+  }
+  iter_drop(&it);
+  return sb_finish(&sb);
+}
+
+/* --- string_to_int ------------------------------------------------------ */
+
+bool string_to_int(String s, long long *out) {
+  if (!s.ptr || s.len == 0)
+    return false;
+  char buf[24]; /* enough for any long long: 19 digits + sign + NUL */
+  if (s.len >= sizeof buf)
+    return false;
+  memcpy(buf, s.ptr, s.len);
+  buf[s.len] = '\0';
+  char *end;
+  errno = 0;
+  long long val = strtoll(buf, &end, 10);
+  if (end == buf || *end != '\0' || errno == ERANGE)
+    return false;
+  *out = val;
+  return true;
 }
 
 /* --- Iter sources ------------------------------------------------------- */

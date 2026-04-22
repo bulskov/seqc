@@ -329,3 +329,103 @@ Test(string, replace_with_empty_replacement) {
   cr_assert(string_equals(r, STRING_LIT("abc")));
   arena_free(a);
 }
+
+/* --- string_to_uppercase / string_to_lowercase -------------------------- */
+
+Test(string, to_uppercase_basic) {
+  Arena *a = arena_create(256);
+  String r = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("HELLO WORLD!")));
+  arena_free(a);
+}
+
+Test(string, to_lowercase_basic) {
+  Arena *a = arena_create(256);
+  String r = string_to_lowercase(STRING_LIT("Hello World!"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("hello world!")));
+  arena_free(a);
+}
+
+Test(string, to_uppercase_already_upper) {
+  Arena *a = arena_create(256);
+  String r = string_to_uppercase(STRING_LIT("ABC"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("ABC")));
+  arena_free(a);
+}
+
+Test(string, to_uppercase_empty) {
+  Arena *a = arena_create(256);
+  String r = string_to_uppercase((String){NULL, 0}, arena_allocator(a));
+  cr_assert_eq(r.len, 0);
+  arena_free(a);
+}
+
+/* --- string_join -------------------------------------------------------- */
+
+Test(string, join_basic) {
+  Arena *a = arena_create(512);
+  Scratch sc = arena_scratch_push(a);
+  Iter it = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
+                         scratch_allocator(&sc));
+  String result = string_join(it, STRING_LIT("-"), arena_allocator(a));
+  cr_assert(string_equals(result, STRING_LIT("a-b-c")));
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
+Test(string, join_single_token) {
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  Iter it = string_split(STRING_LIT("hello"), STRING_LIT(","),
+                         scratch_allocator(&sc));
+  String result = string_join(it, STRING_LIT(","), arena_allocator(a));
+  cr_assert(string_equals(result, STRING_LIT("hello")));
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
+Test(string, join_empty_separator) {
+  Arena *a = arena_create(256);
+  Scratch sc = arena_scratch_push(a);
+  Iter it = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
+                         scratch_allocator(&sc));
+  String result = string_join(it, STRING_LIT(""), arena_allocator(a));
+  cr_assert(string_equals(result, STRING_LIT("abc")));
+  arena_scratch_pop(&sc);
+  arena_free(a);
+}
+
+/* --- string_to_int ------------------------------------------------------ */
+
+Test(string, to_int_positive) {
+  long long val;
+  cr_assert(string_to_int(STRING_LIT("42"), &val));
+  cr_assert_eq(val, 42);
+}
+
+Test(string, to_int_negative) {
+  long long val;
+  cr_assert(string_to_int(STRING_LIT("-7"), &val));
+  cr_assert_eq(val, -7);
+}
+
+Test(string, to_int_zero) {
+  long long val;
+  cr_assert(string_to_int(STRING_LIT("0"), &val));
+  cr_assert_eq(val, 0);
+}
+
+Test(string, to_int_empty) {
+  long long val;
+  cr_assert_not(string_to_int(STRING_LIT(""), &val));
+}
+
+Test(string, to_int_invalid_alpha) {
+  long long val;
+  cr_assert_not(string_to_int(STRING_LIT("abc"), &val));
+}
+
+Test(string, to_int_trailing_garbage) {
+  long long val;
+  cr_assert_not(string_to_int(STRING_LIT("42abc"), &val));
+}

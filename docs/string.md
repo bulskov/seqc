@@ -154,6 +154,59 @@ String  res = string_replace(STRING_LIT("a,b,c"), STRING_LIT(","),
 arena_free(a);
 ```
 
+### `string_to_uppercase` / `string_to_lowercase`
+
+```c
+String string_to_uppercase(String s, Allocator allocator);
+String string_to_lowercase(String s, Allocator allocator);
+```
+
+Return a new arena-allocated `String` with every ASCII letter converted to
+upper or lower case. Non-letter bytes are copied unchanged.
+
+```c
+Arena  *a = arena_create(256);
+String  u = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+// u == "HELLO WORLD!"
+arena_free(a);
+```
+
+### `string_join`
+
+```c
+String string_join(Iter it, String sep, Allocator allocator);
+```
+
+Consume `it` (an iterator that yields `String` values), concatenate every
+token with `sep` inserted between consecutive tokens, and return the result as
+a new arena-allocated `String`. The iterator is dropped after the call.
+
+```c
+Arena  *a   = arena_create(512);
+Iter    it  = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
+                           arena_allocator(a));
+String  res = string_join(it, STRING_LIT(" | "), arena_allocator(a));
+// res == "a | b | c"
+arena_free(a);
+```
+
+### `string_to_int`
+
+```c
+bool string_to_int(String s, long long *out);
+```
+
+Parse `s` as a base-10 integer. On success writes the result to `*out` and
+returns `true`. Returns `false` if `s` is empty, contains non-numeric
+characters, has trailing garbage, or the value overflows `long long`. No
+allocation is performed.
+
+```c
+long long val;
+if (string_to_int(STRING_LIT("-42"), &val))
+    printf("%lld\n", val);  // -42
+```
+
 ---
 
 ## Views (zero-copy)

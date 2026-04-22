@@ -173,7 +173,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-- String: `string_join`, `string_to_uppercase/lowercase`, `string_to_int`
 - `pqueue_build_from_vec` — O(n) heapify vs O(n log n) one-by-one
 - `iter_from_file` / `iter_lines` — I/O sources
 - Cross-platform: currently Linux / clang only
