@@ -29,14 +29,14 @@ const char *string_to_cstr(String s,
 
 /* --- Comparison --------------------------------------------------------- */
 
-int string_equals(String a, String b);
+bool string_equals(String a, String b);
 int string_compare(String a, String b); /* <0, 0, >0           */
 
 /* --- Query -------------------------------------------------------------- */
 
-int string_starts_with(String s, String prefix);
-int string_ends_with(String s, String suffix);
-int string_contains(String s, String needle);
+bool string_starts_with(String s, String prefix);
+bool string_ends_with(String s, String suffix);
+bool string_contains(String s, String needle);
 size_t string_find(String s, String needle); /* STRING_NOT_FOUND if absent */
 
 /* --- Transformation ----------------------------------------------------- */
@@ -73,7 +73,7 @@ String sb_finish(const StringBuilder *sb); /* view — no copy      */
 size_t string_hash(const void *key, size_t key_size);
 
 /* Use as eq_fn when the hashmap key type is String */
-int string_key_eq(const void *a, const void *b, size_t key_size);
+bool string_key_eq(const void *a, const void *b, size_t key_size);
 
 /* --- Iter sources ------------------------------------------------------- */
 

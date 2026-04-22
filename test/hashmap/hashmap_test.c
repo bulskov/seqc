@@ -200,7 +200,7 @@ Test(hashmap, iter_foreach_sums_values) {
   arena_free(a);
 }
 
-static int value_gt_20(const void *elem, void *ctx) {
+static bool value_gt_20(const void *elem, void *ctx) {
   (void)ctx;
   const HashMapEntry *e = elem;
   return *(int *)e->value > 20;

@@ -14,17 +14,17 @@ typedef struct {
   size_t pos;
 } SliceIterState;
 
-static int slice_next(Iter *it, void *out) {
+static bool slice_next(Iter *it, void *out) {
   if (!it || !it->state || !out) {
-    return 0; /* invalid iterator or output buffer */
+    return false; /* invalid iterator or output buffer */
   }
 
   SliceIterState *s = it->state;
   if (s->pos >= s->len)
-    return 0;
+    return false;
   memcpy(out, s->ptr + s->pos * s->elem_size, s->elem_size);
   s->pos++;
-  return 1;
+  return true;
 }
 
 static void slice_drop(Iter *it) {
@@ -43,13 +43,13 @@ Iter iter_from_slice(Slice s, Allocator allocator) {
                 .allocator = allocator};
 }
 
-static int slice_rev_next(Iter *it, void *out) {
+static bool slice_rev_next(Iter *it, void *out) {
   SliceIterState *s = it->state;
   if (!s->pos)
-    return 0;
+    return false;
   s->pos--;
   memcpy(out, s->ptr + s->pos * s->elem_size, s->elem_size);
-  return 1;
+  return true;
 }
 
 Iter iter_from_slice_rev(Slice s, Allocator allocator) {
@@ -71,15 +71,15 @@ typedef struct {
   void *ctx;
 } FilterState;
 
-static int filter_next(Iter *it, void *out) {
+static bool filter_next(Iter *it, void *out) {
   if (!it || !it->state || !out) {
-    return 0; /* invalid iterator or output buffer */
+    return false; /* invalid iterator or output buffer */
   }
   FilterState *s = it->state;
   while (s->source.next(&s->source, out))
     if (s->pred(out, s->ctx))
-      return 1;
-  return 0;
+      return true;
+  return false;
 }
 
 static void filter_drop(Iter *it) {
@@ -111,15 +111,15 @@ typedef struct {
   void *in_buf; /* reusable buffer of source.elem_size bytes */
 } MapState;
 
-static int map_next(Iter *it, void *out) {
+static bool map_next(Iter *it, void *out) {
   if (!it || !it->state || !out) {
-    return 0; /* invalid iterator or output buffer */
+    return false; /* invalid iterator or output buffer */
   }
   MapState *s = it->state;
   if (!s->source.next(&s->source, s->in_buf))
-    return 0;
+    return false;
   s->map(s->in_buf, out, s->ctx);
-  return 1;
+  return true;
 }
 
 static void map_drop(Iter *it) {
@@ -153,14 +153,14 @@ typedef struct {
   size_t remaining;
 } TakeState;
 
-static int take_next(Iter *it, void *out) {
+static bool take_next(Iter *it, void *out) {
   TakeState *s = it->state;
   if (s->remaining == 0)
-    return 0;
+    return false;
   if (!s->source.next(&s->source, out))
-    return 0;
+    return false;
   s->remaining--;
-  return 1;
+  return true;
 }
 
 static void take_drop(Iter *it) {
@@ -183,6 +183,43 @@ Iter iter_take(Iter source, size_t n) {
                 .allocator = source.allocator};
 }
 
+/* ---- iter_take_while ---------------------------------------------------- */
+
+typedef struct {
+  Iter source;
+  pred_fn pred;
+  void *ctx;
+} TakeWhileState;
+
+static bool take_while_next(Iter *it, void *out) {
+  TakeWhileState *s = it->state;
+  if (!s->source.next(&s->source, out))
+    return false;
+  if (!s->pred(out, s->ctx))
+    return false;
+  return true;
+}
+
+static void take_while_drop(Iter *it) {
+  if (!it->state)
+    return;
+  TakeWhileState *s = it->state;
+  iter_drop(&s->source);
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, s);
+}
+
+Iter iter_take_while(Iter source, pred_fn pred, void *ctx) {
+  TakeWhileState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                             _Alignof(TakeWhileState));
+  *s = (TakeWhileState){source, pred, ctx};
+  return (Iter){.next = take_while_next,
+                .drop = take_while_drop,
+                .state = s,
+                .elem_size = source.elem_size,
+                .allocator = source.allocator};
+}
+
 /* ---- iter_skip --------------------------------------------------------- */
 
 typedef struct {
@@ -190,12 +227,12 @@ typedef struct {
   size_t remaining;
 } SkipState;
 
-static int skip_next(Iter *it, void *out) {
+static bool skip_next(Iter *it, void *out) {
   SkipState *s = it->state;
   /* drain skipped elements once, then pass through */
   while (s->remaining > 0) {
     if (!s->source.next(&s->source, out))
-      return 0;
+      return false;
     s->remaining--;
   }
   return s->source.next(&s->source, out);
@@ -216,6 +253,46 @@ Iter iter_skip(Iter source, size_t n) {
   *s = (SkipState){source, n};
   return (Iter){.next = skip_next,
                 .drop = skip_drop,
+                .state = s,
+                .elem_size = source.elem_size,
+                .allocator = source.allocator};
+}
+
+/* ---- iter_skip_while ---------------------------------------------------- */
+
+typedef struct {
+  Iter source;
+  pred_fn pred;
+  void *ctx;
+  bool done_skipping;
+} SkipWhileState;
+
+static bool skip_while_next(Iter *it, void *out) {
+  SkipWhileState *s = it->state;
+  while (s->source.next(&s->source, out)) {
+    if (s->done_skipping || !s->pred(out, s->ctx)) {
+      s->done_skipping = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void skip_while_drop(Iter *it) {
+  if (!it->state)
+    return;
+  SkipWhileState *s = it->state;
+  iter_drop(&s->source);
+  if (it->allocator.free)
+    it->allocator.free(it->allocator.ctx, s);
+}
+
+Iter iter_skip_while(Iter source, pred_fn pred, void *ctx) {
+  SkipWhileState *s = source.allocator.alloc(source.allocator.ctx, sizeof *s,
+                                             _Alignof(SkipWhileState));
+  *s = (SkipWhileState){source, pred, ctx};
+  return (Iter){.next = skip_while_next,
+                .drop = skip_while_drop,
                 .state = s,
                 .elem_size = source.elem_size,
                 .allocator = source.allocator};
@@ -305,11 +382,11 @@ typedef struct {
   int done_first;
 } ChainState;
 
-static int chain_next(Iter *it, void *out) {
+static bool chain_next(Iter *it, void *out) {
   ChainState *s = it->state;
   if (!s->done_first) {
     if (s->first.next(&s->first, out))
-      return 1;
+      return true;
     s->done_first = 1;
   }
   return s->second.next(&s->second, out);
@@ -345,14 +422,14 @@ typedef struct {
   void *buf_a; /* temporary buffer; confirms a before writing b to out */
 } ZipState;
 
-static int zip_next(Iter *it, void *out) {
+static bool zip_next(Iter *it, void *out) {
   ZipState *s = it->state;
   if (!s->a.next(&s->a, s->buf_a))
-    return 0;
+    return false;
   if (!s->b.next(&s->b, (char *)out + s->a_elem_size))
-    return 0;
+    return false;
   memcpy(out, s->buf_a, s->a_elem_size);
-  return 1;
+  return true;
 }
 
 static void zip_drop(Iter *it) {
@@ -391,15 +468,15 @@ Slice iter_sort(Iter it, compare_fn cmp) {
 
 /* ---- iter_find --------------------------------------------------------- */
 
-int iter_find(Iter it, pred_fn pred, void *ctx, void *out) {
+bool iter_find(Iter it, pred_fn pred, void *ctx, void *out) {
   void *tmp =
       it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
-  int found = 0;
+  bool found = false;
   while (it.next(&it, tmp)) {
     if (pred(tmp, ctx)) {
       if (out)
         memcpy(out, tmp, it.elem_size);
-      found = 1;
+      found = true;
       break;
     }
   }
@@ -411,13 +488,13 @@ int iter_find(Iter it, pred_fn pred, void *ctx, void *out) {
 
 /* ---- iter_any ---------------------------------------------------------- */
 
-int iter_any(Iter it, pred_fn pred, void *ctx) {
+bool iter_any(Iter it, pred_fn pred, void *ctx) {
   void *tmp =
       it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
-  int found = 0;
+  bool found = false;
   while (!found && it.next(&it, tmp))
     if (pred(tmp, ctx))
-      found = 1;
+      found = true;
   if (it.allocator.free)
     it.allocator.free(it.allocator.ctx, tmp);
   iter_drop(&it);
@@ -426,13 +503,13 @@ int iter_any(Iter it, pred_fn pred, void *ctx) {
 
 /* ---- iter_all ---------------------------------------------------------- */
 
-int iter_all(Iter it, pred_fn pred, void *ctx) {
+bool iter_all(Iter it, pred_fn pred, void *ctx) {
   void *tmp =
       it.allocator.alloc(it.allocator.ctx, it.elem_size, _Alignof(max_align_t));
-  int all = 1;
+  bool all = true;
   while (all && it.next(&it, tmp))
     if (!pred(tmp, ctx))
-      all = 0;
+      all = false;
   if (it.allocator.free)
     it.allocator.free(it.allocator.ctx, tmp);
   iter_drop(&it);
@@ -447,13 +524,13 @@ typedef struct {
   void *buf; /* holds the current element so EnumEntry.elem is valid */
 } EnumState;
 
-static int enum_next(Iter *it, void *out) {
+static bool enum_next(Iter *it, void *out) {
   EnumState *s = it->state;
   if (!s->source.next(&s->source, s->buf))
-    return 0;
+    return false;
   EnumEntry entry = {s->index++, s->buf};
   memcpy(out, &entry, sizeof(EnumEntry));
-  return 1;
+  return true;
 }
 
 static void enum_drop(Iter *it) {
@@ -489,24 +566,24 @@ typedef struct {
   Allocator allocator;
 } WindowState;
 
-static int window_next(Iter *it, void *out) {
+static bool window_next(Iter *it, void *out) {
   WindowState *s = it->state;
   if (!s->primed) {
     /* Fill first n elements */
     for (size_t i = 0; i < s->n; i++) {
       if (!s->source.next(&s->source, s->buf + i * s->elem_size))
-        return 0; /* source shorter than n */
+        return false; /* source shorter than n */
     }
     s->primed = 1;
   } else {
     /* Shift left by one, read new element at end */
     memmove(s->buf, s->buf + s->elem_size, (s->n - 1) * s->elem_size);
     if (!s->source.next(&s->source, s->buf + (s->n - 1) * s->elem_size))
-      return 0;
+      return false;
   }
   Slice sl = {s->buf, s->n, s->elem_size};
   memcpy(out, &sl, sizeof(Slice));
-  return 1;
+  return true;
 }
 
 static void window_drop(Iter *it) {
@@ -542,21 +619,21 @@ typedef struct {
   Allocator allocator;
 } ChunkState;
 
-static int chunk_next(Iter *it, void *out) {
+static bool chunk_next(Iter *it, void *out) {
   ChunkState *s = it->state;
   if (s->done)
-    return 0;
+    return false;
   size_t count = 0;
   while (count < s->n &&
          s->source.next(&s->source, s->buf + count * s->elem_size))
     count++;
   if (count == 0)
-    return 0;
+    return false;
   if (count < s->n)
     s->done = 1; /* last partial chunk */
   Slice sl = {s->buf, count, s->elem_size};
   memcpy(out, &sl, sizeof(Slice));
-  return 1;
+  return true;
 }
 
 static void chunk_drop(Iter *it) {
@@ -594,19 +671,19 @@ typedef struct {
   Allocator allocator;
 } FlatMapState;
 
-static int flat_map_next(Iter *it, void *out) {
+static bool flat_map_next(Iter *it, void *out) {
   FlatMapState *s = it->state;
   while (1) {
     /* Drain current sub-iterator */
     if (s->sub_active) {
       if (s->sub.next(&s->sub, out))
-        return 1;
+        return true;
       iter_drop(&s->sub);
       s->sub_active = 0;
     }
     /* Pull next element from source */
     if (!s->source.next(&s->source, s->elem_buf))
-      return 0;
+      return false;
     /* Produce next sub-iterator */
     s->fn(s->elem_buf, &s->sub, s->ctx);
     s->sub_active = 1;
@@ -647,17 +724,17 @@ Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx,
 
 /* ---- iter_min / iter_max ----------------------------------------------- */
 
-int iter_min(Iter it, compare_fn cmp, void *out) {
+bool iter_min(Iter it, compare_fn cmp, void *out) {
   size_t elem_size = it.elem_size;
   char *best =
       it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
   char *cur =
       it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
-  int found = 0;
+  bool found = false;
   while (it.next(&it, cur)) {
     if (!found || cmp(cur, best) < 0)
       memcpy(best, cur, elem_size);
-    found = 1;
+    found = true;
   }
   if (found && out)
     memcpy(out, best, elem_size);
@@ -669,17 +746,17 @@ int iter_min(Iter it, compare_fn cmp, void *out) {
   return found;
 }
 
-int iter_max(Iter it, compare_fn cmp, void *out) {
+bool iter_max(Iter it, compare_fn cmp, void *out) {
   size_t elem_size = it.elem_size;
   char *best =
       it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
   char *cur =
       it.allocator.alloc(it.allocator.ctx, elem_size, _Alignof(max_align_t));
-  int found = 0;
+  bool found = false;
   while (it.next(&it, cur)) {
     if (!found || cmp(cur, best) > 0)
       memcpy(best, cur, elem_size);
-    found = 1;
+    found = true;
   }
   if (found && out)
     memcpy(out, best, elem_size);

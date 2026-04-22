@@ -1,5 +1,6 @@
 #include "dlist.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 /* Data lives immediately after the node header, padded to max_align_t. */
@@ -72,22 +73,22 @@ void dlist_push_back(DList *l, const void *elem) {
   l->len++;
 }
 
-int dlist_pop_front(DList *l, void *out) {
+bool dlist_pop_front(DList *l, void *out) {
   if (!l || !l->head)
-    return 0;
+    return false;
   if (out)
     memcpy(out, node_data(l->head), l->elem_size);
   unlink_and_free(l, l->head);
-  return 1;
+  return true;
 }
 
-int dlist_pop_back(DList *l, void *out) {
+bool dlist_pop_back(DList *l, void *out) {
   if (!l || !l->tail)
-    return 0;
+    return false;
   if (out)
     memcpy(out, node_data(l->tail), l->elem_size);
   unlink_and_free(l, l->tail);
-  return 1;
+  return true;
 }
 
 void *dlist_front(const DList *l) {
@@ -98,7 +99,7 @@ void *dlist_back(const DList *l) {
   return (l && l->tail) ? node_data(l->tail) : NULL;
 }
 
-int dlist_is_empty(const DList *l) { return !l || l->len == 0; }
+bool dlist_is_empty(const DList *l) { return !l || l->len == 0; }
 
 size_t dlist_len(const DList *l) { return l ? l->len : 0; }
 
@@ -123,22 +124,22 @@ typedef struct {
   size_t elem_size;
 } DListIterState;
 
-static int dlist_iter_next_fwd(Iter *it, void *out) {
+static bool dlist_iter_next_fwd(Iter *it, void *out) {
   DListIterState *s = it->state;
   if (!s->current)
-    return 0;
+    return false;
   memcpy(out, node_data(s->current), s->elem_size);
   s->current = s->current->next;
-  return 1;
+  return true;
 }
 
-static int dlist_iter_next_rev(Iter *it, void *out) {
+static bool dlist_iter_next_rev(Iter *it, void *out) {
   DListIterState *s = it->state;
   if (!s->current)
-    return 0;
+    return false;
   memcpy(out, node_data(s->current), s->elem_size);
   s->current = s->current->prev;
-  return 1;
+  return true;
 }
 
 static void dlist_iter_drop(Iter *it) {

@@ -27,11 +27,13 @@ typedef struct {
 } AVLTree;
 
 AVLTree avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
-int avl_insert(AVLTree *t, const void *elem); /* 1=inserted 0=duplicate */
-int avl_contains(const AVLTree *t, const void *elem);
-int avl_remove(AVLTree *t, const void *elem); /* 1=removed  0=not found */
-void *avl_min(const AVLTree *t);              /* NULL if empty          */
-void *avl_max(const AVLTree *t);              /* NULL if empty          */
+bool avl_insert(AVLTree *t,
+                const void *elem); /* true=inserted false=duplicate */
+bool avl_contains(const AVLTree *t, const void *elem);
+bool avl_remove(AVLTree *t,
+                const void *elem); /* true=removed  false=not found */
+void *avl_min(const AVLTree *t);   /* NULL if empty          */
+void *avl_max(const AVLTree *t);   /* NULL if empty          */
 size_t avl_len(const AVLTree *t);
 int avl_height(const AVLTree *t);    /* 0 if empty             */
 Iter avl_iter(const AVLTree *t);     /* ascending, in-order    */

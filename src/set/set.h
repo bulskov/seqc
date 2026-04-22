@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,9 +30,9 @@ typedef struct {
 
 Set set_create(size_t elem_size, set_hash_fn hash, set_eq_fn eq,
                Allocator allocator);
-int set_add(Set *s, const void *elem); /* 1=added 0=already present */
-int set_contains(const Set *s, const void *elem);
-int set_remove(Set *s, const void *elem); /* 1=removed 0=not found */
+bool set_add(Set *s, const void *elem); /* true=added false=already present */
+bool set_contains(const Set *s, const void *elem);
+bool set_remove(Set *s, const void *elem); /* true=removed false=not found */
 size_t set_len(const Set *s);
 void set_free(Set *s);
 Iter set_iter(const Set *s); /* order unspecified */

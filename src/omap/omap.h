@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "arena/arena.h"
@@ -36,16 +37,17 @@ typedef struct {
 OMap omap_create(size_t key_size, size_t val_size, compare_fn cmp,
                  Allocator allocator);
 
-/* Insert or update.  Returns 1 if a new key was inserted, 0 if updated. */
-int omap_set(OMap *m, const void *key, const void *value);
+/* Insert or update.  Returns true if a new key was inserted, false if updated.
+ */
+bool omap_set(OMap *m, const void *key, const void *value);
 
 /* Returns pointer to the stored value, or NULL if not found. */
 void *omap_get(const OMap *m, const void *key);
 
-int omap_contains(const OMap *m, const void *key);
-int omap_remove(OMap *m, const void *key); /* 1=removed 0=not found */
-void *omap_min_key(const OMap *m);         /* NULL if empty         */
-void *omap_max_key(const OMap *m);         /* NULL if empty         */
+bool omap_contains(const OMap *m, const void *key);
+bool omap_remove(OMap *m, const void *key); /* true=removed false=not found */
+void *omap_min_key(const OMap *m);          /* NULL if empty         */
+void *omap_max_key(const OMap *m);          /* NULL if empty         */
 size_t omap_len(const OMap *m);
 int omap_height(const OMap *m); /* 0 if empty            */
 

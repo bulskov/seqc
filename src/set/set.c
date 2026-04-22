@@ -1,5 +1,6 @@
 #include "set.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 #define SET_INITIAL_CAP 16
@@ -63,24 +64,24 @@ Set set_create(size_t elem_size, set_hash_fn hash, set_eq_fn eq,
                .allocator = allocator};
 }
 
-int set_contains(const Set *s, const void *elem) {
+bool set_contains(const Set *s, const void *elem) {
   if (!s || !elem || s->len == 0)
-    return 0;
+    return false;
   size_t slot = set_slot(s, elem);
   for (size_t i = 0; i < s->cap; i++) {
     size_t idx = (slot + i) & (s->cap - 1);
     const SetBucket *b = &s->buckets[idx];
     if (b->psl == 0)
-      return 0;
+      return false;
     if (s->eq(b->key, elem, s->elem_size))
-      return 1;
+      return true;
   }
-  return 0;
+  return false;
 }
 
-int set_add(Set *s, const void *elem) {
+bool set_add(Set *s, const void *elem) {
   if (!s || !elem)
-    return 0;
+    return false;
   if (s->cap == 0) {
     s->buckets = s->allocator.alloc(s->allocator.ctx,
                                     SET_INITIAL_CAP * sizeof(SetBucket),
@@ -89,7 +90,7 @@ int set_add(Set *s, const void *elem) {
     s->cap = SET_INITIAL_CAP;
   }
   if (set_contains(s, elem))
-    return 0;
+    return false;
   if (s->len * 4 >= s->cap * 3)
     set_resize(s);
   void *key =
@@ -97,18 +98,18 @@ int set_add(Set *s, const void *elem) {
   memcpy(key, elem, s->elem_size);
   set_insert_raw(s, (SetBucket){key, 0});
   s->len++;
-  return 1;
+  return true;
 }
 
-int set_remove(Set *s, const void *elem) {
+bool set_remove(Set *s, const void *elem) {
   if (!s || !elem || s->len == 0)
-    return 0;
+    return false;
   size_t slot = set_slot(s, elem);
   for (size_t i = 0; i < s->cap; i++) {
     size_t idx = (slot + i) & (s->cap - 1);
     SetBucket *b = &s->buckets[idx];
     if (b->psl == 0)
-      return 0;
+      return false;
     if (s->eq(b->key, elem, s->elem_size)) {
       if (s->allocator.free)
         s->allocator.free(s->allocator.ctx, b->key);
@@ -125,10 +126,10 @@ int set_remove(Set *s, const void *elem) {
         idx = next;
       }
       s->len--;
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 size_t set_len(const Set *s) { return s ? s->len : 0; }
@@ -156,16 +157,16 @@ typedef struct {
   size_t elem_size;
 } SetIterState;
 
-static int set_iter_next(Iter *it, void *out) {
+static bool set_iter_next(Iter *it, void *out) {
   SetIterState *s = it->state;
   while (s->pos < s->cap) {
     const SetBucket *b = &s->buckets[s->pos++];
     if (b->psl > 0) {
       memcpy(out, b->key, s->elem_size);
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static void set_iter_drop(Iter *it) {

@@ -1,5 +1,6 @@
 #include "queue.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 #define INITIAL_CAP 16
@@ -40,14 +41,14 @@ void queue_push(Queue *q, const void *elem) {
   q->len++;
 }
 
-int queue_pop(Queue *q, void *out) {
+bool queue_pop(Queue *q, void *out) {
   if (!q || q->len == 0)
-    return 0;
+    return false;
   if (out)
     memcpy(out, q->buf + q->head * q->elem_size, q->elem_size);
   q->head = (q->head + 1) % q->cap;
   q->len--;
-  return 1;
+  return true;
 }
 
 void *queue_peek(const Queue *q) {
@@ -56,7 +57,7 @@ void *queue_peek(const Queue *q) {
   return q->buf + q->head * q->elem_size;
 }
 
-int queue_is_empty(const Queue *q) { return !q || q->len == 0; }
+bool queue_is_empty(const Queue *q) { return !q || q->len == 0; }
 
 size_t queue_len(const Queue *q) { return q ? q->len : 0; }
 
@@ -81,14 +82,14 @@ typedef struct {
   size_t elem_size;
 } QueueIterState;
 
-static int queue_iter_next(Iter *it, void *out) {
+static bool queue_iter_next(Iter *it, void *out) {
   QueueIterState *s = it->state;
   if (s->remaining == 0 || s->cap == 0)
-    return 0;
+    return false;
   memcpy(out, s->buf + s->head * s->elem_size, s->elem_size);
   s->head = (s->head + 1) % s->cap;
   s->remaining--;
-  return 1;
+  return true;
 }
 
 static void queue_iter_drop(Iter *it) {

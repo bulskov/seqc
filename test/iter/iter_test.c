@@ -6,7 +6,7 @@
 
 /* ---- helpers ----------------------------------------------------------- */
 
-static int gt10(const void *elem, void *ctx) {
+static bool gt10(const void *elem, void *ctx) {
   (void)ctx;
   return *(const int *)elem > 10;
 }
@@ -624,6 +624,133 @@ Test(iter, min_max_single_element) {
   iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &mx);
   cr_assert_eq(mn, 42);
   cr_assert_eq(mx, 42);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_take_while --------------------------------------------------- */
+
+Test(iter, take_while_basic) {
+  /* yields the leading prefix where pred holds */
+  int data[] = {15, 22, 8, 30};
+  Slice s = {data, 4, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  /* gt10: 15 ✓, 22 ✓, 8 ✗ → stop */
+  cr_assert_eq(result.len, 2);
+  cr_assert_eq(*(int *)slice_get(result, 0), 15);
+  cr_assert_eq(*(int *)slice_get(result, 1), 22);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, take_while_none_match) {
+  /* first element fails pred → yields nothing */
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, take_while_all_match) {
+  /* all elements satisfy pred → yields all */
+  int data[] = {11, 22, 33};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 3);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, take_while_empty_source) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_skip_while --------------------------------------------------- */
+
+Test(iter, skip_while_basic) {
+  /* skips leading prefix where pred holds, then yields the rest */
+  int data[] = {15, 22, 8, 30};
+  Slice s = {data, 4, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  /* gt10: 15 skip, 22 skip, 8 → yield, 30 → yield */
+  cr_assert_eq(result.len, 2);
+  cr_assert_eq(*(int *)slice_get(result, 0), 8);
+  cr_assert_eq(*(int *)slice_get(result, 1), 30);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, skip_while_none_match) {
+  /* first element fails pred → yields all */
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 3);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, skip_while_all_match) {
+  /* all elements satisfy pred → yields nothing */
+  int data[] = {11, 22, 33};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, skip_while_empty_source) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(
+      iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, skip_while_yields_all_after_first_miss) {
+  /* elements after the first miss should be yielded even if pred would match */
+  int data[] = {15, 3, 22, 8};
+  Slice s = {data, 4, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Slice result = iter_collect(
+      iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
+  /* gt10: 15 skip, 3 → yield; then 22 and 8 must also be yielded */
+  cr_assert_eq(result.len, 3);
+  cr_assert_eq(*(int *)slice_get(result, 0), 3);
+  cr_assert_eq(*(int *)slice_get(result, 1), 22);
+  cr_assert_eq(*(int *)slice_get(result, 2), 8);
   arena_scratch_pop(&sc);
   arena_free(arena);
 }

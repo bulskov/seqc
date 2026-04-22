@@ -17,9 +17,10 @@ typedef struct {
 
 Queue queue_create(size_t elem_size, Allocator allocator);
 void queue_push(Queue *q, const void *elem); /* enqueue at back */
-int queue_pop(Queue *q, void *out); /* dequeue from front; 1=ok 0=empty */
-void *queue_peek(const Queue *q);   /* front element; NULL if empty */
-int queue_is_empty(const Queue *q);
+bool queue_pop(Queue *q,
+               void *out);        /* dequeue from front; true=ok false=empty */
+void *queue_peek(const Queue *q); /* front element; NULL if empty */
+bool queue_is_empty(const Queue *q);
 size_t queue_len(const Queue *q);
 Iter queue_iter(const Queue *q); /* front→back */
 void queue_free(Queue *q);

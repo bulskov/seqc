@@ -1,5 +1,6 @@
 #include "btree.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 /* ---- node layout ------------------------------------------------------- */
@@ -34,9 +35,9 @@ BTree btree_create(size_t elem_size, compare_fn cmp, Allocator allocator) {
                  .allocator = allocator};
 }
 
-int btree_insert(BTree *t, const void *elem) {
+bool btree_insert(BTree *t, const void *elem) {
   if (!t || !elem)
-    return 0;
+    return false;
   BTreeNode **cur = &t->root;
   while (*cur) {
     int c = t->cmp(elem, node_data(*cur));
@@ -45,16 +46,16 @@ int btree_insert(BTree *t, const void *elem) {
     else if (c > 0)
       cur = &(*cur)->right;
     else
-      return 0; /* duplicate */
+      return false; /* duplicate */
   }
   *cur = make_node(t, elem);
   t->len++;
-  return 1;
+  return true;
 }
 
-int btree_contains(const BTree *t, const void *elem) {
+bool btree_contains(const BTree *t, const void *elem) {
   if (!t || !elem)
-    return 0;
+    return false;
   BTreeNode *cur = t->root;
   while (cur) {
     int c = t->cmp(elem, node_data(cur));
@@ -63,9 +64,9 @@ int btree_contains(const BTree *t, const void *elem) {
     else if (c > 0)
       cur = cur->right;
     else
-      return 1;
+      return true;
   }
-  return 0;
+  return false;
 }
 
 /* Recursive helper — returns updated subtree root. */
@@ -106,9 +107,9 @@ static BTreeNode *do_remove(BTree *t, BTreeNode *node, const void *elem,
   return node;
 }
 
-int btree_remove(BTree *t, const void *elem) {
+bool btree_remove(BTree *t, const void *elem) {
   if (!t || !elem)
-    return 0;
+    return false;
   int removed = 0;
   t->root = do_remove(t, t->root, elem, &removed);
   if (removed)
@@ -166,7 +167,7 @@ typedef struct {
   Allocator allocator;
 } BTreeIterState;
 
-static int btree_iter_next(Iter *it, void *out) {
+static bool btree_iter_next(Iter *it, void *out) {
   BTreeIterState *s = it->state;
   /* push left spine of current node, then pop and yield */
   while (s->current) {
@@ -182,11 +183,11 @@ static int btree_iter_next(Iter *it, void *out) {
     s->current = s->current->left;
   }
   if (s->stack_len == 0)
-    return 0;
+    return false;
   BTreeNode *node = s->stack[--s->stack_len];
   memcpy(out, node_data(node), s->elem_size);
   s->current = node->right;
-  return 1;
+  return true;
 }
 
 static void btree_iter_drop(Iter *it) {
@@ -216,7 +217,7 @@ Iter btree_iter(const BTree *t) {
                 .allocator = t->allocator};
 }
 
-static int btree_iter_rev_next(Iter *it, void *out) {
+static bool btree_iter_rev_next(Iter *it, void *out) {
   BTreeIterState *s = it->state;
   while (s->current) {
     if (s->stack_len == s->stack_cap) {
@@ -231,11 +232,11 @@ static int btree_iter_rev_next(Iter *it, void *out) {
     s->current = s->current->right;
   }
   if (s->stack_len == 0)
-    return 0;
+    return false;
   BTreeNode *node = s->stack[--s->stack_len];
   memcpy(out, node_data(node), s->elem_size);
   s->current = node->left;
-  return 1;
+  return true;
 }
 
 Iter btree_iter_rev(const BTree *t) {
@@ -269,7 +270,7 @@ typedef struct {
   void *hi; /* NULL means no upper bound; owned allocation */
 } BTreeRangeIterState;
 
-static int btree_range_iter_next(Iter *it, void *out) {
+static bool btree_range_iter_next(Iter *it, void *out) {
   BTreeRangeIterState *s = it->state;
   while (s->current) {
     if (s->stack_len == s->stack_cap) {
@@ -284,17 +285,17 @@ static int btree_range_iter_next(Iter *it, void *out) {
     s->current = s->current->left;
   }
   if (s->stack_len == 0)
-    return 0;
+    return false;
   BTreeNode *node = s->stack[--s->stack_len];
   void *data = node_data(node);
   if (s->hi && s->cmp(data, s->hi) > 0) {
     s->stack_len = 0;
     s->current = NULL;
-    return 0;
+    return false;
   }
   memcpy(out, data, s->elem_size);
   s->current = node->right;
-  return 1;
+  return true;
 }
 
 static void btree_range_iter_drop(Iter *it) {

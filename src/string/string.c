@@ -31,7 +31,7 @@ const char *string_to_cstr(String s, Allocator allocator) {
 
 /* --- Comparison --------------------------------------------------------- */
 
-int string_equals(String a, String b) {
+bool string_equals(String a, String b) {
   return a.len == b.len && memcmp(a.ptr, b.ptr, a.len) == 0;
 }
 
@@ -45,15 +45,15 @@ int string_compare(String a, String b) {
 
 /* --- Query -------------------------------------------------------------- */
 
-int string_starts_with(String s, String prefix) {
+bool string_starts_with(String s, String prefix) {
   if (prefix.len > s.len)
-    return 0;
+    return false;
   return memcmp(s.ptr, prefix.ptr, prefix.len) == 0;
 }
 
-int string_ends_with(String s, String suffix) {
+bool string_ends_with(String s, String suffix) {
   if (suffix.len > s.len)
-    return 0;
+    return false;
   return memcmp(s.ptr + s.len - suffix.len, suffix.ptr, suffix.len) == 0;
 }
 
@@ -69,7 +69,7 @@ size_t string_find(String s, String needle) {
   return STRING_NOT_FOUND;
 }
 
-int string_contains(String s, String needle) {
+bool string_contains(String s, String needle) {
   return string_find(s, needle) != STRING_NOT_FOUND;
 }
 
@@ -195,10 +195,10 @@ typedef struct {
   size_t pos;
 } SplitState;
 
-static int split_next(Iter *it, void *out) {
+static bool split_next(Iter *it, void *out) {
   SplitState *s = it->state;
   if (s->pos > s->src.len)
-    return 0;
+    return false;
 
   String remaining = {s->src.ptr + s->pos, s->src.len - s->pos};
   size_t found = string_find(remaining, s->delim);
@@ -213,7 +213,7 @@ static int split_next(Iter *it, void *out) {
   }
 
   memcpy(out, &token, sizeof(String));
-  return 1;
+  return true;
 }
 
 static void split_drop(Iter *it) {
@@ -250,9 +250,9 @@ size_t string_hash(const void *key, size_t key_size) {
   return (size_t)hash;
 }
 
-int string_key_eq(const void *a, const void *b, size_t key_size) {
+bool string_key_eq(const void *a, const void *b, size_t key_size) {
   (void)key_size;
   if (!a || !b)
-    return 0;
+    return false;
   return string_equals(*(const String *)a, *(const String *)b);
 }

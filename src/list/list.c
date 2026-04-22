@@ -55,9 +55,9 @@ void list_push_back(List *l, const void *elem) {
   l->len++;
 }
 
-int list_pop_front(List *l, void *out) {
+bool list_pop_front(List *l, void *out) {
   if (!l || !l->head)
-    return 0;
+    return false;
   ListNode *node = l->head;
   if (out)
     memcpy(out, node_data(node), l->elem_size);
@@ -67,7 +67,7 @@ int list_pop_front(List *l, void *out) {
   if (l->allocator.free)
     l->allocator.free(l->allocator.ctx, node);
   l->len--;
-  return 1;
+  return true;
 }
 
 void *list_front(const List *l) {
@@ -78,7 +78,7 @@ void *list_back(const List *l) {
   return (l && l->tail) ? node_data(l->tail) : NULL;
 }
 
-int list_is_empty(const List *l) { return !l || l->len == 0; }
+bool list_is_empty(const List *l) { return !l || l->len == 0; }
 
 size_t list_len(const List *l) { return l ? l->len : 0; }
 
@@ -103,13 +103,13 @@ typedef struct {
   size_t elem_size;
 } ListIterState;
 
-static int list_iter_next(Iter *it, void *out) {
+static bool list_iter_next(Iter *it, void *out) {
   ListIterState *s = it->state;
   if (!s->current)
-    return 0;
+    return false;
   memcpy(out, node_data(s->current), s->elem_size);
   s->current = s->current->next;
-  return 1;
+  return true;
 }
 
 static void list_iter_drop(Iter *it) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "arena/arena.h"
@@ -24,11 +25,11 @@ typedef struct {
 DList dlist_create(size_t elem_size, Allocator allocator);
 void dlist_push_front(DList *l, const void *elem);
 void dlist_push_back(DList *l, const void *elem);
-int dlist_pop_front(DList *l, void *out); /* 1=ok 0=empty; out may be NULL */
-int dlist_pop_back(DList *l, void *out);  /* 1=ok 0=empty; out may be NULL */
+bool dlist_pop_front(DList *l, void *out); /* out may be NULL */
+bool dlist_pop_back(DList *l, void *out);  /* out may be NULL */
 void *dlist_front(const DList *l); /* pointer to head data; NULL if empty */
 void *dlist_back(const DList *l);  /* pointer to tail data; NULL if empty */
-int dlist_is_empty(const DList *l);
+bool dlist_is_empty(const DList *l);
 size_t dlist_len(const DList *l);
 Iter dlist_iter(const DList *l);         /* front→back */
 Iter dlist_iter_reverse(const DList *l); /* back→front */

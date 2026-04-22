@@ -16,12 +16,13 @@ size_t hashmap_fnv1a(const void *key, size_t key_size) {
   return (size_t)hash;
 }
 
-int hashmap_eq_bytes(const void *a, const void *b, size_t key_size) {
+bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size) {
   if (key_size == 0)
-    return 1; /* treat all zero-size keys as equal */
+    return true; /* treat all zero-size keys as equal */
   if (a == NULL || b == NULL)
-    return 0; /* treat null pointers as unequal to any key, including each other
-               */
+    return false; /* treat null pointers as unequal to any key, including each
+                   * other
+                   */
   return memcmp(a, b, key_size) == 0;
 }
 
@@ -38,9 +39,9 @@ size_t hashmap_fnv1a_str(const void *key, size_t key_size) {
   return (size_t)hash;
 }
 
-int hashmap_eq_str(const void *a, const void *b, size_t key_size) {
+bool hashmap_eq_str(const void *a, const void *b, size_t key_size) {
   if (key_size != sizeof(char *) || a == NULL || b == NULL) {
-    return 0; /* invalid key size for string map */
+    return false; /* invalid key size for string map */
   }
   return strcmp(*(const char *const *)a, *(const char *const *)b) == 0;
 }
@@ -129,9 +130,9 @@ void hashmap_free(HashMap *map) {
 
 size_t hashmap_len(const HashMap *map) { return map ? map->len : 0; }
 
-int hashmap_set(HashMap *map, const void *key, const void *value) {
+bool hashmap_set(HashMap *map, const void *key, const void *value) {
   if (!map || !map->buckets || !key || !value) {
-    return 0; /* invalid map or key/value */
+    return false; /* invalid map or key/value */
   }
   if ((map->len + 1) * 4 > map->cap * 3) {
     hashmap_resize_and_rehash(map, map->cap * 2);
@@ -144,11 +145,11 @@ int hashmap_set(HashMap *map, const void *key, const void *value) {
     if (map->buckets[slot].psl == 0) {
       hashmap_set_bucket(map, slot, &bucket);
       map->len++;
-      return 1;
+      return true;
     }
     if (map->eq(map->buckets[slot].key, bucket.key, map->key_size)) {
       memcpy(map->buckets[slot].value, bucket.value, map->val_size);
-      return 1;
+      return true;
     }
     if (map->buckets[slot].psl < bucket.psl) {
       /* Robin Hood: steal the slot and reinsert the displaced bucket */
@@ -159,7 +160,7 @@ int hashmap_set(HashMap *map, const void *key, const void *value) {
     bucket.psl++;
     slot = (slot + 1) & (map->cap - 1);
   }
-  return 0;
+  return false;
 }
 
 void *hashmap_get(const HashMap *map, const void *key) {
@@ -179,15 +180,15 @@ void *hashmap_get(const HashMap *map, const void *key) {
   }
 }
 
-int hashmap_delete(HashMap *map, const void *key) {
+bool hashmap_delete(HashMap *map, const void *key) {
   if (!map || !map->buckets || !key) {
-    return 0; /* invalid map or key */
+    return false; /* invalid map or key */
   }
   size_t slot = hashmap_get_slot(map, key);
 
   while (1) {
     if (map->buckets[slot].psl == 0) {
-      return 0;
+      return false;
     }
     if (map->eq(map->buckets[slot].key, key, map->key_size)) {
       map->buckets[slot].psl = 0; /* mark as deleted */
@@ -203,7 +204,7 @@ int hashmap_delete(HashMap *map, const void *key) {
         slot = (slot + 1) & (map->cap - 1);
       }
 
-      return 1;
+      return true;
     }
     slot = (slot + 1) & (map->cap - 1);
   }
@@ -216,19 +217,19 @@ typedef struct {
   size_t slot;
 } HashMapIterState;
 
-static int hashmap_iter_next(Iter *it, void *out) {
+static bool hashmap_iter_next(Iter *it, void *out) {
   HashMapIterState *s = it->state;
   if (!s)
-    return 0;
+    return false;
   while (s->slot < s->map->cap) {
     Bucket *b = &s->map->buckets[s->slot++];
     if (b->psl != 0) {
       HashMapEntry entry = {b->key, b->value};
       memcpy(out, &entry, sizeof(HashMapEntry));
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static void hashmap_iter_drop(Iter *it) {
