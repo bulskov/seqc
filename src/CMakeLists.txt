@@ -13,6 +13,7 @@ add_library(seqc STATIC
     btree/btree.c
     avl/avl.c
     omap/omap.c
+    pqueue/pqueue.c
 )
 
 target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
