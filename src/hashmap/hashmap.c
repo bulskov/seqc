@@ -225,7 +225,7 @@ bool hashmap_delete(HashMap *map, const void *key) {
   }
 }
 
-/* ---- iter_from_hashmap ------------------------------------------------- */
+/* ---- hashmap_iter / hashmap_iter_rev ----------------------------------- */
 
 typedef struct {
   const HashMap *map;
@@ -247,6 +247,21 @@ static bool hashmap_iter_next(Iter *it, void *out) {
   return false;
 }
 
+static bool hashmap_iter_rev_next(Iter *it, void *out) {
+  HashMapIterState *s = it->state;
+  if (!s || s->slot == 0)
+    return false;
+  while (s->slot > 0) {
+    Bucket *b = &s->map->buckets[--s->slot];
+    if (b->psl != 0) {
+      HashMapEntry entry = {b->key, b->value};
+      memcpy(out, &entry, sizeof(HashMapEntry));
+      return true;
+    }
+  }
+  return false;
+}
+
 static void hashmap_iter_drop(Iter *it) {
   HashMapIterState *s = it->state;
   if (s) {
@@ -256,7 +271,7 @@ static void hashmap_iter_drop(Iter *it) {
   }
 }
 
-Iter iter_from_hashmap(const HashMap *map) {
+Iter hashmap_iter(const HashMap *map) {
   if (!map || !map->buckets) {
     return (Iter){0}; /* invalid map */
   }
@@ -265,6 +280,21 @@ Iter iter_from_hashmap(const HashMap *map) {
   if (s)
     *s = (HashMapIterState){map, 0};
   return (Iter){.next = hashmap_iter_next,
+                .drop = hashmap_iter_drop,
+                .state = s,
+                .elem_size = sizeof(HashMapEntry),
+                .allocator = map->allocator};
+}
+
+Iter hashmap_iter_rev(const HashMap *map) {
+  if (!map || !map->buckets) {
+    return (Iter){0};
+  }
+  HashMapIterState *s = map->allocator.alloc(
+      map->allocator.ctx, sizeof(HashMapIterState), _Alignof(HashMapIterState));
+  if (s)
+    *s = (HashMapIterState){map, map->cap}; /* start past the last slot */
+  return (Iter){.next = hashmap_iter_rev_next,
                 .drop = hashmap_iter_drop,
                 .state = s,
                 .elem_size = sizeof(HashMapEntry),

@@ -40,7 +40,7 @@ typedef struct {
 } HashMapEntry;
 ```
 
-Yielded by [`iter_from_hashmap`](#iter_from_hashmap). Both pointers point
+Yielded by [`hashmap_iter`](#hashmap_iter). Both pointers point
 directly into live bucket storage — do not modify the map while iterating.
 
 ---
@@ -157,10 +157,10 @@ size_t hashmap_len(const HashMap *map);
 
 ---
 
-### `iter_from_hashmap` {#iter_from_hashmap}
+### `hashmap_iter` {#hashmap_iter}
 
 ```c
-Iter iter_from_hashmap(const HashMap *map);
+Iter hashmap_iter(const HashMap *map);
 ```
 
 Iterate over all key-value pairs in unspecified order. Each element is a
@@ -168,13 +168,23 @@ Iterate over all key-value pairs in unspecified order. Each element is a
 live bucket storage.
 
 ```c
-Iter        it = iter_from_hashmap(&m);
+Iter        it = hashmap_iter(&m);
 HashMapEntry e;
 while (it.next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 }
 iter_drop(&it);
 ```
+
+---
+
+### `hashmap_iter_rev`
+
+```c
+Iter hashmap_iter_rev(const HashMap *map);
+```
+
+Iterate over all key-value pairs in reverse bucket-storage order.
 
 ---
 

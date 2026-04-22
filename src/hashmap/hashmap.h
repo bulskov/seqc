@@ -46,4 +46,5 @@ size_t hashmap_len(const HashMap *map);
 bool hashmap_set(HashMap *map, const void *key, const void *value);
 void *hashmap_get(const HashMap *map, const void *key);
 bool hashmap_delete(HashMap *map, const void *key);
-Iter iter_from_hashmap(const HashMap *map);
+Iter hashmap_iter(const HashMap *map);
+Iter hashmap_iter_rev(const HashMap *map);

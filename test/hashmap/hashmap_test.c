@@ -194,7 +194,7 @@ Test(hashmap, iter_foreach_sums_values) {
     hashmap_set(&m, &i, &v);
   }
   int sum = 0;
-  iter_foreach(iter_from_hashmap(&m), sum_values, &sum);
+  iter_foreach(hashmap_iter(&m), sum_values, &sum);
   cr_assert_eq(sum, 100); /* 10+20+30+40 */
   hashmap_free(&m);
   arena_free(a);
@@ -214,8 +214,7 @@ Test(hashmap, iter_filter_entries) {
     int v = i * 10;
     hashmap_set(&m, &i, &v);
   }
-  size_t count =
-      iter_count(iter_filter(iter_from_hashmap(&m), value_gt_20, NULL));
+  size_t count = iter_count(iter_filter(hashmap_iter(&m), value_gt_20, NULL));
   cr_assert_eq(count, 2); /* 30 and 40 */
   hashmap_free(&m);
   arena_free(a);
@@ -277,5 +276,48 @@ Test(hashmap, clear_allows_reuse) {
   int *got = hashmap_get(&m, &k);
   cr_assert_not_null(got);
   cr_assert_eq(*got, 42);
+  arena_free(a);
+}
+
+/* ---- hashmap_iter_rev -------------------------------------------------- */
+
+Test(hashmap, iter_rev_visits_same_entries_in_reverse) {
+  Arena *a = arena_create(4096);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  for (int i = 1; i <= 5; i++) {
+    int v = i * 10;
+    hashmap_set(&m, &i, &v);
+  }
+  /* Collect forward then reverse */
+  HashMapEntry fwd[5], rev[5];
+  size_t nf = 0, nr = 0;
+  Iter it_fwd = hashmap_iter(&m);
+  while (it_fwd.next(&it_fwd, &fwd[nf]))
+    nf++;
+  iter_drop(&it_fwd);
+  Iter it_rev = hashmap_iter_rev(&m);
+  while (it_rev.next(&it_rev, &rev[nr]))
+    nr++;
+  iter_drop(&it_rev);
+  cr_assert_eq(nf, 5);
+  cr_assert_eq(nr, 5);
+  /* rev must be exactly the reverse of fwd */
+  for (size_t i = 0; i < 5; i++) {
+    cr_assert_eq(fwd[i].key, rev[4 - i].key);
+    cr_assert_eq(fwd[i].value, rev[4 - i].value);
+  }
+  arena_free(a);
+}
+
+Test(hashmap, iter_rev_empty) {
+  Arena *a = arena_create(256);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  Iter it = hashmap_iter_rev(&m);
+  HashMapEntry e;
+  cr_assert(!it.next(&it, &e));
+  iter_drop(&it);
+  hashmap_free(&m);
   arena_free(a);
 }

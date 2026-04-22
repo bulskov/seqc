@@ -204,10 +204,12 @@ Test(pqueue, iter_rev_visits_all_elements) {
   int seen_fwd[5], seen_rev[5];
   size_t nf = 0, nr = 0;
   Iter fwd = pqueue_iter(&q);
-  while (fwd.next(&fwd, &seen_fwd[nf])) nf++;
+  while (fwd.next(&fwd, &seen_fwd[nf]))
+    nf++;
   iter_drop(&fwd);
   Iter rev = pqueue_iter_rev(&q);
-  while (rev.next(&rev, &seen_rev[nr])) nr++;
+  while (rev.next(&rev, &seen_rev[nr]))
+    nr++;
   iter_drop(&rev);
   cr_assert_eq(nf, 5);
   cr_assert_eq(nr, 5);
