@@ -439,8 +439,8 @@ Slice iter_collect(Iter it, Allocator allocator)
     const size_t elem_size = it.elem_size;
     size_t cap = 16;
     size_t len = 0;
-    char *buf = allocator.alloc(
-        allocator.ctx, cap * elem_size, _Alignof(max_align_t));
+    char *buf =
+        allocator.alloc(allocator.ctx, cap * elem_size, _Alignof(max_align_t));
     char *tmp = alloca(elem_size);
 
     while (it.next(&it, tmp))
@@ -468,8 +468,8 @@ Slice iter_collect(Iter it, Allocator allocator)
         return (Slice){NULL, 0, elem_size};
     }
 
-    void *out = allocator.alloc(
-        allocator.ctx, len * elem_size, _Alignof(max_align_t));
+    void *out =
+        allocator.alloc(allocator.ctx, len * elem_size, _Alignof(max_align_t));
     memcpy(out, buf, len * elem_size);
     if (allocator.free)
         allocator.free(allocator.ctx, buf);

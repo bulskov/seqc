@@ -87,7 +87,10 @@ Test(iter, map_doubles_values)
 
     Slice result = iter_collect(
         iter_map(
-            iter_from_slice(s, arena_allocator(a)), double_it, NULL, sizeof(int)),
+            iter_from_slice(s, arena_allocator(a)),
+            double_it,
+            NULL,
+            sizeof(int)),
         arena_allocator(a));
 
     cr_assert_eq(result.len, 3);
@@ -104,8 +107,8 @@ Test(iter, collect_produces_correct_slice)
     Slice s = {data, 4, sizeof(int)};
     Arena *a = arena_create(256);
 
-    Slice result = iter_collect(iter_from_slice(s, arena_allocator(a)),
-                                arena_allocator(a));
+    Slice result = iter_collect(
+        iter_from_slice(s, arena_allocator(a)), arena_allocator(a));
 
     cr_assert_eq(result.len, 4);
     for (size_t i = 0; i < result.len; i++)
@@ -119,8 +122,8 @@ Test(iter, collect_empty_gives_null_ptr)
     Slice s = {NULL, 0, sizeof(int)};
     Arena *a = arena_create(64);
 
-    Slice result = iter_collect(iter_from_slice(s, arena_allocator(a)),
-                                arena_allocator(a));
+    Slice result = iter_collect(
+        iter_from_slice(s, arena_allocator(a)), arena_allocator(a));
 
     cr_assert_eq(result.len, 0);
     cr_assert_null(result.ptr);
@@ -260,8 +263,7 @@ Test(iter, chain_collects_in_order)
     Arena *arena = arena_create(512);
     Allocator al = arena_allocator(arena);
     Slice result = iter_collect(
-        iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)),
-        al);
+        iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)), al);
     cr_assert_eq(result.len, 4);
     cr_assert_eq(*(int *)slice_get(result, 0), 1);
     cr_assert_eq(*(int *)slice_get(result, 3), 4);
@@ -341,9 +343,10 @@ Test(iter, sort_ascending)
     int data[] = {5, 1, 4, 2, 3};
     Slice s = {data, 5, sizeof(int)};
     Arena *arena = arena_create(512);
-    Slice result =
-        iter_sort(iter_from_slice(s, arena_allocator(arena)), int_cmp,
-                  arena_allocator(arena));
+    Slice result = iter_sort(
+        iter_from_slice(s, arena_allocator(arena)),
+        int_cmp,
+        arena_allocator(arena));
     cr_assert_eq(result.len, 5);
     for (size_t i = 0; i < result.len; i++)
         cr_assert_eq(*(int *)slice_get(result, i), (int)(i + 1));
@@ -355,9 +358,10 @@ Test(iter, sort_already_sorted)
     int data[] = {1, 2, 3};
     Slice s = {data, 3, sizeof(int)};
     Arena *arena = arena_create(256);
-    Slice result =
-        iter_sort(iter_from_slice(s, arena_allocator(arena)), int_cmp,
-                  arena_allocator(arena));
+    Slice result = iter_sort(
+        iter_from_slice(s, arena_allocator(arena)),
+        int_cmp,
+        arena_allocator(arena));
     cr_assert_eq(*(int *)slice_get(result, 0), 1);
     cr_assert_eq(*(int *)slice_get(result, 2), 3);
     arena_free(arena);
@@ -703,8 +707,7 @@ Test(iter, take_while_basic)
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
     Slice result = iter_collect(
-        iter_take_while(
-            iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
+        iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 ✓, 22 ✓, 8 ✗ → stop */
     cr_assert_eq(result.len, 2);
@@ -764,8 +767,7 @@ Test(iter, skip_while_basic)
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
     Slice result = iter_collect(
-        iter_skip_while(
-            iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
+        iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 skip, 22 skip, 8 → yield, 30 → yield */
     cr_assert_eq(result.len, 2);
@@ -824,8 +826,7 @@ Test(iter, skip_while_yields_all_after_first_miss)
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
     Slice result = iter_collect(
-        iter_skip_while(
-            iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
+        iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 skip, 3 → yield; then 22 and 8 must also be yielded */
     cr_assert_eq(result.len, 3);
@@ -896,8 +897,8 @@ Test(iter, range_basic)
 {
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
-    Slice result = iter_collect(iter_range(0, 5, 1, scratch_allocator(&sc)),
-                                scratch_allocator(&sc));
+    Slice result = iter_collect(
+        iter_range(0, 5, 1, scratch_allocator(&sc)), scratch_allocator(&sc));
     cr_assert_eq(result.len, 5);
     for (size_t i = 0; i < result.len; i++)
         cr_assert_eq(*(long long *)slice_get(result, i), (long long)i);
@@ -909,8 +910,8 @@ Test(iter, range_step_two)
 {
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
-    Slice result = iter_collect(iter_range(0, 10, 2, scratch_allocator(&sc)),
-                                scratch_allocator(&sc));
+    Slice result = iter_collect(
+        iter_range(0, 10, 2, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 0, 2, 4, 6, 8 */
     cr_assert_eq(result.len, 5);
     cr_assert_eq(*(long long *)slice_get(result, 0), 0LL);
@@ -923,8 +924,8 @@ Test(iter, range_negative_step)
 {
     Arena *arena = arena_create(256);
     Scratch sc = arena_scratch_push(arena);
-    Slice result = iter_collect(iter_range(5, 0, -1, scratch_allocator(&sc)),
-                                scratch_allocator(&sc));
+    Slice result = iter_collect(
+        iter_range(5, 0, -1, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 5, 4, 3, 2, 1 */
     cr_assert_eq(result.len, 5);
     cr_assert_eq(*(long long *)slice_get(result, 0), 5LL);

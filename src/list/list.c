@@ -78,6 +78,28 @@ bool list_pop_front(List *l, void *out)
     return true;
 }
 
+bool list_pop_back(List *l, void *out)
+{
+    if (!l || !l->head)
+        return false;
+    if (l->head == l->tail) {
+        /* single element — reuse list_pop_front logic */
+        return list_pop_front(l, out);
+    }
+    /* find second-to-last node */
+    ListNode *prev = l->head;
+    while (prev->next != l->tail)
+        prev = prev->next;
+    if (out)
+        memcpy(out, node_data(l->tail), l->elem_size);
+    if (l->allocator.free)
+        l->allocator.free(l->allocator.ctx, l->tail);
+    prev->next = NULL;
+    l->tail = prev;
+    l->len--;
+    return true;
+}
+
 void *list_front(const List *l)
 {
     return (l && l->head) ? node_data(l->head) : NULL;

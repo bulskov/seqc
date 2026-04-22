@@ -130,3 +130,55 @@ Test(list, clear_allows_reuse)
     cr_assert_eq(*(int *)list_front(&l), 99);
     arena_free(a);
 }
+
+/* ---- list_pop_back ----------------------------------------------------- */
+
+Test(list, pop_back_removes_last)
+{
+    Arena *a = arena_create(512);
+    List l = list_create(sizeof(int), arena_allocator(a));
+    int vals[] = {1, 2, 3};
+    for (int i = 0; i < 3; i++)
+        list_push_back(&l, &vals[i]);
+    int out;
+    cr_assert(list_pop_back(&l, &out));
+    cr_assert_eq(out, 3);
+    cr_assert_eq(list_len(&l), 2);
+    cr_assert_eq(*(int *)list_back(&l), 2);
+    arena_free(a);
+}
+
+Test(list, pop_back_single_element)
+{
+    Arena *a = arena_create(256);
+    List l = list_create(sizeof(int), arena_allocator(a));
+    int v = 42;
+    list_push_back(&l, &v);
+    int out;
+    cr_assert(list_pop_back(&l, &out));
+    cr_assert_eq(out, 42);
+    cr_assert(list_is_empty(&l));
+    cr_assert_null(list_front(&l));
+    cr_assert_null(list_back(&l));
+    arena_free(a);
+}
+
+Test(list, pop_back_empty_returns_false)
+{
+    Arena *a = arena_create(64);
+    List l = list_create(sizeof(int), arena_allocator(a));
+    int out;
+    cr_assert_not(list_pop_back(&l, &out));
+    arena_free(a);
+}
+
+Test(list, pop_back_null_out_allowed)
+{
+    Arena *a = arena_create(256);
+    List l = list_create(sizeof(int), arena_allocator(a));
+    int v = 7;
+    list_push_back(&l, &v);
+    cr_assert(list_pop_back(&l, NULL));
+    cr_assert(list_is_empty(&l));
+    arena_free(a);
+}

@@ -173,9 +173,6 @@ int main(void) {
 
 ## Known gaps / roadmap
 
-### Missing API symmetry
-- `list_pop_back` is missing — `DList` has it; singly-linked list omission should at least be documented
-
 ### Future sources
 - `iter_from_file` / `iter_lines` — I/O sources
 - Cross-platform: `arena` uses `mmap`/`munmap` (`<sys/mman.h>`); needs `VirtualAlloc` path for Windows
