@@ -75,6 +75,55 @@ Iter vec_iter_rev(const Vec *v) {
   return iter_from_slice_rev(vec_as_slice(v), v->allocator);
 }
 
+bool vec_pop(Vec *v, void *out) {
+  if (!v || v->len == 0)
+    return false;
+  v->len--;
+  if (out)
+    memcpy(out, (char *)v->data + v->len * v->elem_size, v->elem_size);
+  return true;
+}
+
+void vec_set(Vec *v, size_t i, const void *elem) {
+  if (!v || !elem || i >= v->len)
+    return;
+  memcpy((char *)v->data + i * v->elem_size, elem, v->elem_size);
+}
+
+void vec_reserve(Vec *v, size_t capacity) {
+  if (!v || capacity <= v->cap)
+    return;
+  v->data =
+      v->allocator.realloc(v->allocator.ctx, v->data, v->len * v->elem_size,
+                           capacity * v->elem_size, _Alignof(max_align_t));
+  v->cap = capacity;
+}
+
+void vec_insert(Vec *v, size_t i, const void *elem) {
+  if (!v || !elem || i > v->len)
+    return;
+  /* ensure space */
+  if (v->len == v->cap) {
+    size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
+    vec_reserve(v, new_cap);
+  }
+  /* shift elements [i .. len-1] right by one */
+  memmove((char *)v->data + (i + 1) * v->elem_size,
+          (char *)v->data + i * v->elem_size, (v->len - i) * v->elem_size);
+  memcpy((char *)v->data + i * v->elem_size, elem, v->elem_size);
+  v->len++;
+}
+
+void vec_remove(Vec *v, size_t i) {
+  if (!v || i >= v->len)
+    return;
+  /* shift elements [i+1 .. len-1] left by one */
+  memmove((char *)v->data + i * v->elem_size,
+          (char *)v->data + (i + 1) * v->elem_size,
+          (v->len - i - 1) * v->elem_size);
+  v->len--;
+}
+
 void vec_free(Vec *v) {
   if (!v || !v->data) {
     return; /* nothing to free */

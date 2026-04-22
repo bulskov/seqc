@@ -64,6 +64,23 @@ for (int i = 0; i < 100; i++)
 
 ---
 
+### `vec_pop`
+
+```c
+bool vec_pop(Vec *v, void *out);
+```
+
+Remove the last element. Copies it into `*out` if `out` is not `NULL`.
+Returns `true` on success, `false` if the Vec is empty.
+
+```c
+int val;
+while (vec_pop(&v, &val))
+    printf("%d\n", val);
+```
+
+---
+
 ### `vec_get`
 
 ```c
@@ -74,6 +91,69 @@ Return a pointer to element `i`. No bounds checking.
 
 ```c
 int *third = vec_get(&v, 2);
+```
+
+---
+
+### `vec_set`
+
+```c
+void vec_set(Vec *v, size_t i, const void *elem);
+```
+
+Overwrite the element at index `i` with a copy of `*elem`. No-op if `i >= len`.
+
+```c
+int val = 99;
+vec_set(&v, 0, &val);
+```
+
+---
+
+### `vec_insert`
+
+```c
+void vec_insert(Vec *v, size_t i, const void *elem);
+```
+
+Insert a copy of `*elem` at index `i`, shifting all elements from `i` onward
+one position to the right. `i == len` is equivalent to `vec_push`. Reallocates
+if necessary.
+
+```c
+int zero = 0;
+vec_insert(&v, 0, &zero);  /* prepend */
+```
+
+---
+
+### `vec_remove`
+
+```c
+void vec_remove(Vec *v, size_t i);
+```
+
+Remove the element at index `i`, shifting elements from `i+1` onward one
+position to the left. No-op if `i >= len`.
+
+```c
+vec_remove(&v, 0);  /* remove first element */
+```
+
+---
+
+### `vec_reserve`
+
+```c
+void vec_reserve(Vec *v, size_t capacity);
+```
+
+Ensure the Vec has room for at least `capacity` elements without reallocating.
+Does nothing if `cap` is already sufficient.
+
+```c
+vec_reserve(&v, 1024);  /* pre-allocate space */
+for (int i = 0; i < 1000; i++) vec_push(&v, &i);  /* no reallocs */
 ```
 
 ---

@@ -101,3 +101,150 @@ Test(vec, iter_rev) {
   iter_drop(&it);
   arena_free(a);
 }
+
+/* ---- vec_pop ----------------------------------------------------------- */
+
+Test(vec, pop_returns_last_element) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
+  int out;
+  cr_assert(vec_pop(&v, &out));
+  cr_assert_eq(out, 2);
+  cr_assert_eq(v.len, 2);
+  arena_free(a);
+}
+
+Test(vec, pop_empty_returns_false) {
+  Arena *a = arena_create(64);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  cr_assert_not(vec_pop(&v, NULL));
+  arena_free(a);
+}
+
+Test(vec, pop_discard_with_null_out) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int x = 7;
+  vec_push(&v, &x);
+  cr_assert(vec_pop(&v, NULL));
+  cr_assert_eq(v.len, 0);
+  arena_free(a);
+}
+
+/* ---- vec_set ----------------------------------------------------------- */
+
+Test(vec, set_overwrites_element) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
+  int val = 99;
+  vec_set(&v, 1, &val);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 0);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 99);
+  cr_assert_eq(*(int *)vec_get(&v, 2), 2);
+  arena_free(a);
+}
+
+/* ---- vec_reserve ------------------------------------------------------- */
+
+Test(vec, reserve_grows_capacity) {
+  Arena *a = arena_create(1024);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  vec_reserve(&v, 64);
+  cr_assert_geq(v.cap, 64);
+  arena_free(a);
+}
+
+Test(vec, reserve_does_not_shrink) {
+  Arena *a = arena_create(1024);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  vec_reserve(&v, 64);
+  size_t cap = v.cap;
+  vec_reserve(&v, 4);
+  cr_assert_eq(v.cap, cap);
+  arena_free(a);
+}
+
+/* ---- vec_insert -------------------------------------------------------- */
+
+Test(vec, insert_at_beginning) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 1; i <= 3; i++)
+    vec_push(&v, &i);
+  int val = 0;
+  vec_insert(&v, 0, &val);
+  cr_assert_eq(v.len, 4);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 0);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 1);
+  cr_assert_eq(*(int *)vec_get(&v, 3), 3);
+  arena_free(a);
+}
+
+Test(vec, insert_in_middle) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 3};
+  vec_push(&v, &vals[0]);
+  vec_push(&v, &vals[1]);
+  int mid = 2;
+  vec_insert(&v, 1, &mid);
+  cr_assert_eq(v.len, 3);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 1);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 2);
+  cr_assert_eq(*(int *)vec_get(&v, 2), 3);
+  arena_free(a);
+}
+
+Test(vec, insert_at_end_equals_push) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
+  int val = 99;
+  vec_insert(&v, v.len, &val);
+  cr_assert_eq(v.len, 4);
+  cr_assert_eq(*(int *)vec_get(&v, 3), 99);
+  arena_free(a);
+}
+
+/* ---- vec_remove -------------------------------------------------------- */
+
+Test(vec, remove_first_element) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
+  vec_remove(&v, 0);
+  cr_assert_eq(v.len, 2);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 1);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 2);
+  arena_free(a);
+}
+
+Test(vec, remove_middle_element) {
+  Arena *a = arena_create(512);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 4; i++)
+    vec_push(&v, &i);
+  vec_remove(&v, 2);
+  cr_assert_eq(v.len, 3);
+  cr_assert_eq(*(int *)vec_get(&v, 0), 0);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 1);
+  cr_assert_eq(*(int *)vec_get(&v, 2), 3);
+  arena_free(a);
+}
+
+Test(vec, remove_last_element) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &i);
+  vec_remove(&v, 2);
+  cr_assert_eq(v.len, 2);
+  cr_assert_eq(*(int *)vec_get(&v, 1), 1);
+  arena_free(a);
+}
