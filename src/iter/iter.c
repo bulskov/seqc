@@ -580,3 +580,68 @@ Iter iter_chunks(Iter source, size_t n) {
                 .elem_size = sizeof(Slice),
                 .allocator = source.allocator};
 }
+
+/* ---- iter_flat_map ----------------------------------------------------- */
+
+typedef struct {
+  Iter        source;       /* outer iterator                        */
+  flat_map_fn fn;
+  void       *ctx;
+  void       *elem_buf;     /* one element from source               */
+  Iter        sub;          /* current sub-iterator (zeroed = none)  */
+  int         sub_active;   /* 1 when sub holds a live iterator      */
+  size_t      out_elem_size;
+  Allocator   allocator;
+} FlatMapState;
+
+static int flat_map_next(Iter *it, void *out) {
+  FlatMapState *s = it->state;
+  while (1) {
+    /* Drain current sub-iterator */
+    if (s->sub_active) {
+      if (s->sub.next(&s->sub, out))
+        return 1;
+      iter_drop(&s->sub);
+      s->sub_active = 0;
+    }
+    /* Pull next element from source */
+    if (!s->source.next(&s->source, s->elem_buf))
+      return 0;
+    /* Produce next sub-iterator */
+    s->fn(s->elem_buf, &s->sub, s->ctx);
+    s->sub_active = 1;
+  }
+}
+
+static void flat_map_drop(Iter *it) {
+  FlatMapState *s = it->state;
+  if (s->sub_active)
+    iter_drop(&s->sub);
+  iter_drop(&s->source);
+  if (it->allocator.free) {
+    it->allocator.free(it->allocator.ctx, s->elem_buf);
+    it->allocator.free(it->allocator.ctx, s);
+  }
+}
+
+Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx,
+                   size_t out_elem_size) {
+  FlatMapState *s = source.allocator.alloc(source.allocator.ctx,
+                                           sizeof *s, _Alignof(FlatMapState));
+  void *elem_buf = source.allocator.alloc(source.allocator.ctx,
+                                          source.elem_size,
+                                          _Alignof(max_align_t));
+  *s = (FlatMapState){.source       = source,
+                      .fn           = fn,
+                      .ctx          = ctx,
+                      .elem_buf     = elem_buf,
+                      .sub          = {0},
+                      .sub_active   = 0,
+                      .out_elem_size = out_elem_size,
+                      .allocator    = source.allocator};
+  return (Iter){.next      = flat_map_next,
+                .drop      = flat_map_drop,
+                .state     = s,
+                .elem_size = out_elem_size,
+                .allocator = source.allocator};
+}

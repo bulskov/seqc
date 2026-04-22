@@ -2,6 +2,7 @@
 
 #include "arena/arena.h"
 #include "iter/iter.h"
+#include "vec/vec.h"
 
 /* ---- helpers ----------------------------------------------------------- */
 
@@ -519,6 +520,52 @@ Test(iter, chunks_remainder) {
   cr_assert_eq(c.len, 1); /* remainder */
   cr_assert_eq(*(int *)slice_get(c, 0), 5);
   cr_assert_not(it.next(&it, &c));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+/* ---- iter_flat_map ----------------------------------------------------- */
+
+/* Expands each int n into n copies of n: [1,2,3] -> [1, 2,2, 3,3,3] */
+static void repeat_n(const void *elem, Iter *out, void *ctx) {
+  int n = *(const int *)elem;
+  Allocator *alloc = ctx;
+  /* Build a small Vec of n copies and return an iter over it */
+  Vec v = vec_create(sizeof(int), *alloc);
+  for (int i = 0; i < n; i++) vec_push(&v, &n);
+  *out = vec_iter(&v);
+}
+
+Test(iter, flat_map_expand) {
+  int data[] = {1, 2, 3};
+  Slice s = {data, 3, sizeof(int)};
+  Arena *arena = arena_create(1024);
+  Scratch sc = arena_scratch_push(arena);
+  Allocator alloc = scratch_allocator(&sc);
+  Iter it = iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc,
+                          sizeof(int));
+  int expected[] = {1, 2, 2, 3, 3, 3};
+  int val;
+  for (int i = 0; i < 6; i++) {
+    cr_assert(it.next(&it, &val));
+    cr_assert_eq(val, expected[i]);
+  }
+  cr_assert_not(it.next(&it, &val));
+  iter_drop(&it);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
+
+Test(iter, flat_map_empty_source) {
+  Slice s = {NULL, 0, sizeof(int)};
+  Arena *arena = arena_create(256);
+  Scratch sc = arena_scratch_push(arena);
+  Allocator alloc = scratch_allocator(&sc);
+  Iter it = iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc,
+                          sizeof(int));
+  int val;
+  cr_assert_not(it.next(&it, &val));
   iter_drop(&it);
   arena_scratch_pop(&sc);
   arena_free(arena);

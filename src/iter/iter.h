@@ -70,6 +70,12 @@ Iter iter_window(Iter source, size_t n);
  * The slice points into an internal buffer — copy if you need to keep it. */
 Iter iter_chunks(Iter source, size_t n);
 
+/* For each element in source, calls fn(elem, &sub, ctx) which must populate
+ * *sub with a sub-iterator.  All sub-iterators are drained in order.
+ * out_elem_size must match the elem_size of every sub-iterator produced. */
+typedef void (*flat_map_fn)(const void *elem, Iter *out, void *ctx);
+Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size);
+
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 
 Slice iter_collect(Iter it);
