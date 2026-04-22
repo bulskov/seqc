@@ -18,6 +18,8 @@ bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
 size_t hashmap_fnv1a_str(const void *key, size_t key_size);
 bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 
+/* Pointer-pair yielded by hashmap_iter — points directly into the live bucket.
+ * Do not modify the map while iterating. */
 typedef struct
 {
     void *key;
@@ -39,5 +41,7 @@ bool hashmap_set(HashMap *map, const void *key, const void *value);
  * Returns true if the key was found, false otherwise. */
 bool hashmap_get(const HashMap *map, const void *key, void *out);
 bool hashmap_delete(HashMap *map, const void *key);
+/* Yields HashMapEntry pairs in unspecified order.
+ * Do not modify the map while iterating. */
 Iter hashmap_iter(const HashMap *map);
 Iter hashmap_iter_rev(const HashMap *map);
