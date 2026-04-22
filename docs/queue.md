@@ -12,17 +12,11 @@ FIFO ring buffer.
 ### `Queue`
 
 ```c
-typedef struct {
-  char      *buf;
-  size_t     cap;
-  size_t     len;
-  size_t     head;       /* index of front element */
-  size_t     elem_size;
-  Allocator  allocator;
-} Queue;
+typedef struct Queue Queue;
 ```
 
-Elements are stored in a flat circular buffer. The buffer doubles when full.
+Opaque handle. Backed internally by a flat circular buffer that doubles when
+full.
 
 ---
 
@@ -31,14 +25,14 @@ Elements are stored in a flat circular buffer. The buffer doubles when full.
 ### `queue_create`
 
 ```c
-Queue queue_create(size_t elem_size, Allocator allocator);
+Queue *queue_create(size_t elem_size, Allocator allocator);
 ```
 
-Create an empty queue.
+Create an empty queue. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-Queue  q = queue_create(sizeof(int), arena_allocator(a));
+Queue *q = queue_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -64,7 +58,7 @@ Returns `true` on success, `false` if empty.
 
 ```c
 int v;
-while (queue_pop(&q, &v))
+while (queue_pop(q, &v))
     printf("%d\n", v);
 ```
 
@@ -92,12 +86,12 @@ removing it. Returns `NULL` if empty. Correctly handles the ring-buffer
 wrap-around.
 
 ```c
-queue_push(&q, &(int){1});
-queue_push(&q, &(int){2});
-queue_push(&q, &(int){3});
+queue_push(q, &(int){1});
+queue_push(q, &(int){2});
+queue_push(q, &(int){3});
 printf("front=%d back=%d\n",
-       *(int *)queue_peek(&q),   // 1
-       *(int *)queue_back(&q));  // 3
+       *(int *)queue_peek(q),   // 1
+       *(int *)queue_back(q));  // 3
 ```
 
 ---
@@ -147,19 +141,21 @@ Empty the queue. The ring-buffer is retained and `head` is reset to zero.
 void queue_free(Queue *q);
 ```
 
+Free the Queue and all its internal storage. Do not use `q` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-Queue  q = queue_create(sizeof(int), arena_allocator(a));
+Queue *q = queue_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
-    queue_push(&q, &i);
+    queue_push(q, &i);
 
 int v;
-while (queue_pop(&q, &v))
+while (queue_pop(q, &v))
     printf("%d\n", v);  // prints 1 2 3 4 5
 
 arena_free(a);

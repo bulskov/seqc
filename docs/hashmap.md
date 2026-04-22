@@ -19,17 +19,10 @@ typedef bool   (*eq_fn)(const void *a, const void *b, size_t key_size);
 ### `HashMap`
 
 ```c
-typedef struct {
-  Bucket    *buckets;
-  size_t     cap;       /* always a power of 2 */
-  size_t     len;
-  size_t     key_size;
-  size_t     val_size;
-  hash_fn    hash;
-  eq_fn      eq;
-  Allocator  allocator;
-} HashMap;
+typedef struct HashMap HashMap;
 ```
+
+Opaque handle.
 
 ### `HashMapEntry`
 
@@ -91,18 +84,18 @@ bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 ### `hashmap_create`
 
 ```c
-HashMap hashmap_create(size_t key_size, size_t val_size,
-                       hash_fn hash, eq_fn eq,
-                       Allocator allocator);
+HashMap *hashmap_create(size_t key_size, size_t val_size,
+                        hash_fn hash, eq_fn eq,
+                        Allocator allocator);
 ```
 
-Create an empty hash map.
+Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero.
 
 ```c
-Arena   *a  = arena_create(4096);
-HashMap  m  = hashmap_create(sizeof(int), sizeof(double),
-                              hashmap_fnv1a, hashmap_eq_bytes,
-                              arena_allocator(a));
+Arena   *a = arena_create(4096);
+HashMap *m = hashmap_create(sizeof(int), sizeof(double),
+                             hashmap_fnv1a, hashmap_eq_bytes,
+                             arena_allocator(a));
 ```
 
 ---
@@ -119,7 +112,7 @@ key was updated.
 ```c
 int    k = 42;
 double v = 3.14;
-hashmap_set(&m, &k, &v);
+hashmap_set(m, &k, &v);
 ```
 
 ---
@@ -133,7 +126,7 @@ void *hashmap_get(const HashMap *map, const void *key);
 Return a pointer to the stored value, or `NULL` if not found.
 
 ```c
-double *val = hashmap_get(&m, &k);
+double *val = hashmap_get(m, &k);
 if (val) printf("%.2f\n", *val);
 ```
 
@@ -159,7 +152,7 @@ Return `true` if `key` is present in the map. Equivalent to
 `hashmap_get(map, key) != NULL` but expresses intent more clearly.
 
 ```c
-if (hashmap_contains(&m, &k))
+if (hashmap_contains(m, &k))
     printf("key is present\n");
 ```
 
@@ -184,7 +177,7 @@ Iterate over all key-value pairs in unspecified order. Each element is a
 live bucket storage.
 
 ```c
-Iter        it = hashmap_iter(&m);
+Iter        it = hashmap_iter(m);
 HashMapEntry e;
 while (it.next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
@@ -223,6 +216,9 @@ threshold is reached again.
 void hashmap_free(HashMap *map);
 ```
 
+Free all key/value copies, the bucket array, and the HashMap struct itself.
+Do not use `map` after calling this.
+
 ---
 
 ## Example: string keys
@@ -231,7 +227,7 @@ void hashmap_free(HashMap *map);
 #include "hashmap/hashmap.h"
 
 Arena   *a = arena_create(4096);
-HashMap  m = hashmap_create(sizeof(char *), sizeof(int),
+HashMap *m = hashmap_create(sizeof(char *), sizeof(int),
                              hashmap_fnv1a_str, hashmap_eq_str,
                              arena_allocator(a));
 
@@ -239,10 +235,10 @@ const char *keys[]   = {"apple", "banana", "cherry"};
 int         counts[] = {3, 1, 7};
 
 for (int i = 0; i < 3; i++)
-    hashmap_set(&m, &keys[i], &counts[i]);
+    hashmap_set(m, &keys[i], &counts[i]);
 
 const char *k = "banana";
-int *count = hashmap_get(&m, &k);
+int *count = hashmap_get(m, &k);
 printf("%d\n", *count);  // 1
 
 arena_free(a);

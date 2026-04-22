@@ -23,14 +23,10 @@ struct ListNode {
 ### `List`
 
 ```c
-typedef struct {
-  ListNode *head;
-  ListNode *tail;
-  size_t    len;
-  size_t    elem_size;
-  Allocator allocator;
-} List;
+typedef struct List List;
 ```
+
+Opaque handle.
 
 ---
 
@@ -39,14 +35,14 @@ typedef struct {
 ### `list_create`
 
 ```c
-List list_create(size_t elem_size, Allocator allocator);
+List *list_create(size_t elem_size, Allocator allocator);
 ```
 
-Create an empty list.
+Create an empty list. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-List   l = list_create(sizeof(int), arena_allocator(a));
+List  *l = list_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -125,18 +121,20 @@ arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
 void list_free(List *l);
 ```
 
+Free all nodes and then the List struct itself. Do not use `l` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-List   l = list_create(sizeof(int), arena_allocator(a));
+List  *l = list_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
-    list_push_back(&l, &i);
+    list_push_back(l, &i);
 
-Iter it = list_iter(&l);
+Iter it = list_iter(l);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);  // 1 2 3 4 5

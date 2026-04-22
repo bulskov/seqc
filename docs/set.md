@@ -23,16 +23,10 @@ Same signatures as [`hash_fn` / `eq_fn`](hashmap.md#types) in `hashmap`
 ### `Set`
 
 ```c
-typedef struct {
-  SetBucket *buckets;
-  size_t     cap;       /* always a power of 2 */
-  size_t     len;
-  size_t     elem_size;
-  set_hash_fn hash;
-  set_eq_fn   eq;
-  Allocator   allocator;
-} Set;
+typedef struct Set Set;
 ```
+
+Opaque handle.
 
 ---
 
@@ -41,11 +35,12 @@ typedef struct {
 ### `set_create`
 
 ```c
-Set set_create(size_t elem_size, set_hash_fn hash, set_eq_fn eq,
-               Allocator allocator);
+Set *set_create(size_t elem_size, set_hash_fn hash, set_eq_fn eq,
+                Allocator allocator);
 ```
 
-Create an empty set. You must supply a hash function and an equality function.
+Create an empty set. Returns `NULL` if `elem_size` is zero. You must supply a
+hash function and an equality function.
 For integer-sized keys use `hashmap_fnv1a` / `hashmap_eq_bytes` from
 [`hashmap.h`](hashmap.md). For `char *` keys use `hashmap_fnv1a_str` /
 `hashmap_eq_str`.
@@ -54,7 +49,7 @@ For integer-sized keys use `hashmap_fnv1a` / `hashmap_eq_bytes` from
 #include "hashmap/hashmap.h"
 
 Arena *a = arena_create(4096);
-Set    s = set_create(sizeof(int),
+Set   *s = set_create(sizeof(int),
                       hashmap_fnv1a, hashmap_eq_bytes,
                       arena_allocator(a));
 ```
@@ -109,7 +104,7 @@ Iterate over all elements in unspecified order. Yields elements of size
 `elem_size`.
 
 ```c
-Iter it = set_iter(&s);
+Iter it = set_iter(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
@@ -127,7 +122,7 @@ Iterate over all elements in reverse bucket-storage order. Same element set as
 the opposite order without collecting first.
 
 ```c
-Iter it = set_iter_rev(&s);
+Iter it = set_iter_rev(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
@@ -155,6 +150,9 @@ again.
 void set_free(Set *s);
 ```
 
+Free all key copies, the bucket array, and the Set struct itself.
+Do not use `s` after calling this.
+
 ---
 
 ## Example
@@ -163,16 +161,16 @@ void set_free(Set *s);
 #include "hashmap/hashmap.h"
 
 Arena *a = arena_create(4096);
-Set    s = set_create(sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+Set   *s = set_create(sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
                       arena_allocator(a));
 
 int nums[] = {1, 2, 3, 2, 1};
 for (int i = 0; i < 5; i++)
-    set_add(&s, &nums[i]);
+    set_add(s, &nums[i]);
 
-printf("len=%zu\n", set_len(&s));        // 3
-printf("%d\n", set_contains(&s, &(int){2})); // 1
-printf("%d\n", set_contains(&s, &(int){9})); // 0
+printf("len=%zu\n", set_len(s));        // 3
+printf("%d\n", set_contains(s, &(int){2})); // 1
+printf("%d\n", set_contains(s, &(int){9})); // 0
 
 arena_free(a);
 ```

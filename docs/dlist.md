@@ -23,14 +23,10 @@ struct DListNode {
 ### `DList`
 
 ```c
-typedef struct {
-  DListNode *head;
-  DListNode *tail;
-  size_t     len;
-  size_t     elem_size;
-  Allocator  allocator;
-} DList;
+typedef struct DList DList;
 ```
+
+Opaque handle.
 
 ---
 
@@ -39,14 +35,14 @@ typedef struct {
 ### `dlist_create`
 
 ```c
-DList dlist_create(size_t elem_size, Allocator allocator);
+DList *dlist_create(size_t elem_size, Allocator allocator);
 ```
 
-Create an empty doubly-linked list.
+Create an empty doubly-linked list. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-DList  l = dlist_create(sizeof(int), arena_allocator(a));
+DList *l = dlist_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -74,8 +70,8 @@ Returns `true` on success, `false` if empty.
 
 ```c
 // use as a deque
-dlist_push_back(&l, &val);
-dlist_pop_front(&l, &out);
+dlist_push_back(l, &val);
+dlist_pop_front(l, &out);
 ```
 
 ---
@@ -135,25 +131,27 @@ arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
 void dlist_free(DList *l);
 ```
 
+Free all nodes and then the DList struct itself. Do not use `l` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-DList  l = dlist_create(sizeof(int), arena_allocator(a));
+DList *l = dlist_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
-    dlist_push_back(&l, &i);
+    dlist_push_back(l, &i);
 
 // forward: 1 2 3 4 5
-Iter fwd = dlist_iter(&l);
+Iter fwd = dlist_iter(l);
 int v;
 while (fwd.next(&fwd, &v)) printf("%d ", v);
 iter_drop(&fwd);
 
 // reverse: 5 4 3 2 1
-Iter rev = dlist_iter_reverse(&l);
+Iter rev = dlist_iter_reverse(l);
 while (rev.next(&rev, &v)) printf("%d ", v);
 iter_drop(&rev);
 

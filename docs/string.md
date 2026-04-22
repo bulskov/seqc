@@ -261,7 +261,7 @@ Builds a `String` incrementally using a [`Vec`](vec.md) of `char`.
 ### `sb_create`
 
 ```c
-StringBuilder sb_create(Allocator allocator);
+StringBuilder *sb_create(Allocator allocator);
 ```
 
 ### `sb_append`
@@ -310,13 +310,13 @@ the arena that backs the builder is alive. No copy is made.
 
 ```c
 Arena         *a  = arena_create(4096);
-StringBuilder  sb = sb_create(arena_allocator(a));
+StringBuilder *sb = sb_create(arena_allocator(a));
 
-sb_append_cstr(&sb, "x=");
-sb_append_int(&sb, 42);
-sb_append_fmt(&sb, ", pi=%.4f", 3.14159);
+sb_append_cstr(sb, "x=");
+sb_append_int(sb, 42);
+sb_append_fmt(sb, ", pi=%.4f", 3.14159);
 
-String result = sb_finish(&sb);
+String result = sb_finish(sb);
 // result == "x=42, pi=3.1416"
 
 arena_free(a);
@@ -335,12 +335,12 @@ Pass these as `hash_fn` / `eq_fn` when the key type of a
 [`HashMap`](hashmap.md) or [`Set`](set.md) is `String`.
 
 ```c
-HashMap m = hashmap_create(sizeof(String), sizeof(int),
-                            string_hash, string_key_eq,
-                            arena_allocator(a));
+HashMap *m = hashmap_create(sizeof(String), sizeof(int),
+                             string_hash, string_key_eq,
+                             arena_allocator(a));
 String k = STRING_LIT("count");
 int    v = 7;
-hashmap_set(&m, &k, &v);
+hashmap_set(m, &k, &v);
 ```
 
 ---

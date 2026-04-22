@@ -14,14 +14,12 @@ All push/pop operations are O(log n); peek is O(1).
 ### `PQueue`
 
 ```c
-typedef struct {
-  Vec        data;   /* flat array storage */
-  compare_fn cmp;
-} PQueue;
+typedef struct PQueue PQueue;
 ```
 
-Backed by a [`Vec`](vec.md). Elements are stored contiguously; the heap
-property is maintained by sift-up on push and sift-down on pop.
+Opaque handle. Backed internally by a [`Vec`](vec.md); elements are stored
+contiguously and the heap property is maintained by sift-up on push and
+sift-down on pop.
 
 ---
 
@@ -30,10 +28,10 @@ property is maintained by sift-up on push and sift-down on pop.
 ### `pqueue_create`
 
 ```c
-PQueue pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+PQueue *pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 ```
 
-Create an empty priority queue.
+Create an empty priority queue. Returns `NULL` if `elem_size` is zero.
 
 ```c
 static int int_cmp(const void *a, const void *b) {
@@ -41,7 +39,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena  *a = arena_create(4096);
-PQueue  q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
 ```
 
 To get a **max-heap**, pass a negated comparator:
@@ -50,7 +48,7 @@ To get a **max-heap**, pass a negated comparator:
 static int int_cmp_desc(const void *a, const void *b) {
     return *(const int *)b - *(const int *)a;
 }
-PQueue max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a));
+PQueue *max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a));
 ```
 
 ---
@@ -58,7 +56,7 @@ PQueue max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a));
 ### `pqueue_build_from_vec`
 
 ```c
-PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator);
+PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator);
 ```
 
 Build a priority queue from a copy of `v`'s elements using Floyd's O(n)
@@ -68,16 +66,16 @@ modified. The returned `PQueue` owns its own allocation independent of `v`.
 
 ```c
 Arena  *a = arena_create(4096);
-Vec     v = vec_create(sizeof(int), arena_allocator(a));
+Vec    *v = vec_create(sizeof(int), arena_allocator(a));
 int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
 for (int i = 0; i < 10; i++)
-    vec_push(&v, &data[i]);
+    vec_push(v, &data[i]);
 
-PQueue q = pqueue_build_from_vec(&v, int_cmp, arena_allocator(a));
+PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
 // Identical to pushing all elements one-by-one but O(n) instead of O(n log n)
 
 int v_out;
-while (pqueue_pop(&q, &v_out))
+while (pqueue_pop(q, &v_out))
     printf("%d\n", v_out);  // 0 1 2 3 4 5 6 7 8 9
 arena_free(a);
 ```
@@ -105,7 +103,7 @@ Remove and return the minimum element. Copies it into `*out` if `out` is not
 
 ```c
 int v;
-while (pqueue_pop(&q, &v))
+while (pqueue_pop(q, &v))
     printf("%d\n", v);  // ascending order
 ```
 
@@ -170,22 +168,24 @@ Empty the priority queue. The underlying Vec buffer is retained.
 void pqueue_free(PQueue *q);
 ```
 
+Free the PQueue and all its internal storage. Do not use `q` after calling this.
+
 ---
 
 ## Example: top-K elements
 
 ```c
 Arena  *a = arena_create(4096);
-PQueue  q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
 
 int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
 for (int i = 0; i < 10; i++)
-    pqueue_push(&q, &data[i]);
+    pqueue_push(q, &data[i]);
 
 // drain smallest 3
 int v;
 for (int i = 0; i < 3; i++) {
-    pqueue_pop(&q, &v);
+    pqueue_pop(q, &v);
     printf("%d\n", v);  // 0, 1, 2
 }
 
@@ -201,13 +201,13 @@ static int entry_cmp(const void *a, const void *b) {
     return ((Entry *)a)->dist - ((Entry *)b)->dist;
 }
 
-PQueue q = pqueue_create(sizeof(Entry), entry_cmp, arena_allocator(a));
+PQueue *q = pqueue_create(sizeof(Entry), entry_cmp, arena_allocator(a));
 
 Entry e = {0, source};
-pqueue_push(&q, &e);
+pqueue_push(q, &e);
 
-while (!pqueue_is_empty(&q)) {
-    pqueue_pop(&q, &e);
+while (!pqueue_is_empty(q)) {
+    pqueue_pop(q, &e);
     // process e.node with distance e.dist
 }
 ```

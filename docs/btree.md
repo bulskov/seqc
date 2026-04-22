@@ -14,14 +14,10 @@ matter.
 ### `BTree`
 
 ```c
-typedef struct {
-  BTreeNode *root;
-  size_t     len;
-  size_t     elem_size;
-  compare_fn cmp;
-  Allocator  allocator;
-} BTree;
+typedef struct BTree BTree;
 ```
+
+Opaque handle.
 
 ---
 
@@ -30,11 +26,12 @@ typedef struct {
 ### `btree_create`
 
 ```c
-BTree btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 ```
 
-Create an empty tree. `cmp` follows the [`compare_fn`](iter.md#function-pointer-types)
-convention: negative / zero / positive.
+Create an empty tree. Returns `NULL` if `elem_size` is zero. `cmp` follows the
+[`compare_fn`](iter.md#function-pointer-types) convention: negative / zero /
+positive.
 
 ```c
 static int int_cmp(const void *a, const void *b) {
@@ -42,7 +39,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena *a = arena_create(4096);
-BTree  t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
 ```
 
 ---
@@ -108,14 +105,12 @@ empty tree, `1` for a single-node tree. Because `BTree` is unbalanced,
 height can be as large as `n` on sorted input.
 
 ```c
-BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
-    btree_insert(&t, &vals[i]);
-printf("height=%d\n", btree_height(&t));  // 3
+    btree_insert(t, &vals[i]);
+printf("height=%d\n", btree_height(t));  // 3
 ```
-
----
 
 ### `btree_iter`
 
@@ -144,7 +139,7 @@ Pass `NULL` for `lo` or `hi` to leave that bound open.
 
 ```c
 int lo = 3, hi = 7;
-Iter it = btree_iter_range(&t, &lo, &hi);
+Iter it = btree_iter_range(t, &lo, &hi);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);  // 3 4 5 6 7
@@ -171,25 +166,27 @@ and can be reused immediately.
 void btree_free(BTree *t);
 ```
 
+Free all nodes and then the BTree struct itself. Do not use `t` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-BTree  t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
 
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
-    btree_insert(&t, &vals[i]);
+    btree_insert(t, &vals[i]);
 
 printf("min=%d max=%d len=%zu\n",
-       *(int *)btree_min(&t),   // 1
-       *(int *)btree_max(&t),   // 8
-       btree_len(&t));           // 7
+       *(int *)btree_min(t),   // 1
+       *(int *)btree_max(t),   // 8
+       btree_len(t));           // 7
 
 // ascending
-Iter it = btree_iter(&t);
+Iter it = btree_iter(t);
 int v;
 while (it.next(&it, &v)) printf("%d ", v);
 iter_drop(&it);

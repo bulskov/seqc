@@ -14,14 +14,10 @@ LR / RL rotations.
 ### `AVLTree`
 
 ```c
-typedef struct {
-  AVLNode   *root;
-  size_t     len;
-  size_t     elem_size;
-  compare_fn cmp;
-  Allocator  allocator;
-} AVLTree;
+typedef struct AVLTree AVLTree;
 ```
+
+Opaque handle.
 
 ---
 
@@ -30,10 +26,10 @@ typedef struct {
 ### `avl_create`
 
 ```c
-AVLTree avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 ```
 
-Create an empty tree.
+Create an empty tree. Returns `NULL` if `elem_size` is zero.
 
 ```c
 static int int_cmp(const void *a, const void *b) {
@@ -41,7 +37,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena   *a = arena_create(4096);
-AVLTree  t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 ```
 
 ---
@@ -124,7 +120,7 @@ in-range element in O(log n).
 
 ```c
 int lo = 10, hi = 50;
-Iter it = avl_iter_range(&t, &lo, &hi);
+Iter it = avl_iter_range(t, &lo, &hi);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);
@@ -151,23 +147,25 @@ and can be reused immediately.
 void avl_free(AVLTree *t);
 ```
 
+Free all nodes and then the AVLTree struct itself. Do not use `t` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena   *a = arena_create(4096);
-AVLTree  t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 
 for (int i = 1; i <= 1000; i++)
-    avl_insert(&t, &i);
+    avl_insert(t, &i);
 
-printf("height=%d (log2(1000)~10)\n", avl_height(&t));
+printf("height=%d (log2(1000)~10)\n", avl_height(t));
 
-avl_remove(&t, &(int){500});
+avl_remove(t, &(int){500});
 printf("len=%zu contains(500)=%d\n",
-       avl_len(&t),
-       avl_contains(&t, &(int){500}));  // 0
+       avl_len(t),
+       avl_contains(t, &(int){500}));  // 0
 
 arena_free(a);
 ```

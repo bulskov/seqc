@@ -25,15 +25,10 @@ do not modify the map while iterating.
 ### `OMap`
 
 ```c
-typedef struct {
-  OMNode    *root;
-  size_t     len;
-  size_t     key_size;
-  size_t     val_size;
-  compare_fn cmp;
-  Allocator  allocator;
-} OMap;
+typedef struct OMap OMap;
 ```
+
+Opaque handle.
 
 ---
 
@@ -42,11 +37,11 @@ typedef struct {
 ### `omap_create`
 
 ```c
-OMap omap_create(size_t key_size, size_t val_size,
-                 compare_fn cmp, Allocator allocator);
+OMap *omap_create(size_t key_size, size_t val_size,
+                  compare_fn cmp, Allocator allocator);
 ```
 
-Create an empty ordered map.
+Create an empty ordered map. Returns `NULL` if `key_size` or `val_size` is zero.
 
 ```c
 static int int_cmp(const void *a, const void *b) {
@@ -54,7 +49,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena *a = arena_create(4096);
-OMap   m = omap_create(sizeof(int), sizeof(double),
+OMap  *m = omap_create(sizeof(int), sizeof(double),
                         int_cmp, arena_allocator(a));
 ```
 
@@ -72,7 +67,7 @@ key was updated.
 ```c
 int    k = 1;
 double v = 3.14;
-omap_set(&m, &k, &v);
+omap_set(m, &k, &v);
 ```
 
 ---
@@ -86,7 +81,7 @@ void *omap_get(const OMap *m, const void *key);
 Return a pointer to the stored value, or `NULL` if not found.
 
 ```c
-double *val = omap_get(&m, &(int){1});
+double *val = omap_get(m, &(int){1});
 if (val) printf("%.2f\n", *val);
 ```
 
@@ -136,8 +131,8 @@ Prefer these over `omap_min_key` + `omap_get` when you need both the key and
 the value, since the latter would require two tree walks.
 
 ```c
-OMapEntry lo = omap_min_entry(&m);
-OMapEntry hi = omap_max_entry(&m);
+OMapEntry lo = omap_min_entry(m);
+OMapEntry hi = omap_max_entry(m);
 printf("range [%d, %d]\n", *(int *)lo.key, *(int *)hi.key);
 ```
 
@@ -179,7 +174,7 @@ Pass `NULL` for either bound to leave it open.
 
 ```c
 int lo = 10, hi = 20;
-Iter      it = omap_iter_range(&m, &lo, &hi);
+Iter      it = omap_iter_range(m, &lo, &hi);
 OMapEntry e;
 while (it.next(&it, &e))
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
@@ -206,28 +201,30 @@ valid and can be reused immediately.
 void omap_free(OMap *m);
 ```
 
+Free all nodes and then the OMap struct itself. Do not use `m` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-OMap   m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+OMap  *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
 
 // insert word counts
 const char *words[] = {"apple", "banana", "cherry", "apple", "banana", "apple"};
 // (using int keys for brevity)
 for (int i = 1; i <= 5; i++) {
     int v = i * 100;
-    omap_set(&m, &i, &v);
+    omap_set(m, &i, &v);
 }
 
 printf("min=%d max=%d\n",
-       *(int *)omap_min_key(&m),  // 1
-       *(int *)omap_max_key(&m)); // 5
+       *(int *)omap_min_key(m),  // 1
+       *(int *)omap_max_key(m)); // 5
 
 // iterate all in ascending order
-Iter      it = omap_iter(&m);
+Iter      it = omap_iter(m);
 OMapEntry e;
 while (it.next(&it, &e))
     printf("%d => %d\n", *(int *)e.key, *(int *)e.value);

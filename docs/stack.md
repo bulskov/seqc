@@ -12,10 +12,10 @@ LIFO stack backed by a [`Vec`](vec.md).
 ### `Stack`
 
 ```c
-typedef struct {
-  Vec vec;
-} Stack;
+typedef struct Stack Stack;
 ```
+
+Opaque handle. Backed internally by a [`Vec`](vec.md).
 
 ---
 
@@ -24,14 +24,14 @@ typedef struct {
 ### `stack_create`
 
 ```c
-Stack stack_create(size_t elem_size, Allocator allocator);
+Stack *stack_create(size_t elem_size, Allocator allocator);
 ```
 
-Create an empty stack.
+Create an empty stack. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-Stack  s = stack_create(sizeof(int), arena_allocator(a));
+Stack *s = stack_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -57,7 +57,7 @@ Returns `true` on success, `false` if the stack is empty.
 
 ```c
 int val;
-if (stack_pop(&s, &val))
+if (stack_pop(s, &val))
     printf("popped %d\n", val);
 ```
 
@@ -120,20 +120,22 @@ Empty the stack. The underlying Vec buffer is retained.
 void stack_free(Stack *s);
 ```
 
+Free the Stack and all its internal storage. Do not use `s` after calling this.
+
 ---
 
 ## Example
 
 ```c
 Arena *a = arena_create(4096);
-Stack  s = stack_create(sizeof(int), arena_allocator(a));
+Stack *s = stack_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
-    stack_push(&s, &i);
+    stack_push(s, &i);
 
 // drain LIFO
 int v;
-while (stack_pop(&s, &v))
+while (stack_pop(s, &v))
     printf("%d\n", v);  // prints 5 4 3 2 1
 
 arena_free(a);
