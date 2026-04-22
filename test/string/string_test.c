@@ -286,3 +286,46 @@ Test(string, sb_append_fmt_compose) {
   cr_assert(string_equals(result, STRING_LIT("x=7, y=3.14")));
   arena_free(a);
 }
+
+/* --- string_replace ----------------------------------------------------- */
+
+Test(string, replace_basic) {
+  Arena *a = arena_create(512);
+  String r =
+      string_replace(STRING_LIT("hello world world"), STRING_LIT("world"),
+                     STRING_LIT("there"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("hello there there")));
+  arena_free(a);
+}
+
+Test(string, replace_no_match) {
+  Arena *a = arena_create(256);
+  String r = string_replace(STRING_LIT("hello"), STRING_LIT("xyz"),
+                            STRING_LIT("!"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("hello")));
+  arena_free(a);
+}
+
+Test(string, replace_empty_needle_returns_copy) {
+  Arena *a = arena_create(256);
+  String r = string_replace(STRING_LIT("hello"), STRING_LIT(""),
+                            STRING_LIT("X"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("hello")));
+  arena_free(a);
+}
+
+Test(string, replace_whole_string) {
+  Arena *a = arena_create(256);
+  String r = string_replace(STRING_LIT("aaa"), STRING_LIT("a"),
+                            STRING_LIT("bb"), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("bbbbbb")));
+  arena_free(a);
+}
+
+Test(string, replace_with_empty_replacement) {
+  Arena *a = arena_create(256);
+  String r = string_replace(STRING_LIT("a,b,c"), STRING_LIT(","),
+                            STRING_LIT(""), arena_allocator(a));
+  cr_assert(string_equals(r, STRING_LIT("abc")));
+  arena_free(a);
+}

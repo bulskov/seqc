@@ -99,6 +99,31 @@ String string_trim_right(String s) {
 
 String string_trim(String s) { return string_trim_right(string_trim_left(s)); }
 
+/* --- Transformation ----------------------------------------------------- */
+
+String string_replace(String s, String needle, String replacement,
+                      Allocator allocator) {
+  StringBuilder sb = sb_create(allocator);
+  if (needle.len == 0) {
+    /* Empty needle: return a copy unchanged */
+    sb_append(&sb, s);
+    return sb_finish(&sb);
+  }
+  size_t pos = 0;
+  while (pos < s.len) {
+    String remaining = string_slice(s, pos, s.len);
+    size_t found = string_find(remaining, needle);
+    if (found == STRING_NOT_FOUND) {
+      sb_append(&sb, remaining);
+      break;
+    }
+    sb_append(&sb, string_slice(remaining, 0, found));
+    sb_append(&sb, replacement);
+    pos += found + needle.len;
+  }
+  return sb_finish(&sb);
+}
+
 /* --- Builder ------------------------------------------------------------ */
 
 StringBuilder sb_create(Allocator allocator) {

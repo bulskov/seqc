@@ -39,6 +39,13 @@ int string_ends_with(String s, String suffix);
 int string_contains(String s, String needle);
 size_t string_find(String s, String needle); /* STRING_NOT_FOUND if absent */
 
+/* --- Transformation ----------------------------------------------------- */
+
+/* Return a new String with all non-overlapping occurrences of needle replaced
+ * by replacement.  The result is arena-allocated via allocator. */
+String string_replace(String s, String needle, String replacement,
+                      Allocator allocator);
+
 /* --- Views (zero-copy) -------------------------------------------------- */
 
 String string_slice(String s, size_t start, size_t end);
