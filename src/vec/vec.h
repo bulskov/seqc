@@ -6,12 +6,13 @@
 #include "arena/arena.h"
 #include "iter/iter.h"
 
-typedef struct {
-  void *data;
-  size_t len;
-  size_t cap;
-  size_t elem_size;
-  Allocator allocator;
+typedef struct
+{
+    void *data;
+    size_t len;
+    size_t cap;
+    size_t elem_size;
+    Allocator allocator;
 } Vec;
 
 Vec vec_create(size_t elem_size, Allocator allocator);
@@ -24,9 +25,10 @@ void vec_insert(Vec *v, size_t i, const void *elem); /* shift [i..] right */
 void vec_remove(Vec *v, size_t i);                   /* shift [i+1..] left */
 void vec_reserve(Vec *v, size_t capacity); /* ensure cap >= capacity */
 Slice vec_as_slice(const Vec *v);
-/* Linear search using pred(elem, ctx). Returns pointer to first match or NULL. */
+/* Linear search using pred(elem, ctx). Returns pointer to first match or NULL.
+ */
 void *vec_find(const Vec *v, pred_fn pred, void *ctx);
-bool  vec_contains(const Vec *v, pred_fn pred, void *ctx);
+bool vec_contains(const Vec *v, pred_fn pred, void *ctx);
 Iter vec_iter(const Vec *v);
 Iter vec_iter_rev(const Vec *v);
 void vec_clear(Vec *v); /* reset len to 0, keep buffer */

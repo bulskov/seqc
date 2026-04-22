@@ -11,27 +11,29 @@
  * every insert and remove via LL / RR / LR / RL rotations. */
 
 typedef struct AVLNode AVLNode;
-struct AVLNode {
-  AVLNode *left;
-  AVLNode *right;
-  int height; /* 1-based; 0 used as sentinel for NULL */
-  /* element data stored inline after the header */
+struct AVLNode
+{
+    AVLNode *left;
+    AVLNode *right;
+    int height; /* 1-based; 0 used as sentinel for NULL */
+                /* element data stored inline after the header */
 };
 
-typedef struct {
-  AVLNode *root;
-  size_t len;
-  size_t elem_size;
-  compare_fn cmp;
-  Allocator allocator;
+typedef struct
+{
+    AVLNode *root;
+    size_t len;
+    size_t elem_size;
+    compare_fn cmp;
+    Allocator allocator;
 } AVLTree;
 
 AVLTree avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
-bool avl_insert(AVLTree *t,
-                const void *elem); /* true=inserted false=duplicate */
+bool avl_insert(
+    AVLTree *t, const void *elem); /* true=inserted false=duplicate */
 bool avl_contains(const AVLTree *t, const void *elem);
-bool avl_remove(AVLTree *t,
-                const void *elem); /* true=removed  false=not found */
+bool avl_remove(
+    AVLTree *t, const void *elem); /* true=removed  false=not found */
 void *avl_min(const AVLTree *t);   /* NULL if empty          */
 void *avl_max(const AVLTree *t);   /* NULL if empty          */
 size_t avl_len(const AVLTree *t);

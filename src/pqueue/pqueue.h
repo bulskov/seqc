@@ -13,16 +13,17 @@
  *
  * compare_fn: same type as iter_sort — negative / zero / positive. */
 
-typedef struct {
-  Vec data; /* flat array storage */
-  compare_fn cmp;
+typedef struct
+{
+    Vec data; /* flat array storage */
+    compare_fn cmp;
 } PQueue;
 
 PQueue pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 
 /* Build a heap from a copy of v's elements in O(n) using Floyd's algorithm.
- * The Vec's element size must match elem_size; behaviour is undefined otherwise.
- * The returned PQueue owns its own allocation independent of v. */
+ * The Vec's element size must match elem_size; behaviour is undefined
+ * otherwise. The returned PQueue owns its own allocation independent of v. */
 PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator);
 
 /* Push a copy of elem and restore the heap property. */

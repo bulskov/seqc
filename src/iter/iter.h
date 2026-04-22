@@ -16,19 +16,22 @@ typedef void (*combine_fn)(void *acc, const void *elem, void *ctx);
 typedef void (*visitor_fn)(const void *elem, void *ctx);
 typedef int (*compare_fn)(const void *a, const void *b);
 
-struct Iter {
-  bool (*next)(Iter *it,
-               void *out); /* writes elem_size bytes; returns true or false */
-  void (*drop)(Iter *it);  /* frees internal state; NULL is valid     */
-  void *state;
-  size_t elem_size;
-  Allocator allocator; /* used by adaptors that need to allocate state */
+struct Iter
+{
+    bool (*next)(
+        Iter *it,
+        void *out);         /* writes elem_size bytes; returns true or false */
+    void (*drop)(Iter *it); /* frees internal state; NULL is valid     */
+    void *state;
+    size_t elem_size;
+    Allocator allocator; /* used by adaptors that need to allocate state */
 };
 
 /* Inline drop — call to release resources without a terminal */
-static inline void iter_drop(Iter *it) {
-  if (it && it->drop)
-    it->drop(it);
+static inline void iter_drop(Iter *it)
+{
+    if (it && it->drop)
+        it->drop(it);
 }
 
 /* --- Sources ------------------------------------------------------------ */
@@ -39,14 +42,14 @@ Iter iter_from_slice_rev(Slice s, Allocator allocator);
 /* Calls fn(out, ctx) on each call to next; stops when fn returns false.
  * fn writes exactly elem_size bytes into out on each successful call. */
 typedef bool (*generate_fn)(void *out, void *ctx);
-Iter iter_generate(generate_fn fn, void *ctx, size_t elem_size,
-                   Allocator allocator);
+Iter iter_generate(
+    generate_fn fn, void *ctx, size_t elem_size, Allocator allocator);
 
 /* Yields long long integers from start (inclusive) to end (exclusive) by
  * step.  step must not be zero.  Yields nothing if the range is empty
  * (e.g. start >= end with positive step). */
-Iter iter_range(long long start, long long end, long long step,
-                Allocator allocator);
+Iter iter_range(
+    long long start, long long end, long long step, Allocator allocator);
 
 /* --- Adaptors (take ownership of source) -------------------------------- */
 
@@ -69,9 +72,10 @@ Iter iter_zip(Iter a, Iter b);
 /* Pairs each element with its 0-based index.
  * Yields EnumEntry {index, elem} where elem points into an internal buffer.
  * Do not store elem across calls. */
-typedef struct {
-  size_t index;
-  void *elem; /* pointer into internal buffer — valid until next call */
+typedef struct
+{
+    size_t index;
+    void *elem; /* pointer into internal buffer — valid until next call */
 } EnumEntry;
 
 Iter iter_enumerate(Iter source);
@@ -90,8 +94,8 @@ Iter iter_chunks(Iter source, size_t n);
  * *sub with a sub-iterator.  All sub-iterators are drained in order.
  * out_elem_size must match the elem_size of every sub-iterator produced. */
 typedef void (*flat_map_fn)(const void *elem, Iter *out, void *ctx);
-Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx,
-                   size_t out_elem_size);
+Iter iter_flat_map(
+    Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size);
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 

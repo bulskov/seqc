@@ -8,21 +8,23 @@
 typedef size_t (*hash_fn)(const void *key, size_t key_size);
 typedef bool (*eq_fn)(const void *a, const void *b, size_t key_size);
 
-typedef struct {
-  void *key;
-  void *value;
-  uint8_t psl; /* 0 = empty */
+typedef struct
+{
+    void *key;
+    void *value;
+    uint8_t psl; /* 0 = empty */
 } Bucket;
 
-typedef struct {
-  Bucket *buckets;
-  size_t cap; /* always power of 2 */
-  size_t len;
-  size_t key_size;
-  size_t val_size;
-  hash_fn hash;
-  eq_fn eq;
-  Allocator allocator;
+typedef struct
+{
+    Bucket *buckets;
+    size_t cap; /* always power of 2 */
+    size_t len;
+    size_t key_size;
+    size_t val_size;
+    hash_fn hash;
+    eq_fn eq;
+    Allocator allocator;
 } HashMap;
 
 /* Default hash and equality functions suitable for any fixed-size key type */
@@ -33,13 +35,18 @@ bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
 size_t hashmap_fnv1a_str(const void *key, size_t key_size);
 bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 
-typedef struct {
-  void *key;
-  void *value;
+typedef struct
+{
+    void *key;
+    void *value;
 } HashMapEntry;
 
-HashMap hashmap_create(size_t key_size, size_t val_size, hash_fn hash, eq_fn eq,
-                       Allocator allocator);
+HashMap hashmap_create(
+    size_t key_size,
+    size_t val_size,
+    hash_fn hash,
+    eq_fn eq,
+    Allocator allocator);
 void hashmap_free(HashMap *map);
 void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);

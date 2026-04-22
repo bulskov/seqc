@@ -9,9 +9,10 @@
 
 #include <stdarg.h>
 
-typedef struct {
-  const char *ptr;
-  size_t len;
+typedef struct
+{
+    const char *ptr;
+    size_t len;
 } String;
 
 /* Wrap a string literal without copying */
@@ -24,8 +25,8 @@ typedef struct {
 
 String string_from_cstr(const char *s);            /* wraps, no copy      */
 String string_copy(String s, Allocator allocator); /* allocator copy      */
-const char *string_to_cstr(String s,
-                           Allocator allocator); /* copy + null-terminate */
+const char *string_to_cstr(
+    String s, Allocator allocator); /* copy + null-terminate */
 
 /* --- Comparison --------------------------------------------------------- */
 
@@ -43,8 +44,8 @@ size_t string_find(String s, String needle); /* STRING_NOT_FOUND if absent */
 
 /* Return a new String with all non-overlapping occurrences of needle replaced
  * by replacement.  The result is arena-allocated via allocator. */
-String string_replace(String s, String needle, String replacement,
-                      Allocator allocator);
+String string_replace(
+    String s, String needle, String replacement, Allocator allocator);
 
 /* Return a new arena-allocated copy of s with all ASCII letters uppercased. */
 String string_to_uppercase(String s, Allocator allocator);
@@ -75,8 +76,9 @@ String string_trim_right(String s);
 
 /* --- Builder ------------------------------------------------------------ */
 
-typedef struct {
-  Vec chars;
+typedef struct
+{
+    Vec chars;
 } StringBuilder;
 
 StringBuilder sb_create(Allocator allocator);

@@ -10,28 +10,30 @@
  *   int cmp(const void *a, const void *b) — negative / zero / positive */
 
 typedef struct BTreeNode BTreeNode;
-struct BTreeNode {
-  BTreeNode *left;
-  BTreeNode *right;
-  /* element data stored inline after the header */
+struct BTreeNode
+{
+    BTreeNode *left;
+    BTreeNode *right;
+    /* element data stored inline after the header */
 };
 
-typedef struct {
-  BTreeNode *root;
-  size_t len;
-  size_t elem_size;
-  compare_fn cmp;
-  Allocator allocator;
+typedef struct
+{
+    BTreeNode *root;
+    size_t len;
+    size_t elem_size;
+    compare_fn cmp;
+    Allocator allocator;
 } BTree;
 
 BTree btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
-bool btree_insert(BTree *t,
-                  const void *elem); /* true=inserted false=duplicate */
+bool btree_insert(
+    BTree *t, const void *elem); /* true=inserted false=duplicate */
 bool btree_contains(const BTree *t, const void *elem);
-bool btree_remove(BTree *t,
-                  const void *elem); /* true=removed  false=not found */
-void *btree_min(const BTree *t);     /* NULL if empty          */
-void *btree_max(const BTree *t);     /* NULL if empty          */
+bool btree_remove(
+    BTree *t, const void *elem); /* true=removed  false=not found */
+void *btree_min(const BTree *t); /* NULL if empty          */
+void *btree_max(const BTree *t); /* NULL if empty          */
 size_t btree_len(const BTree *t);
 int btree_height(const BTree *t);    /* 0 if empty             */
 Iter btree_iter(const BTree *t);     /* ascending, in-order    */

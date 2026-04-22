@@ -10,471 +10,579 @@
  * Both key and value are aligned to max_align_t.
  * ----------------------------------------------------------------------- */
 
-static size_t key_off(void) {
-  return (sizeof(OMNode) + _Alignof(max_align_t) - 1) &
-         ~(_Alignof(max_align_t) - 1);
+static size_t key_off(void)
+{
+    return (sizeof(OMNode) + _Alignof(max_align_t) - 1)
+           & ~(_Alignof(max_align_t) - 1);
 }
 
-static size_t val_off(size_t key_size) {
-  size_t after_key = key_off() + key_size;
-  return (after_key + _Alignof(max_align_t) - 1) & ~(_Alignof(max_align_t) - 1);
+static size_t val_off(size_t key_size)
+{
+    size_t after_key = key_off() + key_size;
+    return (after_key + _Alignof(max_align_t) - 1)
+           & ~(_Alignof(max_align_t) - 1);
 }
 
-static size_t node_sz(size_t key_size, size_t val_size) {
-  return val_off(key_size) + val_size;
+static size_t node_sz(size_t key_size, size_t val_size)
+{
+    return val_off(key_size) + val_size;
 }
 
-static void *node_key(const OMNode *n) { return (char *)n + key_off(); }
-
-static void *node_val(const OMNode *n, size_t key_size) {
-  return (char *)n + val_off(key_size);
+static void *node_key(const OMNode *n)
+{
+    return (char *)n + key_off();
 }
 
-static OMNode *make_node(const OMap *m, const void *key, const void *value) {
-  OMNode *n =
-      m->allocator.alloc(m->allocator.ctx, node_sz(m->key_size, m->val_size),
-                         _Alignof(max_align_t));
-  n->left = n->right = NULL;
-  n->height = 1;
-  memcpy(node_key(n), key, m->key_size);
-  memcpy(node_val(n, m->key_size), value, m->val_size);
-  return n;
+static void *node_val(const OMNode *n, size_t key_size)
+{
+    return (char *)n + val_off(key_size);
+}
+
+static OMNode *make_node(const OMap *m, const void *key, const void *value)
+{
+    OMNode *n = m->allocator.alloc(
+        m->allocator.ctx,
+        node_sz(m->key_size, m->val_size),
+        _Alignof(max_align_t));
+    n->left = n->right = NULL;
+    n->height = 1;
+    memcpy(node_key(n), key, m->key_size);
+    memcpy(node_val(n, m->key_size), value, m->val_size);
+    return n;
 }
 
 /* ---- AVL balance ------------------------------------------------------- */
 
-static int node_height(const OMNode *n) { return n ? n->height : 0; }
-static int max2(int a, int b) { return a > b ? a : b; }
-
-static void update_height(OMNode *n) {
-  n->height = 1 + max2(node_height(n->left), node_height(n->right));
+static int node_height(const OMNode *n)
+{
+    return n ? n->height : 0;
+}
+static int max2(int a, int b)
+{
+    return a > b ? a : b;
 }
 
-static int balance_factor(const OMNode *n) {
-  return node_height(n->left) - node_height(n->right);
+static void update_height(OMNode *n)
+{
+    n->height = 1 + max2(node_height(n->left), node_height(n->right));
 }
 
-static OMNode *rotate_right(OMNode *y) {
-  OMNode *x = y->left;
-  y->left = x->right;
-  x->right = y;
-  update_height(y);
-  update_height(x);
-  return x;
+static int balance_factor(const OMNode *n)
+{
+    return node_height(n->left) - node_height(n->right);
 }
 
-static OMNode *rotate_left(OMNode *x) {
-  OMNode *y = x->right;
-  x->right = y->left;
-  y->left = x;
-  update_height(x);
-  update_height(y);
-  return y;
+static OMNode *rotate_right(OMNode *y)
+{
+    OMNode *x = y->left;
+    y->left = x->right;
+    x->right = y;
+    update_height(y);
+    update_height(x);
+    return x;
 }
 
-static OMNode *rebalance(OMNode *n) {
-  update_height(n);
-  int bf = balance_factor(n);
-  if (bf > 1 && balance_factor(n->left) >= 0)
-    return rotate_right(n);
-  if (bf > 1 && balance_factor(n->left) < 0) {
-    n->left = rotate_left(n->left);
-    return rotate_right(n);
-  }
-  if (bf < -1 && balance_factor(n->right) <= 0)
-    return rotate_left(n);
-  if (bf < -1 && balance_factor(n->right) > 0) {
-    n->right = rotate_right(n->right);
-    return rotate_left(n);
-  }
-  return n;
+static OMNode *rotate_left(OMNode *x)
+{
+    OMNode *y = x->right;
+    x->right = y->left;
+    y->left = x;
+    update_height(x);
+    update_height(y);
+    return y;
+}
+
+static OMNode *rebalance(OMNode *n)
+{
+    update_height(n);
+    int bf = balance_factor(n);
+    if (bf > 1 && balance_factor(n->left) >= 0)
+        return rotate_right(n);
+    if (bf > 1 && balance_factor(n->left) < 0)
+    {
+        n->left = rotate_left(n->left);
+        return rotate_right(n);
+    }
+    if (bf < -1 && balance_factor(n->right) <= 0)
+        return rotate_left(n);
+    if (bf < -1 && balance_factor(n->right) > 0)
+    {
+        n->right = rotate_right(n->right);
+        return rotate_left(n);
+    }
+    return n;
 }
 
 /* ---- public API -------------------------------------------------------- */
 
-OMap omap_create(size_t key_size, size_t val_size, compare_fn cmp,
-                 Allocator allocator) {
-  return (OMap){.root = NULL,
-                .len = 0,
-                .key_size = key_size,
-                .val_size = val_size,
-                .cmp = cmp,
-                .allocator = allocator};
+OMap omap_create(
+    size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator)
+{
+    return (OMap){
+        .root = NULL,
+        .len = 0,
+        .key_size = key_size,
+        .val_size = val_size,
+        .cmp = cmp,
+        .allocator = allocator};
 }
 
 /* ---- set (insert or update) ------------------------------------------- */
 
-static OMNode *do_set(OMap *m, OMNode *node, const void *key, const void *value,
-                      bool *inserted) {
-  if (!node) {
-    *inserted = true;
-    return make_node(m, key, value);
-  }
-  int c = m->cmp(key, node_key(node));
-  if (c < 0) {
-    node->left = do_set(m, node->left, key, value, inserted);
-  } else if (c > 0) {
-    node->right = do_set(m, node->right, key, value, inserted);
-  } else {
-    /* key exists — update value in place, no structural change */
-    memcpy(node_val(node, m->key_size), value, m->val_size);
-    *inserted = false;
-    return node;
-  }
-  return rebalance(node);
+static OMNode *do_set(
+    OMap *m, OMNode *node, const void *key, const void *value, bool *inserted)
+{
+    if (!node)
+    {
+        *inserted = true;
+        return make_node(m, key, value);
+    }
+    int c = m->cmp(key, node_key(node));
+    if (c < 0)
+    {
+        node->left = do_set(m, node->left, key, value, inserted);
+    }
+    else if (c > 0)
+    {
+        node->right = do_set(m, node->right, key, value, inserted);
+    }
+    else
+    {
+        /* key exists — update value in place, no structural change */
+        memcpy(node_val(node, m->key_size), value, m->val_size);
+        *inserted = false;
+        return node;
+    }
+    return rebalance(node);
 }
 
-bool omap_set(OMap *m, const void *key, const void *value) {
-  if (!m || !key || !value)
-    return false;
-  bool inserted = false;
-  m->root = do_set(m, m->root, key, value, &inserted);
-  if (inserted)
-    m->len++;
-  return inserted;
+bool omap_set(OMap *m, const void *key, const void *value)
+{
+    if (!m || !key || !value)
+        return false;
+    bool inserted = false;
+    m->root = do_set(m, m->root, key, value, &inserted);
+    if (inserted)
+        m->len++;
+    return inserted;
 }
 
 /* ---- get --------------------------------------------------------------- */
 
-void *omap_get(const OMap *m, const void *key) {
-  if (!m || !key)
+void *omap_get(const OMap *m, const void *key)
+{
+    if (!m || !key)
+        return NULL;
+    OMNode *cur = m->root;
+    while (cur)
+    {
+        int c = m->cmp(key, node_key(cur));
+        if (c < 0)
+            cur = cur->left;
+        else if (c > 0)
+            cur = cur->right;
+        else
+            return node_val(cur, m->key_size);
+    }
     return NULL;
-  OMNode *cur = m->root;
-  while (cur) {
-    int c = m->cmp(key, node_key(cur));
-    if (c < 0)
-      cur = cur->left;
-    else if (c > 0)
-      cur = cur->right;
-    else
-      return node_val(cur, m->key_size);
-  }
-  return NULL;
 }
 
-bool omap_contains(const OMap *m, const void *key) {
-  return omap_get(m, key) != NULL;
+bool omap_contains(const OMap *m, const void *key)
+{
+    return omap_get(m, key) != NULL;
 }
 
 /* ---- remove ------------------------------------------------------------ */
 
-static OMNode *min_node(OMNode *n) {
-  while (n->left)
-    n = n->left;
-  return n;
+static OMNode *min_node(OMNode *n)
+{
+    while (n->left)
+        n = n->left;
+    return n;
 }
 
-static OMNode *do_remove(OMap *m, OMNode *node, const void *key,
-                         bool *removed) {
-  if (!node) {
-    *removed = false;
-    return NULL;
-  }
-  int c = m->cmp(key, node_key(node));
-  if (c < 0) {
-    node->left = do_remove(m, node->left, key, removed);
-  } else if (c > 0) {
-    node->right = do_remove(m, node->right, key, removed);
-  } else {
-    *removed = true;
-    if (!node->left) {
-      OMNode *r = node->right;
-      if (m->allocator.free)
-        m->allocator.free(m->allocator.ctx, node);
-      return r;
+static OMNode *do_remove(OMap *m, OMNode *node, const void *key, bool *removed)
+{
+    if (!node)
+    {
+        *removed = false;
+        return NULL;
     }
-    if (!node->right) {
-      OMNode *l = node->left;
-      if (m->allocator.free)
-        m->allocator.free(m->allocator.ctx, node);
-      return l;
+    int c = m->cmp(key, node_key(node));
+    if (c < 0)
+    {
+        node->left = do_remove(m, node->left, key, removed);
     }
-    /* two children: copy in-order successor's key+value here, delete it below
-     */
-    OMNode *succ = min_node(node->right);
-    memcpy(node_key(node), node_key(succ), m->key_size);
-    memcpy(node_val(node, m->key_size), node_val(succ, m->key_size),
-           m->val_size);
-    bool dummy = false;
-    node->right = do_remove(m, node->right, node_key(node), &dummy);
-  }
-  return rebalance(node);
+    else if (c > 0)
+    {
+        node->right = do_remove(m, node->right, key, removed);
+    }
+    else
+    {
+        *removed = true;
+        if (!node->left)
+        {
+            OMNode *r = node->right;
+            if (m->allocator.free)
+                m->allocator.free(m->allocator.ctx, node);
+            return r;
+        }
+        if (!node->right)
+        {
+            OMNode *l = node->left;
+            if (m->allocator.free)
+                m->allocator.free(m->allocator.ctx, node);
+            return l;
+        }
+        /* two children: copy in-order successor's key+value here, delete it
+         * below
+         */
+        OMNode *succ = min_node(node->right);
+        memcpy(node_key(node), node_key(succ), m->key_size);
+        memcpy(
+            node_val(node, m->key_size),
+            node_val(succ, m->key_size),
+            m->val_size);
+        bool dummy = false;
+        node->right = do_remove(m, node->right, node_key(node), &dummy);
+    }
+    return rebalance(node);
 }
 
-bool omap_remove(OMap *m, const void *key) {
-  if (!m || !key)
-    return false;
-  bool removed = false;
-  m->root = do_remove(m, m->root, key, &removed);
-  if (removed)
-    m->len--;
-  return removed;
+bool omap_remove(OMap *m, const void *key)
+{
+    if (!m || !key)
+        return false;
+    bool removed = false;
+    m->root = do_remove(m, m->root, key, &removed);
+    if (removed)
+        m->len--;
+    return removed;
 }
 
 /* ---- min / max --------------------------------------------------------- */
 
-void *omap_min_key(const OMap *m) {
-  if (!m || !m->root)
-    return NULL;
-  OMNode *cur = m->root;
-  while (cur->left)
-    cur = cur->left;
-  return node_key(cur);
+void *omap_min_key(const OMap *m)
+{
+    if (!m || !m->root)
+        return NULL;
+    OMNode *cur = m->root;
+    while (cur->left)
+        cur = cur->left;
+    return node_key(cur);
 }
 
-void *omap_max_key(const OMap *m) {
-  if (!m || !m->root)
-    return NULL;
-  OMNode *cur = m->root;
-  while (cur->right)
-    cur = cur->right;
-  return node_key(cur);
+void *omap_max_key(const OMap *m)
+{
+    if (!m || !m->root)
+        return NULL;
+    OMNode *cur = m->root;
+    while (cur->right)
+        cur = cur->right;
+    return node_key(cur);
 }
 
-OMapEntry omap_min_entry(const OMap *m) {
-  if (!m || !m->root)
-    return (OMapEntry){NULL, NULL};
-  OMNode *cur = m->root;
-  while (cur->left)
-    cur = cur->left;
-  return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+OMapEntry omap_min_entry(const OMap *m)
+{
+    if (!m || !m->root)
+        return (OMapEntry){NULL, NULL};
+    OMNode *cur = m->root;
+    while (cur->left)
+        cur = cur->left;
+    return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
 }
 
-OMapEntry omap_max_entry(const OMap *m) {
-  if (!m || !m->root)
-    return (OMapEntry){NULL, NULL};
-  OMNode *cur = m->root;
-  while (cur->right)
-    cur = cur->right;
-  return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
+OMapEntry omap_max_entry(const OMap *m)
+{
+    if (!m || !m->root)
+        return (OMapEntry){NULL, NULL};
+    OMNode *cur = m->root;
+    while (cur->right)
+        cur = cur->right;
+    return (OMapEntry){node_key(cur), node_val(cur, m->key_size)};
 }
 
-size_t omap_len(const OMap *m) { return m ? m->len : 0; }
-int omap_height(const OMap *m) { return m ? node_height(m->root) : 0; }
-
-static void free_subtree(OMap *m, OMNode *node) {
-  if (!node)
-    return;
-  free_subtree(m, node->left);
-  free_subtree(m, node->right);
-  if (m->allocator.free)
-    m->allocator.free(m->allocator.ctx, node);
+size_t omap_len(const OMap *m)
+{
+    return m ? m->len : 0;
+}
+int omap_height(const OMap *m)
+{
+    return m ? node_height(m->root) : 0;
 }
 
-void omap_free(OMap *m) {
-  if (!m)
-    return;
-  free_subtree(m, m->root);
-  m->root = NULL;
-  m->len = 0;
+static void free_subtree(OMap *m, OMNode *node)
+{
+    if (!node)
+        return;
+    free_subtree(m, node->left);
+    free_subtree(m, node->right);
+    if (m->allocator.free)
+        m->allocator.free(m->allocator.ctx, node);
 }
 
-void omap_clear(OMap *m) { omap_free(m); }
+void omap_free(OMap *m)
+{
+    if (!m)
+        return;
+    free_subtree(m, m->root);
+    m->root = NULL;
+    m->len = 0;
+}
+
+void omap_clear(OMap *m)
+{
+    omap_free(m);
+}
 
 /* ---- iter: iterative in-order, yields OMapEntry ----------------------- */
 
 #define OMAP_ITER_STACK_INIT_CAP 16
 
-typedef struct {
-  OMNode **stack;
-  size_t stack_len;
-  size_t stack_cap;
-  OMNode *current;
-  size_t key_size;
-  Allocator allocator;
+typedef struct
+{
+    OMNode **stack;
+    size_t stack_len;
+    size_t stack_cap;
+    OMNode *current;
+    size_t key_size;
+    Allocator allocator;
 } OMapIterState;
 
-static bool omap_iter_next(Iter *it, void *out) {
-  OMapIterState *s = it->state;
-  while (s->current) {
-    if (s->stack_len == s->stack_cap) {
-      size_t new_cap =
-          s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-      s->stack = s->allocator.realloc(
-          s->allocator.ctx, s->stack, s->stack_cap * sizeof(OMNode *),
-          new_cap * sizeof(OMNode *), _Alignof(OMNode *));
-      s->stack_cap = new_cap;
+static bool omap_iter_next(Iter *it, void *out)
+{
+    OMapIterState *s = it->state;
+    while (s->current)
+    {
+        if (s->stack_len == s->stack_cap)
+        {
+            size_t new_cap =
+                s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
+            s->stack = s->allocator.realloc(
+                s->allocator.ctx,
+                s->stack,
+                s->stack_cap * sizeof(OMNode *),
+                new_cap * sizeof(OMNode *),
+                _Alignof(OMNode *));
+            s->stack_cap = new_cap;
+        }
+        s->stack[s->stack_len++] = s->current;
+        s->current = s->current->left;
     }
-    s->stack[s->stack_len++] = s->current;
-    s->current = s->current->left;
-  }
-  if (s->stack_len == 0)
-    return false;
-  OMNode *node = s->stack[--s->stack_len];
-  /* write an OMapEntry with pointers into the live node */
-  OMapEntry entry = {node_key(node), node_val(node, s->key_size)};
-  memcpy(out, &entry, sizeof(OMapEntry));
-  s->current = node->right;
-  return true;
+    if (s->stack_len == 0)
+        return false;
+    OMNode *node = s->stack[--s->stack_len];
+    /* write an OMapEntry with pointers into the live node */
+    OMapEntry entry = {node_key(node), node_val(node, s->key_size)};
+    memcpy(out, &entry, sizeof(OMapEntry));
+    s->current = node->right;
+    return true;
 }
 
-static void omap_iter_drop(Iter *it) {
-  OMapIterState *s = it->state;
-  if (it->allocator.free) {
-    if (s->stack)
-      it->allocator.free(it->allocator.ctx, s->stack);
-    it->allocator.free(it->allocator.ctx, s);
-  }
-}
-
-Iter omap_iter(const OMap *m) {
-  if (!m)
-    return (Iter){0};
-  OMapIterState *s =
-      m->allocator.alloc(m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
-  *s = (OMapIterState){.stack = NULL,
-                       .stack_len = 0,
-                       .stack_cap = 0,
-                       .current = m->root,
-                       .key_size = m->key_size,
-                       .allocator = m->allocator};
-  return (Iter){.next = omap_iter_next,
-                .drop = omap_iter_drop,
-                .state = s,
-                .elem_size = sizeof(OMapEntry),
-                .allocator = m->allocator};
-}
-
-static bool omap_iter_rev_next(Iter *it, void *out) {
-  OMapIterState *s = it->state;
-  while (s->current) {
-    if (s->stack_len == s->stack_cap) {
-      size_t new_cap =
-          s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-      s->stack = s->allocator.realloc(
-          s->allocator.ctx, s->stack, s->stack_cap * sizeof(OMNode *),
-          new_cap * sizeof(OMNode *), _Alignof(OMNode *));
-      s->stack_cap = new_cap;
+static void omap_iter_drop(Iter *it)
+{
+    OMapIterState *s = it->state;
+    if (it->allocator.free)
+    {
+        if (s->stack)
+            it->allocator.free(it->allocator.ctx, s->stack);
+        it->allocator.free(it->allocator.ctx, s);
     }
-    s->stack[s->stack_len++] = s->current;
-    s->current = s->current->right;
-  }
-  if (s->stack_len == 0)
-    return false;
-  OMNode *node = s->stack[--s->stack_len];
-  OMapEntry entry = {node_key(node), node_val(node, s->key_size)};
-  memcpy(out, &entry, sizeof(OMapEntry));
-  s->current = node->left;
-  return true;
 }
 
-Iter omap_iter_rev(const OMap *m) {
-  if (!m)
-    return (Iter){0};
-  OMapIterState *s =
-      m->allocator.alloc(m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
-  *s = (OMapIterState){.stack = NULL,
-                       .stack_len = 0,
-                       .stack_cap = 0,
-                       .current = m->root,
-                       .key_size = m->key_size,
-                       .allocator = m->allocator};
-  return (Iter){.next = omap_iter_rev_next,
-                .drop = omap_iter_drop,
-                .state = s,
-                .elem_size = sizeof(OMapEntry),
-                .allocator = m->allocator};
+Iter omap_iter(const OMap *m)
+{
+    if (!m)
+        return (Iter){0};
+    OMapIterState *s = m->allocator.alloc(
+        m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
+    *s = (OMapIterState){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = m->root,
+        .key_size = m->key_size,
+        .allocator = m->allocator};
+    return (Iter){
+        .next = omap_iter_next,
+        .drop = omap_iter_drop,
+        .state = s,
+        .elem_size = sizeof(OMapEntry),
+        .allocator = m->allocator};
+}
+
+static bool omap_iter_rev_next(Iter *it, void *out)
+{
+    OMapIterState *s = it->state;
+    while (s->current)
+    {
+        if (s->stack_len == s->stack_cap)
+        {
+            size_t new_cap =
+                s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
+            s->stack = s->allocator.realloc(
+                s->allocator.ctx,
+                s->stack,
+                s->stack_cap * sizeof(OMNode *),
+                new_cap * sizeof(OMNode *),
+                _Alignof(OMNode *));
+            s->stack_cap = new_cap;
+        }
+        s->stack[s->stack_len++] = s->current;
+        s->current = s->current->right;
+    }
+    if (s->stack_len == 0)
+        return false;
+    OMNode *node = s->stack[--s->stack_len];
+    OMapEntry entry = {node_key(node), node_val(node, s->key_size)};
+    memcpy(out, &entry, sizeof(OMapEntry));
+    s->current = node->left;
+    return true;
+}
+
+Iter omap_iter_rev(const OMap *m)
+{
+    if (!m)
+        return (Iter){0};
+    OMapIterState *s = m->allocator.alloc(
+        m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
+    *s = (OMapIterState){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = m->root,
+        .key_size = m->key_size,
+        .allocator = m->allocator};
+    return (Iter){
+        .next = omap_iter_rev_next,
+        .drop = omap_iter_drop,
+        .state = s,
+        .elem_size = sizeof(OMapEntry),
+        .allocator = m->allocator};
 }
 
 /* ---- range iterator ---------------------------------------------------- */
 
-typedef struct {
-  OMNode **stack;
-  size_t stack_len;
-  size_t stack_cap;
-  OMNode *current;
-  size_t key_size;
-  Allocator allocator;
-  compare_fn cmp;
-  void *hi_key; /* NULL means no upper bound; owned allocation */
+typedef struct
+{
+    OMNode **stack;
+    size_t stack_len;
+    size_t stack_cap;
+    OMNode *current;
+    size_t key_size;
+    Allocator allocator;
+    compare_fn cmp;
+    void *hi_key; /* NULL means no upper bound; owned allocation */
 } OMapRangeIterState;
 
-static bool omap_range_iter_next(Iter *it, void *out) {
-  OMapRangeIterState *s = it->state;
-  while (s->current) {
-    if (s->stack_len == s->stack_cap) {
-      size_t new_cap =
-          s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-      s->stack = s->allocator.realloc(
-          s->allocator.ctx, s->stack, s->stack_cap * sizeof(OMNode *),
-          new_cap * sizeof(OMNode *), _Alignof(OMNode *));
-      s->stack_cap = new_cap;
+static bool omap_range_iter_next(Iter *it, void *out)
+{
+    OMapRangeIterState *s = it->state;
+    while (s->current)
+    {
+        if (s->stack_len == s->stack_cap)
+        {
+            size_t new_cap =
+                s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
+            s->stack = s->allocator.realloc(
+                s->allocator.ctx,
+                s->stack,
+                s->stack_cap * sizeof(OMNode *),
+                new_cap * sizeof(OMNode *),
+                _Alignof(OMNode *));
+            s->stack_cap = new_cap;
+        }
+        s->stack[s->stack_len++] = s->current;
+        s->current = s->current->left;
     }
-    s->stack[s->stack_len++] = s->current;
-    s->current = s->current->left;
-  }
-  if (s->stack_len == 0)
-    return false;
-  OMNode *node = s->stack[--s->stack_len];
-  void *key = node_key(node);
-  if (s->hi_key && s->cmp(key, s->hi_key) > 0) {
-    s->stack_len = 0;
-    s->current = NULL;
-    return false;
-  }
-  OMapEntry entry = {key, node_val(node, s->key_size)};
-  memcpy(out, &entry, sizeof(OMapEntry));
-  s->current = node->right;
-  return true;
-}
-
-static void omap_range_iter_drop(Iter *it) {
-  OMapRangeIterState *s = it->state;
-  if (it->allocator.free) {
-    if (s->stack)
-      it->allocator.free(it->allocator.ctx, s->stack);
-    if (s->hi_key)
-      it->allocator.free(it->allocator.ctx, s->hi_key);
-    it->allocator.free(it->allocator.ctx, s);
-  }
-}
-
-static void omap_push_lo(OMapRangeIterState *s, OMNode *node,
-                         const void *lo_key) {
-  while (node) {
-    if (s->cmp(node_key(node), lo_key) < 0) {
-      node = node->right;
-    } else {
-      if (s->stack_len == s->stack_cap) {
-        size_t new_cap =
-            s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-        s->stack = s->allocator.realloc(
-            s->allocator.ctx, s->stack, s->stack_cap * sizeof(OMNode *),
-            new_cap * sizeof(OMNode *), _Alignof(OMNode *));
-        s->stack_cap = new_cap;
-      }
-      s->stack[s->stack_len++] = node;
-      node = node->left;
+    if (s->stack_len == 0)
+        return false;
+    OMNode *node = s->stack[--s->stack_len];
+    void *key = node_key(node);
+    if (s->hi_key && s->cmp(key, s->hi_key) > 0)
+    {
+        s->stack_len = 0;
+        s->current = NULL;
+        return false;
     }
-  }
+    OMapEntry entry = {key, node_val(node, s->key_size)};
+    memcpy(out, &entry, sizeof(OMapEntry));
+    s->current = node->right;
+    return true;
 }
 
-Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key) {
-  if (!m)
-    return (Iter){0};
-  OMapRangeIterState *s = m->allocator.alloc(m->allocator.ctx, sizeof *s,
-                                             _Alignof(OMapRangeIterState));
-  void *hi_copy = NULL;
-  if (hi_key) {
-    hi_copy = m->allocator.alloc(m->allocator.ctx, m->key_size,
-                                 _Alignof(max_align_t));
-    memcpy(hi_copy, hi_key, m->key_size);
-  }
-  *s = (OMapRangeIterState){.stack = NULL,
-                            .stack_len = 0,
-                            .stack_cap = 0,
-                            .current = NULL,
-                            .key_size = m->key_size,
-                            .allocator = m->allocator,
-                            .cmp = m->cmp,
-                            .hi_key = hi_copy};
-  if (lo_key)
-    omap_push_lo(s, m->root, lo_key);
-  else
-    s->current = m->root;
-  return (Iter){.next = omap_range_iter_next,
-                .drop = omap_range_iter_drop,
-                .state = s,
-                .elem_size = sizeof(OMapEntry),
-                .allocator = m->allocator};
+static void omap_range_iter_drop(Iter *it)
+{
+    OMapRangeIterState *s = it->state;
+    if (it->allocator.free)
+    {
+        if (s->stack)
+            it->allocator.free(it->allocator.ctx, s->stack);
+        if (s->hi_key)
+            it->allocator.free(it->allocator.ctx, s->hi_key);
+        it->allocator.free(it->allocator.ctx, s);
+    }
+}
+
+static void omap_push_lo(
+    OMapRangeIterState *s, OMNode *node, const void *lo_key)
+{
+    while (node)
+    {
+        if (s->cmp(node_key(node), lo_key) < 0)
+        {
+            node = node->right;
+        }
+        else
+        {
+            if (s->stack_len == s->stack_cap)
+            {
+                size_t new_cap = s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP
+                                                   : s->stack_cap * 2;
+                s->stack = s->allocator.realloc(
+                    s->allocator.ctx,
+                    s->stack,
+                    s->stack_cap * sizeof(OMNode *),
+                    new_cap * sizeof(OMNode *),
+                    _Alignof(OMNode *));
+                s->stack_cap = new_cap;
+            }
+            s->stack[s->stack_len++] = node;
+            node = node->left;
+        }
+    }
+}
+
+Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key)
+{
+    if (!m)
+        return (Iter){0};
+    OMapRangeIterState *s = m->allocator.alloc(
+        m->allocator.ctx, sizeof *s, _Alignof(OMapRangeIterState));
+    void *hi_copy = NULL;
+    if (hi_key)
+    {
+        hi_copy = m->allocator.alloc(
+            m->allocator.ctx, m->key_size, _Alignof(max_align_t));
+        memcpy(hi_copy, hi_key, m->key_size);
+    }
+    *s = (OMapRangeIterState){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = NULL,
+        .key_size = m->key_size,
+        .allocator = m->allocator,
+        .cmp = m->cmp,
+        .hi_key = hi_copy};
+    if (lo_key)
+        omap_push_lo(s, m->root, lo_key);
+    else
+        s->current = m->root;
+    return (Iter){
+        .next = omap_range_iter_next,
+        .drop = omap_range_iter_drop,
+        .state = s,
+        .elem_size = sizeof(OMapEntry),
+        .allocator = m->allocator};
 }
