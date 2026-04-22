@@ -223,6 +223,71 @@ Do not use `map` after calling this.
 
 ---
 
+## Health and diagnostics
+
+Robin Hood hashing keeps probe-sequence lengths (PSLs) short for well-distributed
+hash functions. A high PSL indicates a poor or degenerate hash. The map tracks
+`max_psl` internally at zero cost and uses it as a secondary resize trigger.
+
+### `HASHMAP_PSL_THRESHOLD`
+
+```c
+#define HASHMAP_PSL_THRESHOLD 128
+```
+
+When `max_psl` reaches this value during an insert the table is resized and
+rehashed immediately — well before the `uint8_t` PSL field could wrap to 0
+and silently corrupt the table. A debug-build `assert` fires first if the
+threshold is somehow bypassed.
+
+### `HashMapStats`
+
+```c
+typedef struct {
+    size_t  len;
+    size_t  cap;
+    double  load_factor;
+    uint8_t max_psl;    /* worst-case probe length over all stored buckets */
+    double  mean_psl;   /* average probe length over occupied buckets */
+    bool    is_healthy; /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
+} HashMapStats;
+```
+
+### `hashmap_is_healthy`
+
+```c
+bool hashmap_is_healthy(const HashMap *map);
+```
+
+O(1) check. Returns `false` when `max_psl > HASHMAP_PSL_THRESHOLD / 2` (64),
+which is a strong signal of a poor hash function. Call after a bulk-load
+phase to validate your hash.
+
+```c
+if (!hashmap_is_healthy(m))
+    fprintf(stderr, "warning: high PSL detected — check your hash function\n");
+```
+
+### `hashmap_audit`
+
+```c
+HashMapStats hashmap_audit(const HashMap *map);
+```
+
+O(n) full scan. Returns a [`HashMapStats`](#hashmapstats) struct with a
+complete picture of the table's internal state. `mean_psl` is the most
+useful signal: with a good hash at 75% load it should be close to 1.5;
+a degenerate all-same hash pushes it toward `len / 2`.
+
+```c
+HashMapStats s = hashmap_audit(m);
+printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
+       s.load_factor, s.max_psl, s.mean_psl,
+       s.is_healthy ? "yes" : "no");
+```
+
+---
+
 ## Example: string keys
 
 ```c

@@ -145,6 +145,56 @@ Do not use `s` after calling this.
 
 ---
 
+## Health and diagnostics
+
+Same design as [`hashmap`](hashmap.md#health-and-diagnostics): `max_psl` is
+tracked at zero cost and used as a secondary resize trigger.
+
+### `SET_PSL_THRESHOLD`
+
+```c
+#define SET_PSL_THRESHOLD 128
+```
+
+### `SetStats`
+
+```c
+typedef struct {
+    size_t  len;
+    size_t  cap;
+    double  load_factor;
+    uint8_t max_psl;
+    double  mean_psl;
+    bool    is_healthy; /* mean_psl < 3.0 and max_psl <= SET_PSL_THRESHOLD/2 */
+} SetStats;
+```
+
+### `set_is_healthy`
+
+```c
+bool set_is_healthy(const Set *s);
+```
+
+O(1). Returns `false` when `max_psl > SET_PSL_THRESHOLD / 2`.
+
+### `set_audit`
+
+```c
+SetStats set_audit(const Set *s);
+```
+
+O(n) full scan. Returns a `SetStats` with `len`, `cap`, `load_factor`,
+`max_psl`, `mean_psl`, and `is_healthy`.
+
+```c
+SetStats st = set_audit(s);
+printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
+       st.load_factor, st.max_psl, st.mean_psl,
+       st.is_healthy ? "yes" : "no");
+```
+
+---
+
 ## Example
 
 ```c

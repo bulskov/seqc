@@ -207,9 +207,12 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ### API / encapsulation (should fix before publishing)
 
-- **PSL capped at `uint8_t` with no assertion** — a `psl` value > 255 wraps
-  silently and corrupts the table. Add an `assert(psl < 255)` in the insert
-  path so a degenerate hash function fails loudly instead of silently.
+- ~~**PSL capped at `uint8_t` with no assertion**~~ — fixed: `max_psl` is now
+  tracked in both `HashMap` and `Set`. A resize is triggered when
+  `max_psl >= PSL_THRESHOLD` (128), preventing silent `uint8_t` overflow.
+  A debug-build `assert` fires first if the threshold is bypassed.
+  `hashmap_is_healthy` / `set_is_healthy` (O(1)) and `hashmap_audit` /
+  `set_audit` (O(n)) are available for diagnostic use.
 
 ### Ergonomics (lower priority)
 
