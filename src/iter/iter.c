@@ -118,8 +118,17 @@ static void range_drop(Iter *it) {
 
 Iter iter_range(long long start, long long end, long long step,
                 Allocator allocator) {
-  if (step == 0)
-    return (Iter){0}; /* step=0 would loop forever; return empty iterator */
+  if (step == 0) {
+    /* step=0 would loop forever; return an immediately-empty range */
+    RangeState *s =
+        allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
+    *s = (RangeState){start, start, 1};
+    return (Iter){.next = range_next,
+                  .drop = range_drop,
+                  .state = s,
+                  .elem_size = sizeof(long long),
+                  .allocator = allocator};
+  }
   RangeState *s =
       allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
   *s = (RangeState){start, end, step};

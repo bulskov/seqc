@@ -313,3 +313,33 @@ Test(omap, clear_allows_reuse) {
   cr_assert(omap_contains(&m, &k));
   arena_free(a);
 }
+
+/* ---- omap_min_entry / omap_max_entry ------------------------------------ */
+
+Test(omap, min_entry_returns_smallest_key_and_value) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  int keys[] = {5, 3, 7, 1, 4};
+  for (int i = 0; i < 5; i++) {
+    int v = keys[i] * 10;
+    omap_set(&m, &keys[i], &v);
+  }
+  OMapEntry e = omap_min_entry(&m);
+  cr_assert_eq(*(int *)e.key, 1);
+  cr_assert_eq(*(int *)e.value, 10);
+  arena_free(a);
+}
+
+Test(omap, max_entry_returns_largest_key_and_value) {
+  Arena *a = arena_create(1024);
+  OMap m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+  int keys[] = {5, 3, 7, 1, 4};
+  for (int i = 0; i < 5; i++) {
+    int v = keys[i] * 10;
+    omap_set(&m, &keys[i], &v);
+  }
+  OMapEntry e = omap_max_entry(&m);
+  cr_assert_eq(*(int *)e.key, 7);
+  cr_assert_eq(*(int *)e.value, 70);
+  arena_free(a);
+}

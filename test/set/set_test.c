@@ -128,3 +128,30 @@ Test(set, clear_allows_reuse) {
   cr_assert(set_contains(&s, &x));
   arena_free(a);
 }
+
+/* ---- set_iter_rev ------------------------------------------------------- */
+
+Test(set, iter_rev_yields_all_elements) {
+  Arena *a = arena_create(1024);
+  Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+  for (int i = 0; i < 5; i++)
+    set_add(&s, &i);
+  Iter it = set_iter_rev(&s);
+  size_t n = 0;
+  int v;
+  while (it.next(&it, &v))
+    n++;
+  iter_drop(&it);
+  cr_assert_eq(n, 5);
+  arena_free(a);
+}
+
+Test(set, iter_rev_empty_set) {
+  Arena *a = arena_create(256);
+  Set s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+  Iter it = set_iter_rev(&s);
+  int v;
+  cr_assert(!it.next(&it, &v));
+  iter_drop(&it);
+  arena_free(a);
+}

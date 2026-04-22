@@ -201,3 +201,28 @@ Test(queue, iter_rev_empty) {
   iter_drop(&it);
   arena_free(a);
 }
+
+/* ---- queue_back --------------------------------------------------------- */
+
+Test(queue, back_returns_last_pushed) {
+  Arena *a = arena_create(256);
+  Queue q = queue_create(sizeof(int), arena_allocator(a));
+  int vals[] = {10, 20, 30};
+  for (int i = 0; i < 3; i++)
+    queue_push(&q, &vals[i]);
+  cr_assert_eq(*(int *)queue_back(&q), 30);
+  arena_free(a);
+}
+
+Test(queue, back_differs_from_front_after_pop) {
+  Arena *a = arena_create(256);
+  Queue q = queue_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 3, 4};
+  for (int i = 0; i < 4; i++)
+    queue_push(&q, &vals[i]);
+  int discard;
+  queue_pop(&q, &discard); /* remove 1 */
+  cr_assert_eq(*(int *)queue_peek(&q), 2);
+  cr_assert_eq(*(int *)queue_back(&q), 4);
+  arena_free(a);
+}

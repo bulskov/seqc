@@ -145,9 +145,7 @@ static int btree_height_node(const BTreeNode *n) {
   return 1 + (l > r ? l : r);
 }
 
-int btree_height(const BTree *t) {
-  return t ? btree_height_node(t->root) : 0;
-}
+int btree_height(const BTree *t) { return t ? btree_height_node(t->root) : 0; }
 
 static void free_subtree(BTree *t, BTreeNode *node) {
   if (!node)

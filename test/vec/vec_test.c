@@ -275,3 +275,52 @@ Test(vec, clear_allows_reuse) {
   cr_assert_eq(*(int *)vec_get(&v, 0), 42);
   arena_free(a);
 }
+
+/* ---- vec_find / vec_contains ------------------------------------------- */
+
+static bool int_gt_three(const void *elem, void *ctx) {
+  (void)ctx;
+  return *(const int *)elem > 3;
+}
+
+Test(vec, find_returns_first_match) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 4, 3, 5};
+  for (int i = 0; i < 5; i++)
+    vec_push(&v, &vals[i]);
+  int *p = vec_find(&v, int_gt_three, NULL);
+  cr_assert_not_null(p);
+  cr_assert_eq(*p, 4); /* first element > 3 */
+  arena_free(a);
+}
+
+Test(vec, find_returns_null_when_no_match) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 3};
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &vals[i]);
+  cr_assert_null(vec_find(&v, int_gt_three, NULL));
+  arena_free(a);
+}
+
+Test(vec, contains_returns_true_when_match_exists) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 5};
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &vals[i]);
+  cr_assert(vec_contains(&v, int_gt_three, NULL));
+  arena_free(a);
+}
+
+Test(vec, contains_returns_false_when_no_match) {
+  Arena *a = arena_create(256);
+  Vec v = vec_create(sizeof(int), arena_allocator(a));
+  int vals[] = {1, 2, 3};
+  for (int i = 0; i < 3; i++)
+    vec_push(&v, &vals[i]);
+  cr_assert(!vec_contains(&v, int_gt_three, NULL));
+  arena_free(a);
+}

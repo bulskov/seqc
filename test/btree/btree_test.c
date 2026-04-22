@@ -279,3 +279,32 @@ Test(btree, clear_allows_reuse) {
   cr_assert(btree_contains(&t, &x));
   arena_free(a);
 }
+
+/* ---- btree_height ------------------------------------------------------- */
+
+Test(btree, height_empty_is_zero) {
+  Arena *a = arena_create(256);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  cr_assert_eq(btree_height(&t), 0);
+  arena_free(a);
+}
+
+Test(btree, height_single_node_is_one) {
+  Arena *a = arena_create(256);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  int x = 5;
+  btree_insert(&t, &x);
+  cr_assert_eq(btree_height(&t), 1);
+  arena_free(a);
+}
+
+Test(btree, height_increases_with_depth) {
+  Arena *a = arena_create(1024);
+  BTree t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
+  /* insert sorted → right-skewed, height == n */
+  int vals[] = {1, 2, 3, 4, 5};
+  for (int i = 0; i < 5; i++)
+    btree_insert(&t, &vals[i]);
+  cr_assert_geq(btree_height(&t), 1);
+  arena_free(a);
+}

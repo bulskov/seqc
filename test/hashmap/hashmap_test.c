@@ -321,3 +321,26 @@ Test(hashmap, iter_rev_empty) {
   hashmap_free(&m);
   arena_free(a);
 }
+
+/* ---- hashmap_contains --------------------------------------------------- */
+
+Test(hashmap, contains_returns_true_for_existing_key) {
+  Arena *a = arena_create(256);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  int k = 42, v = 99;
+  hashmap_set(&m, &k, &v);
+  cr_assert(hashmap_contains(&m, &k));
+  hashmap_free(&m);
+  arena_free(a);
+}
+
+Test(hashmap, contains_returns_false_for_missing_key) {
+  Arena *a = arena_create(256);
+  HashMap m = hashmap_create(sizeof(int), sizeof(int), hashmap_fnv1a,
+                             hashmap_eq_bytes, arena_allocator(a));
+  int k = 42;
+  cr_assert(!hashmap_contains(&m, &k));
+  hashmap_free(&m);
+  arena_free(a);
+}

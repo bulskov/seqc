@@ -267,3 +267,28 @@ Test(arena, scratch_allocator_works_with_iter) {
   arena_scratch_pop(&s);
   arena_free(a);
 }
+
+/* ---- arena_reset_hard --------------------------------------------------- */
+
+Test(arena, reset_hard_resets_position) {
+  Arena *a = arena_create(64);
+  arena_alloc(a, 32, 1);
+  arena_reset_hard(a);
+  /* should be able to allocate from the start again */
+  void *p = arena_alloc(a, 32, 1);
+  cr_assert_not_null(p);
+  arena_free(a);
+}
+
+Test(arena, reset_hard_frees_overflow_blocks) {
+  /* Use a small initial capacity so an overflow block is forced */
+  Arena *a = arena_create(64);
+  size_t blocks_before = arena_block_count(a);
+  /* Ask for more than one full page so a second mmap block is guaranteed
+   * regardless of how arena_create rounds the initial capacity. */
+  arena_alloc(a, 8192, 1);
+  cr_assert_gt(arena_block_count(a), blocks_before);
+  arena_reset_hard(a);
+  cr_assert_eq(arena_block_count(a), 1);
+  arena_free(a);
+}

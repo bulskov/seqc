@@ -858,3 +858,12 @@ Test(iter, range_empty_wrong_direction) {
   arena_scratch_pop(&sc);
   arena_free(arena);
 }
+
+Test(iter, range_zero_step_returns_empty) {
+  Arena *arena = arena_create(64);
+  Scratch sc = arena_scratch_push(arena);
+  size_t n = iter_count(iter_range(0, 10, 0, scratch_allocator(&sc)));
+  cr_assert_eq(n, 0);
+  arena_scratch_pop(&sc);
+  arena_free(arena);
+}
