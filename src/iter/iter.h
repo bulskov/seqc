@@ -6,8 +6,6 @@
 #include "arena/arena.h"
 #include "slice/slice.h"
 
-/* Forward declaration — include arena/arena.h to use iter_collect */
-
 typedef struct Iter Iter;
 
 typedef bool (*pred_fn)(const void *elem, void *ctx);
@@ -15,6 +13,8 @@ typedef void (*map_fn)(const void *in, void *out, void *ctx);
 typedef void (*combine_fn)(void *acc, const void *elem, void *ctx);
 typedef void (*visitor_fn)(const void *elem, void *ctx);
 typedef int (*compare_fn)(const void *a, const void *b);
+typedef size_t (*hash_fn)(const void *key, size_t key_size);
+typedef bool (*eq_fn)(const void *a, const void *b, size_t key_size);
 
 struct Iter
 {
@@ -77,6 +77,15 @@ typedef struct
     size_t index;
     void *elem; /* pointer into internal buffer — valid until next call */
 } EnumEntry;
+
+/* Pointer-pair yielded by hashmap_iter and omap_iter.
+ * Both pointers are valid only for the duration of the current iteration step;
+ * do not modify the map while iterating. */
+typedef struct
+{
+    void *key;
+    void *value;
+} MapEntry;
 
 Iter iter_enumerate(Iter source);
 

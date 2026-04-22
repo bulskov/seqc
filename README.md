@@ -137,12 +137,12 @@ int main(void) {
 | `list_iter(&l)`                                                          | List elements front→back                            | [list](docs/list.md)       |
 | `dlist_iter(&l)` / `dlist_iter_reverse(&l)`                              | DList forward / reverse                             | [dlist](docs/dlist.md)     |
 | `set_iter(&s)` / `set_iter_rev(&s)`                                      | Set elements (unordered)                            | [set](docs/set.md)         |
-| `iter_from_hashmap(&m)`                                                  | `HashMapEntry` pairs                                | [hashmap](docs/hashmap.md) |
+| `iter_from_hashmap(&m)`                                                  | `MapEntry` pairs (`HashMapEntry` alias)             | [hashmap](docs/hashmap.md) |
 | `string_chars(s, al)` / `string_chars_rev(s, al)`                        | `char` values                                       | [string](docs/string.md)   |
 | `string_split(s, delim, al)`                                             | `String` tokens                                     | [string](docs/string.md)   |
 | `btree_iter(&t)` / `btree_iter_rev(&t)` / `btree_iter_range(&t, lo, hi)` | BST elements                                        | [btree](docs/btree.md)     |
 | `avl_iter(&t)` / `avl_iter_rev(&t)` / `avl_iter_range(&t, lo, hi)`       | AVL elements                                        | [avl](docs/avl.md)         |
-| `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)`    | `OMapEntry` pairs                                   | [omap](docs/omap.md)       |
+| `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)`    | `MapEntry` pairs (`OMapEntry` alias)                | [omap](docs/omap.md)       |
 
 ### Adaptors (lazy)
 
@@ -214,15 +214,21 @@ parameters that are always `_Alignof(max_align_t)` in practice.
   consistency. `vec_get` keeps its pointer-return for indexed-access performance;
   `vec_get_copy` is available as a safe alternative.
 
-- **Redundant `set_hash_fn` / `set_eq_fn` typedefs** — identical signatures to
-  `hash_fn` / `eq_fn` from `hashmap.h` but different type names. Either unify
-  them or remove the separate typedefs.
+- ~~**Redundant `set_hash_fn` / `set_eq_fn` typedefs**~~ — removed: `hash_fn` / `eq_fn`
+  are now defined in `iter.h` (the shared foundation header already included by every
+  collection). `set.h` uses them directly; `hashmap.h` no longer re-declares them.
+  `HashMapEntry` and `OMapEntry` are unified into `MapEntry` in `iter.h`; the
+  module-prefixed names remain as `typedef` aliases for backwards compatibility.
 
 - **PSL capped at `uint8_t` with no assertion** — a `psl` value > 255 wraps
   silently and corrupts the table. Add an `assert(psl < 255)` in the insert
   path so a degenerate hash function fails loudly instead of silently.
 
 ### Ergonomics (lower priority)
+
+- ~~**Stale comment in `iter.h`**~~ — removed: line 9 previously said
+  "Forward declaration — include arena/arena.h to use iter_collect"; the file
+  already includes `arena.h` directly.
 
 - **`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
   never use** — these sources are stateless; the allocator is stored on `Iter`

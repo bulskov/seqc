@@ -17,8 +17,8 @@ struct Set
     size_t cap; /* always a power of 2 */
     size_t len;
     size_t elem_size;
-    set_hash_fn hash;
-    set_eq_fn eq;
+    hash_fn hash;
+    eq_fn eq;
     Allocator allocator;
 };
 
@@ -77,7 +77,7 @@ static void set_resize(Set *s)
 /* ---- public API -------------------------------------------------------- */
 
 Set *set_create(
-    size_t elem_size, set_hash_fn hash, set_eq_fn eq, Allocator allocator)
+    size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator)
 {
     Set *s = allocator.alloc(allocator.ctx, sizeof(Set), _Alignof(Set));
     if (!s)

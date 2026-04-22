@@ -40,15 +40,15 @@ to abandon an iterator early (e.g. after `iter_find`).
 
 ## Function-pointer types
 
-| Type | Signature | Used by |
-|------|-----------|---------|
-| `pred_fn` | `bool fn(const void *elem, void *ctx)` | `iter_filter`, `iter_find`, `iter_any`, `iter_all`, `iter_take_while`, `iter_skip_while` |
-| `map_fn` | `void fn(const void *in, void *out, void *ctx)` | `iter_map` |
-| `combine_fn` | `void fn(void *acc, const void *elem, void *ctx)` | `iter_reduce` |
-| `visitor_fn` | `void fn(const void *elem, void *ctx)` | `iter_foreach` |
-| `compare_fn` | `int fn(const void *a, const void *b)` | `iter_sort`, `iter_min`, `iter_max`, sorted containers |
-| `flat_map_fn` | `void fn(const void *elem, Iter *out, void *ctx)` | `iter_flat_map` |
-
+| Type          | Signature                                                | Used by                                                                                  |
+| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `pred_fn`     | `bool fn(const void *elem, void *ctx)`                   | `iter_filter`, `iter_find`, `iter_any`, `iter_all`, `iter_take_while`, `iter_skip_while` |
+| `map_fn`      | `void fn(const void *in, void *out, void *ctx)`          | `iter_map`                                                                               |
+| `combine_fn`  | `void fn(void *acc, const void *elem, void *ctx)`        | `iter_reduce`                                                                            |
+| `visitor_fn`  | `void fn(const void *elem, void *ctx)`                   | `iter_foreach`                                                                           |
+| `compare_fn`  | `int fn(const void *a, const void *b)`                   | `iter_sort`, `iter_min`, `iter_max`, sorted containers                                   |
+| `flat_map_fn` | `void fn(const void *elem, Iter *out, void *ctx)`        | `iter_flat_map`                                                                          |  | `hash_fn` | `size_t fn(const void *key, size_t key_size)` | `hashmap_create`, `set_create` |
+| `eq_fn`       | `bool fn(const void *a, const void *b, size_t key_size)` | `hashmap_create`, `set_create`                                                           |
 ---
 
 ## Sources
@@ -136,19 +136,19 @@ Iter it = iter_range(10, 0, -2, arena_allocator(a));
 
 Other sources live on their respective modules:
 
-| Source | Module |
-|--------|--------|
-| `vec_iter` / `vec_iter_rev` | [vec](vec.md) |
-| `stack_iter` | [stack](stack.md) |
-| `queue_iter` | [queue](queue.md) |
-| `list_iter` | [list](list.md) |
-| `dlist_iter` / `dlist_iter_reverse` | [dlist](dlist.md) |
-| `set_iter` | [set](set.md) |
-| `iter_from_hashmap` | [hashmap](hashmap.md) |
-| `string_chars` / `string_chars_rev` / `string_split` | [string](string.md) |
-| `btree_iter` / `btree_iter_rev` / `btree_iter_range` | [btree](btree.md) |
-| `avl_iter` / `avl_iter_rev` / `avl_iter_range` | [avl](avl.md) |
-| `omap_iter` / `omap_iter_rev` / `omap_iter_range` | [omap](omap.md) |
+| Source                                               | Module                |
+| ---------------------------------------------------- | --------------------- |
+| `vec_iter` / `vec_iter_rev`                          | [vec](vec.md)         |
+| `stack_iter`                                         | [stack](stack.md)     |
+| `queue_iter`                                         | [queue](queue.md)     |
+| `list_iter`                                          | [list](list.md)       |
+| `dlist_iter` / `dlist_iter_reverse`                  | [dlist](dlist.md)     |
+| `set_iter`                                           | [set](set.md)         |
+| `iter_from_hashmap`                                  | [hashmap](hashmap.md) |
+| `string_chars` / `string_chars_rev` / `string_split` | [string](string.md)   |
+| `btree_iter` / `btree_iter_rev` / `btree_iter_range` | [btree](btree.md)     |
+| `avl_iter` / `avl_iter_rev` / `avl_iter_range`       | [avl](avl.md)         |
+| `omap_iter` / `omap_iter_rev` / `omap_iter_range`    | [omap](omap.md)       |
 
 ---
 
@@ -309,6 +309,27 @@ while (it.next(&it, &e))
     printf("[%zu] %d\n", e.index, *(int *)e.elem);
 iter_drop(&it);
 ```
+
+---
+
+## Shared entry types
+
+### `MapEntry`
+
+```c
+typedef struct {
+    void *key;
+    void *value;
+} MapEntry;
+```
+
+Pointer-pair yielded by [`hashmap_iter`](hashmap.md#hashmap_iter) and
+[`omap_iter`](omap.md#omap_iter). Both pointers point directly into live
+bucket / node storage. Do not modify the map while iterating.
+
+`hashmap.h` and `omap.h` each export a typedef alias
+(`HashMapEntry` / `OMapEntry`) for callers that prefer the module-prefixed
+name.
 
 ---
 

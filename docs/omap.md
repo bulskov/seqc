@@ -13,12 +13,10 @@ supplied comparator. All operations are O(log n).
 ### `OMapEntry`
 
 ```c
-typedef struct {
-  void *key;
-  void *value;
-} OMapEntry;
+typedef MapEntry OMapEntry;
 ```
 
+Alias for [`MapEntry`](iter.md#mapentry) (defined in `iter/iter.h`).
 Yielded by the iterators. Both pointers point directly into live node storage —
 do not modify the map while iterating.
 

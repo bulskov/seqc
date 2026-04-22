@@ -5,9 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef size_t (*hash_fn)(const void *key, size_t key_size);
-typedef bool (*eq_fn)(const void *a, const void *b, size_t key_size);
-
 typedef struct HashMap HashMap;
 
 /* Default hash and equality functions suitable for any fixed-size key type */
@@ -18,13 +15,9 @@ bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
 size_t hashmap_fnv1a_str(const void *key, size_t key_size);
 bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 
-/* Pointer-pair yielded by hashmap_iter — points directly into the live bucket.
+/* Pointer-pair yielded by hashmap_iter — see MapEntry in iter/iter.h.
  * Do not modify the map while iterating. */
-typedef struct
-{
-    void *key;
-    void *value;
-} HashMapEntry;
+typedef MapEntry HashMapEntry;
 
 HashMap *hashmap_create(
     size_t key_size,

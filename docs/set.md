@@ -9,17 +9,6 @@ Open-addressing hash set using Robin Hood hashing.
 
 ## Types
 
-### `set_hash_fn` / `set_eq_fn`
-
-```c
-typedef size_t (*set_hash_fn)(const void *key, size_t key_size);
-typedef bool   (*set_eq_fn)(const void *a, const void *b, size_t key_size);
-```
-
-Same signatures as [`hash_fn` / `eq_fn`](hashmap.md#types) in `hashmap`
-(both return `bool`), so `hashmap_fnv1a`, `hashmap_eq_bytes`,
-`hashmap_fnv1a_str`, and `hashmap_eq_str` can be passed directly.
-
 ### `Set`
 
 ```c
@@ -35,12 +24,13 @@ Opaque handle.
 ### `set_create`
 
 ```c
-Set *set_create(size_t elem_size, set_hash_fn hash, set_eq_fn eq,
+Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq,
                 Allocator allocator);
 ```
 
 Create an empty set. Returns `NULL` if `elem_size` is zero. You must supply a
-hash function and an equality function.
+hash function and an equality function. `hash_fn` and `eq_fn` are defined in
+[`iter/iter.h`](iter.md#function-pointer-types) (included transitively).
 For integer-sized keys use `hashmap_fnv1a` / `hashmap_eq_bytes` from
 [`hashmap.h`](hashmap.md). For `char *` keys use `hashmap_fnv1a_str` /
 `hashmap_eq_str`.

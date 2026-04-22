@@ -7,16 +7,10 @@
 #include "arena/arena.h"
 #include "iter/iter.h"
 
-/* Function pointer types for hashing and equality — same signatures as the
- * hashmap equivalents so hashmap_fnv1a / hashmap_eq_bytes etc. are usable
- * directly without casts. */
-typedef size_t (*set_hash_fn)(const void *key, size_t key_size);
-typedef bool (*set_eq_fn)(const void *a, const void *b, size_t key_size);
-
 typedef struct Set Set;
 
 Set *set_create(
-    size_t elem_size, set_hash_fn hash, set_eq_fn eq, Allocator allocator);
+    size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator);
 bool set_add(Set *s, const void *elem); /* true=added false=already present */
 bool set_contains(const Set *s, const void *elem);
 bool set_remove(Set *s, const void *elem); /* true=removed false=not found */

@@ -16,6 +16,8 @@ typedef size_t (*hash_fn)(const void *key, size_t key_size);
 typedef bool   (*eq_fn)(const void *a, const void *b, size_t key_size);
 ```
 
+Defined in `iter/iter.h` (included transitively). Shared with [`set`](set.md).
+
 ### `HashMap`
 
 ```c
@@ -27,12 +29,10 @@ Opaque handle.
 ### `HashMapEntry`
 
 ```c
-typedef struct {
-  void *key;
-  void *value;
-} HashMapEntry;
+typedef MapEntry HashMapEntry;
 ```
 
+Alias for [`MapEntry`](iter.md#mapentry) (defined in `iter/iter.h`).
 Yielded by [`hashmap_iter`](#hashmap_iter). Both pointers point
 directly into live bucket storage — do not modify the map while iterating.
 

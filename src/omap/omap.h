@@ -13,13 +13,9 @@
 typedef struct OMNode OMNode;
 typedef struct OMap OMap;
 
-/* Pointer-pair yielded by omap_iter — points directly into the live node.
+/* Pointer-pair yielded by omap_iter \u2014 see MapEntry in iter/iter.h.
  * Do not modify the tree while iterating. */
-typedef struct
-{
-    void *key;
-    void *value;
-} OMapEntry;
+typedef MapEntry OMapEntry;
 
 OMap *omap_create(
     size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator);
