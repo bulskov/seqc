@@ -52,9 +52,10 @@ static void sift_down(PQueue *q, size_t i) {
 
 /* ---- public API -------------------------------------------------------- */
 
-PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator) {
+PQueue pqueue_build_from_vec(const Vec *v, compare_fn cmp,
+                             Allocator allocator) {
   PQueue q;
-  q.cmp  = cmp;
+  q.cmp = cmp;
   q.data = vec_create_size(v->elem_size, v->len, allocator);
   if (v->len > 0) {
     memcpy(q.data.data, v->data, v->len * v->elem_size);
