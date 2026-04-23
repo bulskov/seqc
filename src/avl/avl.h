@@ -14,11 +14,11 @@ typedef struct AVLNode AVLNode;
 typedef struct AVLTree AVLTree;
 
 AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
-bool avl_insert(
-    AVLTree *t, const void *elem); /* true=inserted false=duplicate */
+/* SEQC_OK=inserted, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
+SeqcStatus avl_insert(AVLTree *t, const void *elem);
 bool avl_contains(const AVLTree *t, const void *elem);
-bool avl_remove(
-    AVLTree *t, const void *elem); /* true=removed  false=not found */
+/* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
+SeqcStatus avl_remove(AVLTree *t, const void *elem);
 void *avl_min(const AVLTree *t);   /* NULL if empty          */
 void *avl_max(const AVLTree *t);   /* NULL if empty          */
 size_t avl_len(const AVLTree *t);

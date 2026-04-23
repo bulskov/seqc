@@ -18,25 +18,24 @@ Stack *stack_create(size_t elem_size, Allocator allocator)
     return s;
 }
 
-void stack_push(Stack *s, const void *elem)
+SeqcStatus stack_push(Stack *s, const void *elem)
 {
     if (!s)
-        return;
-    vec_push(s->vec, elem);
+        return SEQC_INVALID;
+    return vec_push(s->vec, elem);
 }
 
-bool stack_pop(Stack *s, void *out)
+SeqcStatus stack_pop(Stack *s, void *out)
 {
     if (!s)
-        return false;
+        return SEQC_INVALID;
     return vec_pop(s->vec, out);
 }
 
 void *stack_peek(const Stack *s)
 {
-    if (!s)
+    if (!s || vec_len(s->vec) == 0)
         return NULL;
-    /* vec_get returns NULL when index >= len (unsigned underflow on empty) */
     return vec_get(s->vec, vec_len(s->vec) - 1);
 }
 

@@ -50,23 +50,23 @@ DList *l = dlist_create(sizeof(int), arena_allocator(a));
 ### `dlist_push_front` / `dlist_push_back`
 
 ```c
-void dlist_push_front(DList *l, const void *elem);
-void dlist_push_back(DList *l, const void *elem);
+SeqcStatus dlist_push_front(DList *l, const void *elem);
+SeqcStatus dlist_push_back(DList *l, const void *elem);
 ```
 
-O(1) prepend / append.
+O(1) prepend / append. Return `SEQC_OOM` on allocation failure; `SEQC_OK` otherwise.
 
 ---
 
 ### `dlist_pop_front` / `dlist_pop_back`
 
 ```c
-bool dlist_pop_front(DList *l, void *out);
-bool dlist_pop_back(DList *l, void *out);
+SeqcStatus dlist_pop_front(DList *l, void *out);
+SeqcStatus dlist_pop_back(DList *l, void *out);
 ```
 
 Remove from front or back. Copies into `*out` if not `NULL`.
-Returns `true` on success, `false` if empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty.
 
 ```c
 // use as a deque

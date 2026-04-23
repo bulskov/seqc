@@ -40,6 +40,8 @@ static BTreeNode *make_node(const BTree *t, const void *elem)
 {
     BTreeNode *node = t->allocator.alloc(
         t->allocator.ctx, node_alloc_size(t->elem_size), _Alignof(max_align_t));
+    if (!node)
+        return NULL;
     node->left = node->right = NULL;
     memcpy(node_data(node), elem, t->elem_size);
     return node;
@@ -61,10 +63,10 @@ BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator)
     return t;
 }
 
-bool btree_insert(BTree *t, const void *elem)
+SeqcStatus btree_insert(BTree *t, const void *elem)
 {
     if (!t || !elem)
-        return false;
+        return SEQC_INVALID;
     BTreeNode **cur = &t->root;
     while (*cur)
     {
@@ -74,11 +76,13 @@ bool btree_insert(BTree *t, const void *elem)
         else if (c > 0)
             cur = &(*cur)->right;
         else
-            return false; /* duplicate */
+            return SEQC_DUPLICATE;
     }
     *cur = make_node(t, elem);
+    if (!*cur)
+        return SEQC_OOM;
     t->len++;
-    return true;
+    return SEQC_OK;
 }
 
 bool btree_contains(const BTree *t, const void *elem)
@@ -146,15 +150,15 @@ static BTreeNode *do_remove(
     return node;
 }
 
-bool btree_remove(BTree *t, const void *elem)
+SeqcStatus btree_remove(BTree *t, const void *elem)
 {
     if (!t || !elem)
-        return false;
+        return SEQC_INVALID;
     int removed = 0;
     t->root = do_remove(t, t->root, elem, &removed);
     if (removed)
         t->len--;
-    return removed;
+    return removed ? SEQC_OK : SEQC_NOT_FOUND;
 }
 
 void *btree_min(const BTree *t)

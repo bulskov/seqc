@@ -101,18 +101,21 @@ PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator)
     return q;
 }
 
-void pqueue_push(PQueue *q, const void *elem)
+SeqcStatus pqueue_push(PQueue *q, const void *elem)
 {
     if (!q || !elem)
-        return;
-    vec_push(q->data, elem);
+        return SEQC_INVALID;
+    SeqcStatus s = vec_push(q->data, elem);
+    if (s != SEQC_OK)
+        return s;
     sift_up(q, vec_len(q->data) - 1);
+    return SEQC_OK;
 }
 
-bool pqueue_pop(PQueue *q, void *out)
+SeqcStatus pqueue_pop(PQueue *q, void *out)
 {
     if (!q || vec_len(q->data) == 0)
-        return false;
+        return SEQC_NOT_FOUND;
     if (out)
         memcpy(out, vec_get(q->data, 0), vec_elem_size(q->data));
     size_t last = vec_len(q->data) - 1;
@@ -124,16 +127,16 @@ bool pqueue_pop(PQueue *q, void *out)
     vec_pop(q->data, NULL);
     if (vec_len(q->data) > 0)
         sift_down(q, 0);
-    return true;
+    return SEQC_OK;
 }
 
-bool pqueue_peek(const PQueue *q, void *out)
+SeqcStatus pqueue_peek(const PQueue *q, void *out)
 {
     if (!q || vec_len(q->data) == 0)
-        return false;
+        return SEQC_NOT_FOUND;
     if (out)
         memcpy(out, vec_get(q->data, 0), vec_elem_size(q->data));
-    return true;
+    return SEQC_OK;
 }
 
 size_t pqueue_len(const PQueue *q)

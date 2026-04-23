@@ -74,7 +74,7 @@ Test(dlist, pop_front_removes_head)
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
     int out;
-    cr_assert(dlist_pop_front(l, &out));
+    cr_assert_eq(dlist_pop_front(l, &out), SEQC_OK);
     cr_assert_eq(out, 10);
     cr_assert_eq(*(int *)dlist_front(l), 20);
     cr_assert_eq(dlist_len(l), 2);
@@ -89,7 +89,7 @@ Test(dlist, pop_back_removes_tail)
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
     int out;
-    cr_assert(dlist_pop_back(l, &out));
+    cr_assert_eq(dlist_pop_back(l, &out), SEQC_OK);
     cr_assert_eq(out, 30);
     cr_assert_eq(*(int *)dlist_back(l), 20);
     cr_assert_eq(dlist_len(l), 2);
@@ -103,8 +103,8 @@ Test(dlist, pop_until_empty)
     int v = 1;
     dlist_push_back(l, &v);
     int out;
-    cr_assert(dlist_pop_front(l, &out));
-    cr_assert_not(dlist_pop_front(l, &out));
+    cr_assert_eq(dlist_pop_front(l, &out), SEQC_OK);
+    cr_assert_neq(dlist_pop_front(l, &out), SEQC_OK);
     cr_assert(dlist_is_empty(l));
     cr_assert_null(dlist_front(l));
     cr_assert_null(dlist_back(l));
@@ -142,7 +142,7 @@ Test(dlist, prev_links_are_correct)
     for (int i = 4; i >= 0; i--)
     {
         int out;
-        cr_assert(dlist_pop_back(l, &out));
+        cr_assert_eq(dlist_pop_back(l, &out), SEQC_OK);
         cr_assert_eq(out, vals[i]);
     }
     cr_assert(dlist_is_empty(l));

@@ -22,13 +22,13 @@ Test(queue, push_pop_fifo_order)
     for (int i = 0; i < 3; i++)
         queue_push(q, &vals[i]);
     int out;
-    cr_assert(queue_pop(q, &out));
+    cr_assert_eq(queue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 1);
-    cr_assert(queue_pop(q, &out));
+    cr_assert_eq(queue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 2);
-    cr_assert(queue_pop(q, &out));
+    cr_assert_eq(queue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 3);
-    cr_assert_not(queue_pop(q, &out));
+    cr_assert_neq(queue_pop(q, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -56,7 +56,7 @@ Test(queue, pop_empty_returns_0)
     Arena *a = arena_create(64);
     Queue *q = queue_create(sizeof(int), arena_allocator(a));
     int out;
-    cr_assert_not(queue_pop(q, &out));
+    cr_assert_neq(queue_pop(q, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -81,7 +81,7 @@ Test(queue, ring_wrap_around)
     for (int i = 8; i < 24; i++)
     {
         int out;
-        cr_assert(queue_pop(q, &out));
+        cr_assert_eq(queue_pop(q, &out), SEQC_OK);
         cr_assert_eq(out, i);
     }
     cr_assert(queue_is_empty(q));
@@ -98,7 +98,7 @@ Test(queue, grow_beyond_initial_cap)
     for (int i = 0; i < 32; i++)
     {
         int out;
-        cr_assert(queue_pop(q, &out));
+        cr_assert_eq(queue_pop(q, &out), SEQC_OK);
         cr_assert_eq(out, i);
     }
     arena_free(a);
@@ -150,7 +150,7 @@ Test(queue, clear_allows_reuse)
     int x = 42;
     queue_push(q, &x);
     int out;
-    cr_assert(queue_pop(q, &out));
+    cr_assert_eq(queue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 42);
     cr_assert(queue_is_empty(q));
     arena_free(a);
@@ -253,7 +253,7 @@ Test(queue, pop_null_out_discards_element)
     int vals[] = {10, 20, 30};
     for (int i = 0; i < 3; i++)
         queue_push(q, &vals[i]);
-    cr_assert(queue_pop(q, NULL)); /* discard front element */
+    cr_assert_eq(queue_pop(q, NULL), SEQC_OK); /* discard front element */
     cr_assert_eq(queue_len(q), 2);
     cr_assert_eq(*(int *)queue_peek(q), 20); /* 10 is gone */
     arena_free(a);

@@ -38,6 +38,8 @@ static ListNode *list_make_node(const List *l, const void *elem)
 {
     ListNode *node = l->allocator.alloc(
         l->allocator.ctx, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    if (!node)
+        return NULL;
     node->next = NULL;
     memcpy(node_data(node), elem, l->elem_size);
     return node;
@@ -57,35 +59,41 @@ List *list_create(size_t elem_size, Allocator allocator)
     return l;
 }
 
-void list_push_front(List *l, const void *elem)
+SeqcStatus list_push_front(List *l, const void *elem)
 {
     if (!l || !elem)
-        return;
+        return SEQC_INVALID;
     ListNode *node = list_make_node(l, elem);
+    if (!node)
+        return SEQC_OOM;
     node->next = l->head;
     l->head = node;
     if (!l->tail)
         l->tail = node;
     l->len++;
+    return SEQC_OK;
 }
 
-void list_push_back(List *l, const void *elem)
+SeqcStatus list_push_back(List *l, const void *elem)
 {
     if (!l || !elem)
-        return;
+        return SEQC_INVALID;
     ListNode *node = list_make_node(l, elem);
+    if (!node)
+        return SEQC_OOM;
     if (l->tail)
         l->tail->next = node;
     else
         l->head = node;
     l->tail = node;
     l->len++;
+    return SEQC_OK;
 }
 
-bool list_pop_front(List *l, void *out)
+SeqcStatus list_pop_front(List *l, void *out)
 {
     if (!l || !l->head)
-        return false;
+        return SEQC_NOT_FOUND;
     ListNode *node = l->head;
     if (out)
         memcpy(out, node_data(node), l->elem_size);
@@ -95,18 +103,15 @@ bool list_pop_front(List *l, void *out)
     if (l->allocator.free)
         l->allocator.free(l->allocator.ctx, node);
     l->len--;
-    return true;
+    return SEQC_OK;
 }
 
-bool list_pop_back(List *l, void *out)
+SeqcStatus list_pop_back(List *l, void *out)
 {
     if (!l || !l->head)
-        return false;
+        return SEQC_NOT_FOUND;
     if (l->head == l->tail)
-    {
-        /* single element — reuse list_pop_front logic */
         return list_pop_front(l, out);
-    }
     /* find second-to-last node */
     ListNode *prev = l->head;
     while (prev->next != l->tail)
@@ -118,7 +123,7 @@ bool list_pop_back(List *l, void *out)
     prev->next = NULL;
     l->tail = prev;
     l->len--;
-    return true;
+    return SEQC_OK;
 }
 
 void *list_front(const List *l)

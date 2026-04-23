@@ -33,9 +33,9 @@ Test(set, add_contains)
     Arena *a = arena_create(1024);
     Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v1 = 1, v2 = 2, v3 = 42;
-    cr_assert(set_add(s, &v1));
-    cr_assert(set_add(s, &v2));
-    cr_assert(set_add(s, &v3));
+    cr_assert_eq(set_add(s, &v1), SEQC_OK);
+    cr_assert_eq(set_add(s, &v2), SEQC_OK);
+    cr_assert_eq(set_add(s, &v3), SEQC_OK);
     cr_assert(set_contains(s, &v1));
     cr_assert(set_contains(s, &v2));
     cr_assert(set_contains(s, &v3));
@@ -48,8 +48,8 @@ Test(set, add_duplicate_returns_0)
     Arena *a = arena_create(512);
     Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 7;
-    cr_assert(set_add(s, &v));
-    cr_assert_not(set_add(s, &v)); /* already present */
+    cr_assert_eq(set_add(s, &v), SEQC_OK);
+    cr_assert_neq(set_add(s, &v), SEQC_OK); /* already present */
     cr_assert_eq(set_len(s), 1);
     arena_free(a);
 }
@@ -60,7 +60,7 @@ Test(set, remove_existing)
     Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 5;
     set_add(s, &v);
-    cr_assert(set_remove(s, &v));
+    cr_assert_eq(set_remove(s, &v), SEQC_OK);
     cr_assert_not(set_contains(s, &v));
     cr_assert_eq(set_len(s), 0);
     arena_free(a);
@@ -71,7 +71,7 @@ Test(set, remove_nonexistent_returns_0)
     Arena *a = arena_create(256);
     Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
     int v = 99;
-    cr_assert_not(set_remove(s, &v));
+    cr_assert_neq(set_remove(s, &v), SEQC_OK);
     arena_free(a);
 }
 
@@ -135,7 +135,7 @@ Test(set, clear_allows_reuse)
         set_add(s, &i);
     set_clear(s);
     int x = 42;
-    cr_assert(set_add(s, &x));
+    cr_assert_eq(set_add(s, &x), SEQC_OK);
     cr_assert_eq(set_len(s), 1);
     cr_assert(set_contains(s, &x));
     arena_free(a);
@@ -213,7 +213,7 @@ Test(set, collision_probe_insert_and_contains)
     Set *s = set_create(
         sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_add(s, &i));
+        cr_assert_eq(set_add(s, &i), SEQC_OK);
     cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
         cr_assert(set_contains(s, &i));
@@ -231,7 +231,7 @@ Test(set, collision_robin_hood_displacement)
     Set *s = set_create(
         sizeof(int), robin_hood_set_hash, int_eq, arena_allocator(a));
     for (int i = 1; i <= 4; i++)
-        cr_assert(set_add(s, &i));
+        cr_assert_eq(set_add(s, &i), SEQC_OK);
     cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
         cr_assert(set_contains(s, &i));
@@ -253,7 +253,7 @@ Test(set, collision_remove_probe_and_backward_shift)
     /* elem 3 sits at slot 2 (home=0): remove requires probing slots 0,1 first,
      * then backward-shifts elem 4 into the vacated slot. */
     int k = 3;
-    cr_assert(set_remove(s, &k));
+    cr_assert_eq(set_remove(s, &k), SEQC_OK);
     cr_assert(!set_contains(s, &k));
     for (int i = 1; i <= 4; i++)
     {
@@ -279,7 +279,7 @@ Test(set, remove_absent_hits_empty_slot)
     /* key 99 also hashes to slot 0 but is not in the set; after probing past
      * present we hit an empty slot and must return false. */
     int absent = 99;
-    cr_assert(!set_remove(s, &absent));
+    cr_assert_neq(set_remove(s, &absent), SEQC_OK);
     cr_assert_eq(set_len(s), 1);
     arena_free(a);
 }
@@ -307,7 +307,7 @@ Test(set, sys_alloc_clear_frees_keys)
     cr_assert_eq(set_len(s), 0);
     /* set is still usable after clear */
     int x = 42;
-    cr_assert(set_add(s, &x));
+    cr_assert_eq(set_add(s, &x), SEQC_OK);
     cr_assert(set_contains(s, &x));
     set_free(s);
 }
@@ -318,7 +318,7 @@ Test(set, sys_alloc_remove_frees_key)
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     int v = 7;
     set_add(s, &v);
-    cr_assert(set_remove(s, &v));
+    cr_assert_eq(set_remove(s, &v), SEQC_OK);
     cr_assert(!set_contains(s, &v));
     set_free(s);
 }
@@ -346,5 +346,104 @@ Test(set, audit_normal_load)
     cr_assert(st.max_psl >= 1);
     cr_assert(st.mean_psl >= 1.0);
     cr_assert(st.is_healthy);
+    arena_free(a);
+}
+
+/* ---- set algebra ------------------------------------------------------- */
+
+Test(set, union_disjoint)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s1, &i);
+    for (int i = 5; i < 10; i++) set_add(s2, &i);
+    cr_assert_eq(set_union(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 10);
+    for (int i = 0; i < 10; i++)
+        cr_assert(set_contains(dst, &i));
+    arena_free(a);
+}
+
+Test(set, union_overlapping)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    /* s1 = {1,2,3}, s2 = {2,3,4} => union = {1,2,3,4} */
+    int v[] = {1, 2, 3};
+    for (int i = 0; i < 3; i++) set_add(s1, &v[i]);
+    int v2[] = {2, 3, 4};
+    for (int i = 0; i < 3; i++) set_add(s2, &v2[i]);
+    cr_assert_eq(set_union(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 4);
+    for (int i = 1; i <= 4; i++)
+        cr_assert(set_contains(dst, &i));
+    arena_free(a);
+}
+
+Test(set, intersection_basic)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    /* s1 = {1,2,3,4}, s2 = {3,4,5,6} => intersection = {3,4} */
+    for (int i = 1; i <= 4; i++) set_add(s1, &i);
+    for (int i = 3; i <= 6; i++) set_add(s2, &i);
+    cr_assert_eq(set_intersection(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 2);
+    int three = 3, four = 4, one = 1, five = 5;
+    cr_assert(set_contains(dst, &three));
+    cr_assert(set_contains(dst, &four));
+    cr_assert_not(set_contains(dst, &one));
+    cr_assert_not(set_contains(dst, &five));
+    arena_free(a);
+}
+
+Test(set, intersection_empty_result)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s1, &i);
+    for (int i = 10; i < 15; i++) set_add(s2, &i);
+    cr_assert_eq(set_intersection(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 0);
+    arena_free(a);
+}
+
+Test(set, difference_basic)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    /* s1 = {1,2,3,4}, s2 = {3,4,5} => difference = {1,2} */
+    for (int i = 1; i <= 4; i++) set_add(s1, &i);
+    for (int i = 3; i <= 5; i++) set_add(s2, &i);
+    cr_assert_eq(set_difference(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 2);
+    int one = 1, two = 2, three = 3;
+    cr_assert(set_contains(dst, &one));
+    cr_assert(set_contains(dst, &two));
+    cr_assert_not(set_contains(dst, &three));
+    arena_free(a);
+}
+
+Test(set, difference_empty_when_subset)
+{
+    Arena *a = arena_create(4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    /* s1 ⊆ s2 => difference is empty */
+    for (int i = 0; i < 3; i++) set_add(s1, &i);
+    for (int i = 0; i < 10; i++) set_add(s2, &i);
+    cr_assert_eq(set_difference(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 0);
     arena_free(a);
 }

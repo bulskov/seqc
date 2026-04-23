@@ -28,12 +28,14 @@ HashMap *hashmap_create(
 void hashmap_free(HashMap *map);
 void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);
+/* Drain iter of MapEntry, inserting each key-value pair into map. */
+SeqcStatus hashmap_set_all(HashMap *map, Iter it);
 bool hashmap_contains(const HashMap *map, const void *key);
-bool hashmap_set(HashMap *map, const void *key, const void *value);
+SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value);
 /* Copies the value for key into out (may be NULL to test for presence only).
- * Returns true if the key was found, false otherwise. */
-bool hashmap_get(const HashMap *map, const void *key, void *out);
-bool hashmap_delete(HashMap *map, const void *key);
+ * Returns SEQC_OK if found, SEQC_NOT_FOUND otherwise. */
+SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out);
+SeqcStatus hashmap_delete(HashMap *map, const void *key);
 /* Yields HashMapEntry pairs in unspecified order.
  * Do not modify the map while iterating. */
 Iter hashmap_iter(const HashMap *map);

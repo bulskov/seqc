@@ -39,7 +39,7 @@ Test(avl, insert_and_contains)
     AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
-        cr_assert(avl_insert(t, &vals[i]));
+        cr_assert_eq(avl_insert(t, &vals[i]), SEQC_OK);
     cr_assert_eq(avl_len(t), 5);
     for (int i = 0; i < 5; i++)
         cr_assert(avl_contains(t, &vals[i]));
@@ -53,8 +53,8 @@ Test(avl, insert_duplicate_returns_0)
     Arena *a = arena_create(512);
     AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
     int v = 10;
-    cr_assert(avl_insert(t, &v));
-    cr_assert_not(avl_insert(t, &v));
+    cr_assert_eq(avl_insert(t, &v), SEQC_OK);
+    cr_assert_neq(avl_insert(t, &v), SEQC_OK);
     cr_assert_eq(avl_len(t), 1);
     arena_free(a);
 }
@@ -166,7 +166,7 @@ Test(avl, remove_leaf)
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
     int v = 3;
-    cr_assert(avl_remove(t, &v));
+    cr_assert_eq(avl_remove(t, &v), SEQC_OK);
     cr_assert_not(avl_contains(t, &v));
     cr_assert_eq(avl_len(t), 2);
     arena_free(a);
@@ -180,7 +180,7 @@ Test(avl, remove_root_two_children)
     for (int i = 0; i < 7; i++)
         avl_insert(t, &vals[i]);
     int v = 5;
-    cr_assert(avl_remove(t, &v));
+    cr_assert_eq(avl_remove(t, &v), SEQC_OK);
     cr_assert_not(avl_contains(t, &v));
     cr_assert_eq(avl_len(t), 6);
     /* tree must remain sorted */
@@ -207,7 +207,7 @@ Test(avl, remove_rebalances)
         avl_insert(t, &i);
     for (int i = 1; i <= 6; i++)
     {
-        cr_assert(avl_remove(t, &i));
+        cr_assert_eq(avl_remove(t, &i), SEQC_OK);
         cr_assert_eq(avl_len(t), (size_t)(7 - i));
     }
     cr_assert_eq(avl_len(t), 1);
@@ -219,7 +219,7 @@ Test(avl, remove_nonexistent_returns_0)
     Arena *a = arena_create(256);
     AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
     int v = 42;
-    cr_assert_not(avl_remove(t, &v));
+    cr_assert_neq(avl_remove(t, &v), SEQC_OK);
     arena_free(a);
 }
 
@@ -392,7 +392,7 @@ Test(avl, clear_allows_reuse)
         avl_insert(t, &vals[i]);
     avl_clear(t);
     int x = 42;
-    cr_assert(avl_insert(t, &x));
+    cr_assert_eq(avl_insert(t, &x), SEQC_OK);
     cr_assert_eq(avl_len(t), 1);
     cr_assert(avl_contains(t, &x));
     arena_free(a);

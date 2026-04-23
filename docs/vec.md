@@ -61,14 +61,16 @@ Accessors for the three key properties of the Vec.
 ### `vec_push`
 
 ```c
-void vec_push(Vec *v, const void *elem);
+SeqcStatus vec_push(Vec *v, const void *elem);
 ```
 
-Append a copy of `elem`. Reallocates if `len == cap`.
+Append a copy of `elem`. Reallocates if `len == cap`. Returns `SEQC_OOM` if
+the reallocation fails (the Vec is unchanged); `SEQC_OK` otherwise.
 
 ```c
-for (int i = 0; i < 100; i++)
-    vec_push(v, &i);
+for (int i = 0; i < 100; i++) {
+    if (vec_push(v, &i) != SEQC_OK) { /* handle OOM */ }
+}
 ```
 
 ---
@@ -80,11 +82,11 @@ bool vec_pop(Vec *v, void *out);
 ```
 
 Remove the last element. Copies it into `*out` if `out` is not `NULL`.
-Returns `true` on success, `false` if the Vec is empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if the Vec is empty.
 
 ```c
 int val;
-while (vec_pop(v, &val))
+while (vec_pop(v, &val) == SEQC_OK)
     printf("%d\n", val);
 ```
 
@@ -109,15 +111,16 @@ int *third = vec_get(v, 2);
 ### `vec_get_copy`
 
 ```c
-bool vec_get_copy(const Vec *v, size_t i, void *out);
+SeqcStatus vec_get_copy(const Vec *v, size_t i, void *out);
 ```
 
-Copy element `i` into `*out`. Returns `false` if `i >= len`. Unlike
-`vec_get`, the copied value is not invalidated by later reallocations.
+Copy element `i` into `*out`. Returns `SEQC_OK` on success,
+`SEQC_NOT_FOUND` if `i >= len`, or `SEQC_INVALID` if `out` is `NULL`.
+Unlike `vec_get`, the copied value is not invalidated by later reallocations.
 
 ```c
 int val;
-if (vec_get_copy(v, 2, &val))
+if (vec_get_copy(v, 2, &val) == SEQC_OK)
     printf("%d\n", val);
 ```
 
@@ -141,12 +144,12 @@ vec_set(v, 0, &val);
 ### `vec_insert`
 
 ```c
-void vec_insert(Vec *v, size_t i, const void *elem);
+SeqcStatus vec_insert(Vec *v, size_t i, const void *elem);
 ```
 
 Insert a copy of `*elem` at index `i`, shifting all elements from `i` onward
 one position to the right. `i == len` is equivalent to `vec_push`. Reallocates
-if necessary.
+if necessary. Returns `SEQC_OOM` if reallocation fails; `SEQC_OK` otherwise.
 
 ```c
 int zero = 0;
@@ -173,15 +176,17 @@ vec_remove(v, 0);  /* remove first element */
 ### `vec_reserve`
 
 ```c
-void vec_reserve(Vec *v, size_t capacity);
+SeqcStatus vec_reserve(Vec *v, size_t capacity);
 ```
 
 Ensure the Vec has room for at least `capacity` elements without reallocating.
-Does nothing if `cap` is already sufficient.
+Does nothing and returns `SEQC_OK` if `cap` is already sufficient.
+Returns `SEQC_OOM` if the reallocation fails.
 
 ```c
-vec_reserve(v, 1024);  /* pre-allocate space */
-for (int i = 0; i < 1000; i++) vec_push(v, &i);  /* no reallocs */
+if (vec_reserve(v, 1024) == SEQC_OK) {
+    for (int i = 0; i < 1000; i++) vec_push(v, &i);  /* no reallocs */
+}
 ```
 
 ---
@@ -268,6 +273,24 @@ void vec_free(Vec *v);
 
 Free the Vec's buffer and then the Vec struct itself. Do not use `v` after
 calling this.
+
+---
+
+### `vec_extend`
+
+```c
+SeqcStatus vec_extend(Vec *v, Iter it);
+```
+
+Drain `it`, pushing each element into `v`. Stops and returns `SEQC_OOM` on
+the first allocation failure; all elements pushed before the failure remain.
+The iterator is always dropped before returning.
+
+```c
+Vec *src = /* ... */;
+Vec *dst = vec_create(sizeof(int), arena_allocator(a));
+vec_extend(dst, vec_iter(src));  /* copy all elements from src */
+```
 
 ---
 

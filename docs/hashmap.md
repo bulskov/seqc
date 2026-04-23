@@ -103,11 +103,11 @@ HashMap *m = hashmap_create(sizeof(int), sizeof(double),
 ### `hashmap_set`
 
 ```c
-bool hashmap_set(HashMap *map, const void *key, const void *value);
+SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value);
 ```
 
-Insert or update. Returns `true` if a new key was inserted, `false` if an existing
-key was updated.
+Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
+an existing one. Returns `SEQC_OOM` if an allocation fails.
 
 ```c
 int    k = 42;
@@ -120,15 +120,15 @@ hashmap_set(m, &k, &v);
 ### `hashmap_get`
 
 ```c
-bool hashmap_get(const HashMap *map, const void *key, void *out);
+SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out);
 ```
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
-presence only. Returns `true` if found, `false` otherwise.
+presence only. Returns `SEQC_OK` if found, `SEQC_NOT_FOUND` otherwise.
 
 ```c
 double val;
-if (hashmap_get(m, &k, &val))
+if (hashmap_get(m, &k, &val) == SEQC_OK)
     printf("%.2f\n", val);
 ```
 
@@ -137,10 +137,10 @@ if (hashmap_get(m, &k, &val))
 ### `hashmap_delete`
 
 ```c
-bool hashmap_delete(HashMap *map, const void *key);
+SeqcStatus hashmap_delete(HashMap *map, const void *key);
 ```
 
-Remove a key. Returns `true` if removed, `false` if not found.
+Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
@@ -196,6 +196,23 @@ Iter hashmap_iter_rev(const HashMap *map);
 ```
 
 Iterate over all key-value pairs in reverse bucket-storage order.
+
+---
+
+### `hashmap_set_all`
+
+```c
+SeqcStatus hashmap_set_all(HashMap *map, Iter it);
+```
+
+Drain `it` (which must yield `HashMapEntry` values), inserting each key-value
+pair into `map`. Returns `SEQC_OOM` on the first allocation failure;
+the iterator is always dropped.
+
+```c
+/* Merge map b into map a */
+hashmap_set_all(a, hashmap_iter(b));
+```
 
 ---
 

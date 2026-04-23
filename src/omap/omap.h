@@ -20,23 +20,23 @@ typedef MapEntry OMapEntry;
 OMap *omap_create(
     size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator);
 
-/* Insert or update.  Returns true if a new key was inserted, false if updated.
- */
-bool omap_set(OMap *m, const void *key, const void *value);
+/* Insert or update.  Returns SEQC_OK on success, SEQC_OOM on alloc failure. */
+SeqcStatus omap_set(OMap *m, const void *key, const void *value);
 
 /* Copies the value for key into out (may be NULL to test for presence only).
- * Returns true if the key was found, false otherwise. */
-bool omap_get(const OMap *m, const void *key, void *out);
+ * Returns SEQC_OK if found, SEQC_NOT_FOUND otherwise. */
+SeqcStatus omap_get(const OMap *m, const void *key, void *out);
 
 bool omap_contains(const OMap *m, const void *key);
-bool omap_remove(OMap *m, const void *key); /* true=removed false=not found */
-/* Copy the min/max key into out (may be NULL). Returns false if empty. */
-bool omap_min_key(const OMap *m, void *out);
-bool omap_max_key(const OMap *m, void *out);
+/* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
+SeqcStatus omap_remove(OMap *m, const void *key);
+/* Copy the min/max key into out (may be NULL). Returns SEQC_NOT_FOUND if empty. */
+SeqcStatus omap_min_key(const OMap *m, void *out);
+SeqcStatus omap_max_key(const OMap *m, void *out);
 /* Copy the key and value at the min/max position into key_out and val_out
- * (either may be NULL). Returns false if the map is empty. */
-bool omap_min_entry(const OMap *m, void *key_out, void *val_out);
-bool omap_max_entry(const OMap *m, void *key_out, void *val_out);
+ * (either may be NULL). Returns SEQC_NOT_FOUND if the map is empty. */
+SeqcStatus omap_min_entry(const OMap *m, void *key_out, void *val_out);
+SeqcStatus omap_max_entry(const OMap *m, void *key_out, void *val_out);
 size_t omap_len(const OMap *m);
 int omap_height(const OMap *m); /* 0 if empty            */
 

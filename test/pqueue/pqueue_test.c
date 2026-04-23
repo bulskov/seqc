@@ -21,9 +21,9 @@ Test(pqueue, empty_on_create)
     PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 0);
     cr_assert(pqueue_is_empty(q));
-    cr_assert(!pqueue_peek(q, NULL));
+    cr_assert_neq(pqueue_peek(q, NULL), SEQC_OK);
     int out;
-    cr_assert_not(pqueue_pop(q, &out));
+    cr_assert_neq(pqueue_pop(q, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -36,7 +36,7 @@ Test(pqueue, push_and_peek)
         pqueue_push(q, &vals[i]);
     cr_assert_eq(pqueue_len(q), 5);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 1); /* min always at front */
     arena_free(a);
 }
@@ -49,11 +49,11 @@ Test(pqueue, pop_yields_ascending_order)
     for (int i = 0; i < 9; i++)
         pqueue_push(q, &vals[i]);
     int prev, cur;
-    cr_assert(pqueue_pop(q, &prev));
+    cr_assert_eq(pqueue_pop(q, &prev), SEQC_OK);
     cr_assert_eq(prev, 1);
     for (int i = 1; i < 9; i++)
     {
-        cr_assert(pqueue_pop(q, &cur));
+        cr_assert_eq(pqueue_pop(q, &cur), SEQC_OK);
         cr_assert_leq(prev, cur);
         prev = cur;
     }
@@ -69,11 +69,11 @@ Test(pqueue, max_heap_via_reverse_cmp)
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 9); /* max at front */
     int prev, cur;
     pqueue_pop(q, &prev);
-    while (pqueue_pop(q, &cur))
+    while (pqueue_pop(q, &cur) == SEQC_OK)
     {
         cr_assert_geq(prev, cur);
         prev = cur;
@@ -88,10 +88,10 @@ Test(pqueue, pop_discard_null_out)
     int vals[] = {3, 1, 2};
     for (int i = 0; i < 3; i++)
         pqueue_push(q, &vals[i]);
-    cr_assert(pqueue_pop(q, NULL)); /* discard min without crash */
+    cr_assert_eq(pqueue_pop(q, NULL), SEQC_OK); /* discard min without crash */
     cr_assert_eq(pqueue_len(q), 2);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 2);
     arena_free(a);
 }
@@ -125,17 +125,17 @@ Test(pqueue, interleaved_push_pop)
     pqueue_push(q, &v);
     v = 3;
     pqueue_push(q, &v);
-    cr_assert(pqueue_pop(q, &out));
+    cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 3);
     v = 1;
     pqueue_push(q, &v);
     v = 4;
     pqueue_push(q, &v);
-    cr_assert(pqueue_pop(q, &out));
+    cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 1);
-    cr_assert(pqueue_pop(q, &out));
+    cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 4);
-    cr_assert(pqueue_pop(q, &out));
+    cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 5);
     cr_assert(pqueue_is_empty(q));
     arena_free(a);
@@ -166,7 +166,7 @@ Test(pqueue, clear_allows_reuse)
     int x = 42;
     pqueue_push(q, &x);
     int out;
-    cr_assert(pqueue_pop(q, &out));
+    cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 42);
     cr_assert(pqueue_is_empty(q));
     arena_free(a);
@@ -266,11 +266,11 @@ Test(pqueue, build_from_vec_pop_yields_ascending)
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 10);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 0);
     int prev, cur;
     pqueue_pop(q, &prev);
-    while (pqueue_pop(q, &cur))
+    while (pqueue_pop(q, &cur) == SEQC_OK)
     {
         cr_assert_leq(prev, cur);
         prev = cur;
@@ -302,7 +302,7 @@ Test(pqueue, build_from_vec_empty)
     Vec *v = vec_create(sizeof(int), arena_allocator(a));
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert(pqueue_is_empty(q));
-    cr_assert(!pqueue_peek(q, NULL));
+    cr_assert_neq(pqueue_peek(q, NULL), SEQC_OK);
     arena_free(a);
 }
 
@@ -315,7 +315,7 @@ Test(pqueue, build_from_vec_single)
     PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 1);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 42);
     arena_free(a);
 }
@@ -330,7 +330,7 @@ Test(pqueue, sys_alloc_free_releases_memory)
         pqueue_push(q, &i);
     cr_assert_eq(pqueue_len(q), 5);
     int peeked;
-    cr_assert(pqueue_peek(q, &peeked));
+    cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 1);
     pqueue_free(q);
     /* memory released — verified by sys_allocator not leaking */

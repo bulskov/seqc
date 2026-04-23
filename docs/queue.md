@@ -40,25 +40,26 @@ Queue *q = queue_create(sizeof(int), arena_allocator(a));
 ### `queue_push`
 
 ```c
-void queue_push(Queue *q, const void *elem);
+SeqcStatus queue_push(Queue *q, const void *elem);
 ```
 
-Enqueue a copy of `elem` at the back. Reallocates if full.
+Enqueue a copy of `elem` at the back. Reallocates if full. Returns `SEQC_OOM`
+on allocation failure; `SEQC_OK` otherwise.
 
 ---
 
 ### `queue_pop`
 
 ```c
-bool queue_pop(Queue *q, void *out);
+SeqcStatus queue_pop(Queue *q, void *out);
 ```
 
 Dequeue the front element. Copies it into `*out` if `out` is not `NULL`.
-Returns `true` on success, `false` if empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty.
 
 ```c
 int v;
-while (queue_pop(q, &v))
+while (queue_pop(q, &v) == SEQC_OK)
     printf("%d\n", v);
 ```
 
@@ -155,7 +156,7 @@ for (int i = 1; i <= 5; i++)
     queue_push(q, &i);
 
 int v;
-while (queue_pop(q, &v))
+while (queue_pop(q, &v) == SEQC_OK)
     printf("%d\n", v);  // prints 1 2 3 4 5
 
 arena_free(a);

@@ -28,7 +28,7 @@ Test(btree, insert_and_contains)
     BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
-        cr_assert(btree_insert(t, &vals[i]));
+        cr_assert_eq(btree_insert(t, &vals[i]), SEQC_OK);
     cr_assert_eq(btree_len(t), 5);
     for (int i = 0; i < 5; i++)
         cr_assert(btree_contains(t, &vals[i]));
@@ -42,8 +42,8 @@ Test(btree, insert_duplicate_returns_0)
     Arena *a = arena_create(512);
     BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
     int v = 10;
-    cr_assert(btree_insert(t, &v));
-    cr_assert_not(btree_insert(t, &v));
+    cr_assert_eq(btree_insert(t, &v), SEQC_OK);
+    cr_assert_neq(btree_insert(t, &v), SEQC_OK);
     cr_assert_eq(btree_len(t), 1);
     arena_free(a);
 }
@@ -90,7 +90,7 @@ Test(btree, remove_leaf)
     for (int i = 0; i < 3; i++)
         btree_insert(t, &vals[i]);
     int v = 3;
-    cr_assert(btree_remove(t, &v));
+    cr_assert_eq(btree_remove(t, &v), SEQC_OK);
     cr_assert_not(btree_contains(t, &v));
     cr_assert_eq(btree_len(t), 2);
     arena_free(a);
@@ -104,7 +104,7 @@ Test(btree, remove_node_with_two_children)
     for (int i = 0; i < 7; i++)
         btree_insert(t, &vals[i]);
     int v = 5; /* root with two children */
-    cr_assert(btree_remove(t, &v));
+    cr_assert_eq(btree_remove(t, &v), SEQC_OK);
     cr_assert_not(btree_contains(t, &v));
     cr_assert_eq(btree_len(t), 6);
     /* tree must still be valid: iter still ascending */
@@ -128,7 +128,7 @@ Test(btree, remove_nonexistent_returns_0)
     Arena *a = arena_create(256);
     BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
     int v = 42;
-    cr_assert_not(btree_remove(t, &v));
+    cr_assert_neq(btree_remove(t, &v), SEQC_OK);
     arena_free(a);
 }
 
@@ -295,7 +295,7 @@ Test(btree, clear_allows_reuse)
         btree_insert(t, &vals[i]);
     btree_clear(t);
     int x = 42;
-    cr_assert(btree_insert(t, &x));
+    cr_assert_eq(btree_insert(t, &x), SEQC_OK);
     cr_assert_eq(btree_len(t), 1);
     cr_assert(btree_contains(t, &x));
     arena_free(a);

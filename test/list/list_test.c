@@ -55,7 +55,7 @@ Test(list, pop_front_dequeues)
     for (int i = 0; i < 3; i++)
         list_push_back(l, &vals[i]);
     int out;
-    cr_assert(list_pop_front(l, &out));
+    cr_assert_eq(list_pop_front(l, &out), SEQC_OK);
     cr_assert_eq(out, 10);
     cr_assert_eq(*(int *)list_front(l), 20);
     cr_assert_eq(list_len(l), 2);
@@ -67,7 +67,7 @@ Test(list, pop_front_empty_returns_0)
     Arena *a = arena_create(64);
     List *l = list_create(sizeof(int), arena_allocator(a));
     int out;
-    cr_assert_not(list_pop_front(l, &out));
+    cr_assert_neq(list_pop_front(l, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -141,7 +141,7 @@ Test(list, pop_back_removes_last)
     for (int i = 0; i < 3; i++)
         list_push_back(l, &vals[i]);
     int out;
-    cr_assert(list_pop_back(l, &out));
+    cr_assert_eq(list_pop_back(l, &out), SEQC_OK);
     cr_assert_eq(out, 3);
     cr_assert_eq(list_len(l), 2);
     cr_assert_eq(*(int *)list_back(l), 2);
@@ -155,7 +155,7 @@ Test(list, pop_back_single_element)
     int v = 42;
     list_push_back(l, &v);
     int out;
-    cr_assert(list_pop_back(l, &out));
+    cr_assert_eq(list_pop_back(l, &out), SEQC_OK);
     cr_assert_eq(out, 42);
     cr_assert(list_is_empty(l));
     cr_assert_null(list_front(l));
@@ -168,7 +168,7 @@ Test(list, pop_back_empty_returns_false)
     Arena *a = arena_create(64);
     List *l = list_create(sizeof(int), arena_allocator(a));
     int out;
-    cr_assert_not(list_pop_back(l, &out));
+    cr_assert_neq(list_pop_back(l, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -178,7 +178,7 @@ Test(list, pop_back_null_out_allowed)
     List *l = list_create(sizeof(int), arena_allocator(a));
     int v = 7;
     list_push_back(l, &v);
-    cr_assert(list_pop_back(l, NULL));
+    cr_assert_eq(list_pop_back(l, NULL), SEQC_OK);
     cr_assert(list_is_empty(l));
     arena_free(a);
 }
@@ -203,7 +203,7 @@ Test(list, sys_alloc_pop_front_frees_node)
     int v = 42;
     list_push_back(l, &v);
     int out;
-    cr_assert(list_pop_front(l, &out));
+    cr_assert_eq(list_pop_front(l, &out), SEQC_OK);
     cr_assert_eq(out, 42);
     list_free(l);
 }
@@ -216,7 +216,7 @@ Test(list, sys_alloc_pop_back_frees_node)
     for (int i = 0; i < 3; i++)
         list_push_back(l, &vals[i]);
     int out;
-    cr_assert(list_pop_back(l, &out));
+    cr_assert_eq(list_pop_back(l, &out), SEQC_OK);
     cr_assert_eq(out, 3);
     cr_assert_eq(list_len(l), 2);
     list_free(l);

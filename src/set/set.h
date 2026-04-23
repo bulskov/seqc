@@ -11,14 +11,27 @@ typedef struct Set Set;
 
 Set *set_create(
     size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator);
-bool set_add(Set *s, const void *elem); /* true=added false=already present */
+/* SEQC_OK=added, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
+SeqcStatus set_add(Set *s, const void *elem);
 bool set_contains(const Set *s, const void *elem);
-bool set_remove(Set *s, const void *elem); /* true=removed false=not found */
+/* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
+SeqcStatus set_remove(Set *s, const void *elem);
 size_t set_len(const Set *s);
 void set_free(Set *s);
 void set_clear(Set *s);
 Iter set_iter(const Set *s);     /* order unspecified */
 Iter set_iter_rev(const Set *s); /* reverse bucket-storage order */
+/* Drain iter, adding each element into s; SEQC_DUPLICATE is silently skipped. */
+SeqcStatus set_add_all(Set *s, Iter it);
+
+/* --- Set algebra -------------------------------------------------------- */
+
+/* dest = a ∪ b  (all elements in a or b; dest must be empty or NULL) */
+SeqcStatus set_union(Set *dest, const Set *a, const Set *b);
+/* dest = a ∩ b  (elements present in both; dest must be empty or NULL) */
+SeqcStatus set_intersection(Set *dest, const Set *a, const Set *b);
+/* dest = a \ b  (elements in a but not in b; dest must be empty or NULL) */
+SeqcStatus set_difference(Set *dest, const Set *a, const Set *b);
 
 /* --- Health / diagnostics ----------------------------------------------- */
 

@@ -49,10 +49,11 @@ Set   *s = set_create(sizeof(int),
 ### `set_add`
 
 ```c
-bool set_add(Set *s, const void *elem);
+SeqcStatus set_add(Set *s, const void *elem);
 ```
 
-Add a copy of `elem`. Returns `true` if inserted, `false` if already present.
+Add a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
+already present (no-op), `SEQC_OOM` on allocation failure.
 
 ---
 
@@ -69,10 +70,10 @@ Return `true` if `elem` is in the set, `false` otherwise.
 ### `set_remove`
 
 ```c
-bool set_remove(Set *s, const void *elem);
+SeqcStatus set_remove(Set *s, const void *elem);
 ```
 
-Remove `elem`. Returns `true` if removed, `false` if not found.
+Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
@@ -121,7 +122,58 @@ iter_drop(&it);
 
 ---
 
-### `set_clear`
+### `set_add_all`
+
+```c
+SeqcStatus set_add_all(Set *s, Iter it);
+```
+
+Drain `it`, adding each element into `s`. Duplicates are silently skipped.
+Returns `SEQC_OOM` if an allocation fails; the iterator is always dropped.
+
+```c
+/* Copy all elements from another set */
+set_add_all(dst, set_iter(src));
+```
+
+---
+
+## Set algebra
+
+All three operations write results into a pre-created (usually empty) `dest`
+set. The `dest`, `a`, and `b` sets must use compatible hash and equality
+functions. Return `SEQC_OOM` on the first allocation failure.
+
+### `set_union`
+
+```c
+SeqcStatus set_union(Set *dest, const Set *a, const Set *b);
+```
+
+Set `dest = a ∪ b`. All elements present in either `a` or `b` are added to
+`dest`. Duplicates are silently skipped.
+
+```c
+Set *u = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+set_union(u, s1, s2);
+```
+
+### `set_intersection`
+
+```c
+SeqcStatus set_intersection(Set *dest, const Set *a, const Set *b);
+```
+
+Set `dest = a ∩ b`. Only elements present in **both** `a` and `b` are added.
+Iterates the smaller set for efficiency.
+
+### `set_difference`
+
+```c
+SeqcStatus set_difference(Set *dest, const Set *a, const Set *b);
+```
+
+Set `dest = a \ b`. Elements present in `a` but **not** in `b` are added.
 
 ```c
 void set_clear(Set *s);

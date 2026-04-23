@@ -39,25 +39,26 @@ Stack *s = stack_create(sizeof(int), arena_allocator(a));
 ### `stack_push`
 
 ```c
-void stack_push(Stack *s, const void *elem);
+SeqcStatus stack_push(Stack *s, const void *elem);
 ```
 
-Push a copy of `elem` onto the top.
+Push a copy of `elem` onto the top. Returns `SEQC_OOM` if the underlying Vec
+fails to grow; `SEQC_OK` otherwise.
 
 ---
 
 ### `stack_pop`
 
 ```c
-bool stack_pop(Stack *s, void *out);
+SeqcStatus stack_pop(Stack *s, void *out);
 ```
 
 Remove the top element. Copies it into `*out` if `out` is not `NULL`.
-Returns `true` on success, `false` if the stack is empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if the stack is empty.
 
 ```c
 int val;
-if (stack_pop(s, &val))
+if (stack_pop(s, &val) == SEQC_OK)
     printf("popped %d\n", val);
 ```
 
@@ -135,7 +136,7 @@ for (int i = 1; i <= 5; i++)
 
 // drain LIFO
 int v;
-while (stack_pop(s, &v))
+while (stack_pop(s, &v) == SEQC_OK)
     printf("%d\n", v);  // prints 5 4 3 2 1
 
 arena_free(a);

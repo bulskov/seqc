@@ -82,27 +82,39 @@ static size_t hashmap_get_slot(const HashMap *map, const void *key)
     return h & (map->cap - 1);
 }
 
-static void hashmap_set_bucket(HashMap *map, size_t slot, Bucket *bucket)
+static bool hashmap_set_bucket(HashMap *map, size_t slot, Bucket *bucket)
 {
     Bucket *b = &map->buckets[slot];
     b->key = map->allocator.alloc(
         map->allocator.ctx, map->key_size, _Alignof(max_align_t));
+    if (!b->key)
+        return false;
     b->value = map->allocator.alloc(
         map->allocator.ctx, map->val_size, _Alignof(max_align_t));
+    if (!b->value)
+    {
+        if (map->allocator.free)
+            map->allocator.free(map->allocator.ctx, b->key);
+        b->key = NULL;
+        return false;
+    }
     memcpy(b->key, bucket->key, map->key_size);
     memcpy(b->value, bucket->value, map->val_size);
     b->psl = bucket->psl;
     if (bucket->psl > map->max_psl)
         map->max_psl = bucket->psl;
+    return true;
 }
 
-static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
+static SeqcStatus hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
 {
     Bucket *old_buckets = map->buckets;
     size_t old_cap = map->cap;
 
     Bucket *new_buckets = map->allocator.alloc(
         map->allocator.ctx, new_cap * sizeof(Bucket), _Alignof(Bucket));
+    if (!new_buckets)
+        return SEQC_OOM;
     memset(new_buckets, 0, new_cap * sizeof(Bucket));
 
     map->buckets = new_buckets;
@@ -123,9 +135,8 @@ static void hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
         }
     }
     if (map->allocator.free)
-    {
         map->allocator.free(map->allocator.ctx, old_buckets);
-    }
+    return SEQC_OK;
 }
 
 HashMap *hashmap_create(
@@ -215,19 +226,19 @@ size_t hashmap_len(const HashMap *map)
 
 bool hashmap_contains(const HashMap *map, const void *key)
 {
-    return hashmap_get(map, key, NULL);
+    return hashmap_get(map, key, NULL) == SEQC_OK;
 }
 
-bool hashmap_set(HashMap *map, const void *key, const void *value)
+SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
 {
     if (!map || !map->buckets || !key || !value)
-    {
-        return false; /* invalid map or key/value */
-    }
+        return SEQC_INVALID;
     if ((map->len + 1) * 4 > map->cap * 3 ||
         map->max_psl >= HASHMAP_PSL_THRESHOLD)
     {
-        hashmap_resize_and_rehash(map, map->cap * 2);
+        SeqcStatus rs = hashmap_resize_and_rehash(map, map->cap * 2);
+        if (rs != SEQC_OK)
+            return rs;
     }
 
     Bucket bucket = {.key = (void *)key, .value = (void *)value, .psl = 1};
@@ -237,27 +248,28 @@ bool hashmap_set(HashMap *map, const void *key, const void *value)
     {
         if (map->buckets[slot].psl == 0)
         {
-            hashmap_set_bucket(map, slot, &bucket);
+            if (!hashmap_set_bucket(map, slot, &bucket))
+                return SEQC_OOM;
             map->len++;
-            return true;
+            return SEQC_OK;
         }
         if (map->eq(map->buckets[slot].key, bucket.key, map->key_size))
         {
             memcpy(map->buckets[slot].value, bucket.value, map->val_size);
-            return true;
+            return SEQC_OK;
         }
         if (map->buckets[slot].psl < bucket.psl)
         {
             /* Robin Hood: steal the slot and reinsert the displaced bucket */
             Bucket temp = map->buckets[slot];
-            hashmap_set_bucket(map, slot, &bucket);
+            if (!hashmap_set_bucket(map, slot, &bucket))
+                return SEQC_OOM;
             bucket = temp;
         }
         bucket.psl++;
         assert(bucket.psl != 0); /* uint8_t overflow: degenerate hash function */
         slot = (slot + 1) & (map->cap - 1);
     }
-    return false;
 }
 
 bool hashmap_is_healthy(const HashMap *map)
@@ -293,43 +305,45 @@ HashMapStats hashmap_audit(const HashMap *map)
     };
 }
 
-bool hashmap_get(const HashMap *map, const void *key, void *out)
+SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out)
 {
     if (!map || !map->buckets || !key)
-        return false;
+        return SEQC_INVALID;
     size_t slot = hashmap_get_slot(map, key);
 
     while (1)
     {
         if (map->buckets[slot].psl == 0)
-            return false;
+            return SEQC_NOT_FOUND;
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
             if (out)
                 memcpy(out, map->buckets[slot].value, map->val_size);
-            return true;
+            return SEQC_OK;
         }
         slot = (slot + 1) & (map->cap - 1);
     }
 }
 
-bool hashmap_delete(HashMap *map, const void *key)
+SeqcStatus hashmap_delete(HashMap *map, const void *key)
 {
     if (!map || !map->buckets || !key)
-    {
-        return false; /* invalid map or key */
-    }
+        return SEQC_INVALID;
     size_t slot = hashmap_get_slot(map, key);
 
     while (1)
     {
         if (map->buckets[slot].psl == 0)
-        {
-            return false;
-        }
+            return SEQC_NOT_FOUND;
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
-            map->buckets[slot].psl = 0; /* mark as deleted */
+            if (map->allocator.free)
+            {
+                map->allocator.free(map->allocator.ctx, map->buckets[slot].key);
+                map->allocator.free(
+                    map->allocator.ctx, map->buckets[slot].value);
+            }
+            map->buckets[slot].psl = 0;
             map->len--;
 
             size_t prev = slot;
@@ -342,8 +356,7 @@ bool hashmap_delete(HashMap *map, const void *key)
                 prev = slot;
                 slot = (slot + 1) & (map->cap - 1);
             }
-
-            return true;
+            return SEQC_OK;
         }
         slot = (slot + 1) & (map->cap - 1);
     }
@@ -443,4 +456,23 @@ Iter hashmap_iter_rev(const HashMap *map)
         .state = s,
         .elem_size = sizeof(HashMapEntry),
         .allocator = map->allocator};
+}
+
+SeqcStatus hashmap_set_all(HashMap *map, Iter it)
+{
+    if (!map)
+    {
+        iter_drop(&it);
+        return SEQC_INVALID;
+    }
+    HashMapEntry e;
+    SeqcStatus st = SEQC_OK;
+    while (it.next(&it, &e))
+    {
+        st = hashmap_set(map, e.key, e.value);
+        if (st != SEQC_OK)
+            break;
+    }
+    iter_drop(&it);
+    return st;
 }

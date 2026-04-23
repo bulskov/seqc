@@ -23,17 +23,17 @@ PQueue *pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator);
 PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator);
 
 /* Push a copy of elem and restore the heap property. */
-void pqueue_push(PQueue *q, const void *elem);
+SeqcStatus pqueue_push(PQueue *q, const void *elem);
 
 /* Copy the minimum element to *out (may be NULL to discard) and remove it.
- * Returns 1 on success, 0 if the queue is empty. */
-bool pqueue_pop(PQueue *q, void *out);
+ * Returns SEQC_OK on success, SEQC_NOT_FOUND if the queue is empty. */
+SeqcStatus pqueue_pop(PQueue *q, void *out);
 
 /* Copy the minimum element into out (may be NULL to test for non-empty).
- * Returns true if the queue is non-empty, false if empty.
+ * Returns SEQC_OK if non-empty, SEQC_NOT_FOUND if empty.
  * Invalidated by pqueue_push (may reallocate the backing buffer) or
  * pqueue_pop (reorders the heap). */
-bool pqueue_peek(const PQueue *q, void *out);
+SeqcStatus pqueue_peek(const PQueue *q, void *out);
 
 size_t pqueue_len(const PQueue *q);
 bool pqueue_is_empty(const PQueue *q);

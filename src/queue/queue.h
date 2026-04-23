@@ -9,9 +9,9 @@
 typedef struct Queue Queue;
 
 Queue *queue_create(size_t elem_size, Allocator allocator);
-void queue_push(Queue *q, const void *elem); /* enqueue at back */
-bool queue_pop(
-    Queue *q, void *out);         /* dequeue from front; true=ok false=empty */
+SeqcStatus queue_push(Queue *q, const void *elem); /* enqueue at back */
+SeqcStatus queue_pop(
+    Queue *q, void *out); /* dequeue from front; SEQC_NOT_FOUND if empty */
 void *queue_peek(const Queue *q); /* front element; NULL if empty */
 void *queue_back(
     const Queue *q); /* back (last enqueued) element; NULL if empty */

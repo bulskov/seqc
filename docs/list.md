@@ -50,23 +50,24 @@ List  *l = list_create(sizeof(int), arena_allocator(a));
 ### `list_push_front` / `list_push_back`
 
 ```c
-void list_push_front(List *l, const void *elem);
-void list_push_back(List *l, const void *elem);
+SeqcStatus list_push_front(List *l, const void *elem);
+SeqcStatus list_push_back(List *l, const void *elem);
 ```
 
-Prepend / append a copy of `elem`. Both are O(1).
+Prepend / append a copy of `elem`. Both are O(1). Return `SEQC_OOM` on
+allocation failure; `SEQC_OK` otherwise.
 
 ---
 
 ### `list_pop_front` / `list_pop_back`
 
 ```c
-bool list_pop_front(List *l, void *out);
-bool list_pop_back(List *l, void *out);
+SeqcStatus list_pop_front(List *l, void *out);
+SeqcStatus list_pop_back(List *l, void *out);
 ```
 
 Remove the front / back element. Copies it into `*out` if not `NULL`.
-Returns `true` on success, `false` if empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty.
 
 `list_pop_front` is O(1). `list_pop_back` is O(n) — it must walk to the
 second-to-last node. Use [`dlist`](dlist.md) if you need O(1) pop from

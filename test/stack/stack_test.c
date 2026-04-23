@@ -30,13 +30,13 @@ Test(stack, push_pop_lifo_order)
     push_ints(s, vals, 3);
     cr_assert_eq(stack_len(s), 3);
     int out;
-    cr_assert(stack_pop(s, &out));
+    cr_assert_eq(stack_pop(s, &out), SEQC_OK);
     cr_assert_eq(out, 3);
-    cr_assert(stack_pop(s, &out));
+    cr_assert_eq(stack_pop(s, &out), SEQC_OK);
     cr_assert_eq(out, 2);
-    cr_assert(stack_pop(s, &out));
+    cr_assert_eq(stack_pop(s, &out), SEQC_OK);
     cr_assert_eq(out, 1);
-    cr_assert_not(stack_pop(s, &out));
+    cr_assert_neq(stack_pop(s, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -64,7 +64,7 @@ Test(stack, pop_empty_returns_0)
     Arena *a = arena_create(64);
     Stack *s = stack_create(sizeof(int), arena_allocator(a));
     int out;
-    cr_assert_not(stack_pop(s, &out));
+    cr_assert_neq(stack_pop(s, &out), SEQC_OK);
     arena_free(a);
 }
 
@@ -94,7 +94,7 @@ Test(stack, pop_null_out_ok)
     Stack *s = stack_create(sizeof(int), arena_allocator(a));
     int v = 7;
     stack_push(s, &v);
-    cr_assert(stack_pop(s, NULL)); /* just discard */
+    cr_assert_eq(stack_pop(s, NULL), SEQC_OK); /* just discard */
     cr_assert(stack_is_empty(s));
     arena_free(a);
 }
@@ -123,7 +123,7 @@ Test(stack, clear_allows_reuse)
     int x = 99;
     stack_push(s, &x);
     int out;
-    cr_assert(stack_pop(s, &out));
+    cr_assert_eq(stack_pop(s, &out), SEQC_OK);
     cr_assert_eq(out, 99);
     arena_free(a);
 }

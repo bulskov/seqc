@@ -120,7 +120,7 @@ Test(vec, pop_returns_last_element)
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
     int out;
-    cr_assert(vec_pop(v, &out));
+    cr_assert_eq(vec_pop(v, &out), SEQC_OK);
     cr_assert_eq(out, 2);
     cr_assert_eq(vec_len(v), 2);
     arena_free(a);
@@ -130,7 +130,7 @@ Test(vec, pop_empty_returns_false)
 {
     Arena *a = arena_create(64);
     Vec *v = vec_create(sizeof(int), arena_allocator(a));
-    cr_assert_not(vec_pop(v, NULL));
+    cr_assert_neq(vec_pop(v, NULL), SEQC_OK);
     arena_free(a);
 }
 
@@ -140,7 +140,7 @@ Test(vec, pop_discard_with_null_out)
     Vec *v = vec_create(sizeof(int), arena_allocator(a));
     int x = 7;
     vec_push(v, &x);
-    cr_assert(vec_pop(v, NULL));
+    cr_assert_eq(vec_pop(v, NULL), SEQC_OK);
     cr_assert_eq(vec_len(v), 0);
     arena_free(a);
 }

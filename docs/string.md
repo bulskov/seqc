@@ -267,37 +267,40 @@ StringBuilder *sb_create(Allocator allocator);
 ### `sb_append`
 
 ```c
-void sb_append(StringBuilder *sb, String s);
+SeqcStatus sb_append(StringBuilder *sb, String s);
 ```
+
+Returns `SEQC_OOM` if the underlying Vec fails to grow; `SEQC_OK` otherwise.
 
 ### `sb_append_char`
 
 ```c
-void sb_append_char(StringBuilder *sb, char c);
+SeqcStatus sb_append_char(StringBuilder *sb, char c);
 ```
 
 ### `sb_append_cstr`
 
 ```c
-void sb_append_cstr(StringBuilder *sb, const char *s);
+SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s);
 ```
 
 ### `sb_append_int`
 
 ```c
-void sb_append_int(StringBuilder *sb, long long value);
+SeqcStatus sb_append_int(StringBuilder *sb, long long value);
 ```
 
-Format `value` with `snprintf` and append.
+Format `value` with `snprintf` and append. Returns `SEQC_OOM` on failure.
 
 ### `sb_append_fmt`
 
 ```c
-void sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
+SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
 ```
 
 `printf`-style formatting. Uses a 256-byte stack buffer for short results;
-falls back to an arena allocation for longer output.
+falls back to an arena allocation for longer output. Returns `SEQC_OOM` on
+allocation failure.
 
 ### `sb_finish`
 

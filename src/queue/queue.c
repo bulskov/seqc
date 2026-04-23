@@ -30,15 +30,17 @@ Queue *queue_create(size_t elem_size, Allocator allocator)
     return q;
 }
 
-static void queue_grow(Queue *q)
+static SeqcStatus queue_grow(Queue *q)
 {
     size_t new_cap = q->cap == 0 ? INITIAL_CAP : q->cap * 2;
     char *new_buf = q->allocator.alloc(
         q->allocator.ctx, new_cap * q->elem_size, _Alignof(max_align_t));
+    if (!new_buf)
+        return SEQC_OOM;
     /* copy elements from head to tail in logical order */
     for (size_t i = 0; i < q->len; i++)
     {
-        size_t src = (q->head + i) % q->cap;
+        size_t src = (q->head + i) % (q->cap == 0 ? 1 : q->cap);
         memcpy(
             new_buf + i * q->elem_size,
             q->buf + src * q->elem_size,
@@ -49,28 +51,34 @@ static void queue_grow(Queue *q)
     q->buf = new_buf;
     q->cap = new_cap;
     q->head = 0;
+    return SEQC_OK;
 }
 
-void queue_push(Queue *q, const void *elem)
+SeqcStatus queue_push(Queue *q, const void *elem)
 {
     if (!q || !elem)
-        return;
+        return SEQC_INVALID;
     if (q->len == q->cap)
-        queue_grow(q);
+    {
+        SeqcStatus s = queue_grow(q);
+        if (s != SEQC_OK)
+            return s;
+    }
     size_t tail = (q->head + q->len) % q->cap;
     memcpy(q->buf + tail * q->elem_size, elem, q->elem_size);
     q->len++;
+    return SEQC_OK;
 }
 
-bool queue_pop(Queue *q, void *out)
+SeqcStatus queue_pop(Queue *q, void *out)
 {
     if (!q || q->len == 0)
-        return false;
+        return SEQC_NOT_FOUND;
     if (out)
         memcpy(out, q->buf + q->head * q->elem_size, q->elem_size);
     q->head = (q->head + 1) % q->cap;
     q->len--;
-    return true;
+    return SEQC_OK;
 }
 
 void *queue_peek(const Queue *q)

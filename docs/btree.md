@@ -47,11 +47,11 @@ BTree *t = btree_create(sizeof(int), int_cmp, arena_allocator(a));
 ### `btree_insert`
 
 ```c
-bool btree_insert(BTree *t, const void *elem);
+SeqcStatus btree_insert(BTree *t, const void *elem);
 ```
 
-Insert a copy of `elem`. Returns `true` if inserted, `false` if a duplicate already
-exists (duplicates are rejected).
+Insert a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
+already present (tree unchanged), `SEQC_OOM` on allocation failure.
 
 ---
 
@@ -68,10 +68,10 @@ Return `true` if `elem` is present.
 ### `btree_remove`
 
 ```c
-bool btree_remove(BTree *t, const void *elem);
+SeqcStatus btree_remove(BTree *t, const void *elem);
 ```
 
-Remove `elem`. Returns `true` if removed, `false` if not found.
+Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 

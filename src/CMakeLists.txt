@@ -14,6 +14,7 @@ add_library(seqc STATIC
     avl/avl.c
     omap/omap.c
     pqueue/pqueue.c
+    ringbuf/ringbuf.c
 )
 
 target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

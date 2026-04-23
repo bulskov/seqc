@@ -6,6 +6,17 @@
 #include "arena/arena.h"
 #include "slice/slice.h"
 
+/* --- Error / status codes ---------------------------------------------- */
+
+typedef enum
+{
+    SEQC_OK = 0,       /* operation succeeded / element found    */
+    SEQC_NOT_FOUND,    /* element or key is absent               */
+    SEQC_DUPLICATE,    /* element already present (no-op insert) */
+    SEQC_OOM,          /* allocator returned NULL                */
+    SEQC_INVALID,      /* NULL or otherwise invalid argument     */
+} SeqcStatus;
+
 typedef struct Iter Iter;
 
 typedef bool (*pred_fn)(const void *elem, void *ctx);

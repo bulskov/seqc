@@ -63,6 +63,8 @@ static OMNode *make_node(const OMap *m, const void *key, const void *value)
         m->allocator.ctx,
         node_sz(m->key_size, m->val_size),
         _Alignof(max_align_t));
+    if (!n)
+        return NULL;
     n->left = n->right = NULL;
     n->height = 1;
     memcpy(node_key(n), key, m->key_size);
@@ -153,21 +155,28 @@ OMap *omap_create(
 /* ---- set (insert or update) ------------------------------------------- */
 
 static OMNode *do_set(
-    OMap *m, OMNode *node, const void *key, const void *value, bool *inserted)
+    OMap *m, OMNode *node, const void *key, const void *value, bool *inserted,
+    bool *oom)
 {
     if (!node)
     {
+        OMNode *n = make_node(m, key, value);
+        if (!n) { *oom = true; return NULL; }
         *inserted = true;
-        return make_node(m, key, value);
+        return n;
     }
     int c = m->cmp(key, node_key(node));
     if (c < 0)
     {
-        node->left = do_set(m, node->left, key, value, inserted);
+        OMNode *new_left = do_set(m, node->left, key, value, inserted, oom);
+        if (*oom) return node;
+        node->left = new_left;
     }
     else if (c > 0)
     {
-        node->right = do_set(m, node->right, key, value, inserted);
+        OMNode *new_right = do_set(m, node->right, key, value, inserted, oom);
+        if (*oom) return node;
+        node->right = new_right;
     }
     else
     {
@@ -179,23 +188,28 @@ static OMNode *do_set(
     return rebalance(node);
 }
 
-bool omap_set(OMap *m, const void *key, const void *value)
+SeqcStatus omap_set(OMap *m, const void *key, const void *value)
 {
     if (!m || !key || !value)
-        return false;
+        return SEQC_INVALID;
     bool inserted = false;
-    m->root = do_set(m, m->root, key, value, &inserted);
+    bool oom = false;
+    OMNode *new_root = do_set(m, m->root, key, value, &inserted, &oom);
+    if (oom)
+        return SEQC_OOM;
+    if (new_root)
+        m->root = new_root;
     if (inserted)
         m->len++;
-    return inserted;
+    return SEQC_OK;
 }
 
 /* ---- get --------------------------------------------------------------- */
 
-bool omap_get(const OMap *m, const void *key, void *out)
+SeqcStatus omap_get(const OMap *m, const void *key, void *out)
 {
     if (!m || !key)
-        return false;
+        return SEQC_INVALID;
     OMNode *cur = m->root;
     while (cur)
     {
@@ -208,15 +222,15 @@ bool omap_get(const OMap *m, const void *key, void *out)
         {
             if (out)
                 memcpy(out, node_val(cur, m->key_size), m->val_size);
-            return true;
+            return SEQC_OK;
         }
     }
-    return false;
+    return SEQC_NOT_FOUND;
 }
 
 bool omap_contains(const OMap *m, const void *key)
 {
-    return omap_get(m, key, NULL);
+    return omap_get(m, key, NULL) == SEQC_OK;
 }
 
 /* ---- remove ------------------------------------------------------------ */
@@ -276,47 +290,47 @@ static OMNode *do_remove(OMap *m, OMNode *node, const void *key, bool *removed)
     return rebalance(node);
 }
 
-bool omap_remove(OMap *m, const void *key)
+SeqcStatus omap_remove(OMap *m, const void *key)
 {
     if (!m || !key)
-        return false;
+        return SEQC_INVALID;
     bool removed = false;
     m->root = do_remove(m, m->root, key, &removed);
     if (removed)
         m->len--;
-    return removed;
+    return removed ? SEQC_OK : SEQC_NOT_FOUND;
 }
 
 /* ---- min / max --------------------------------------------------------- */
 
-bool omap_min_key(const OMap *m, void *out)
+SeqcStatus omap_min_key(const OMap *m, void *out)
 {
     if (!m || !m->root)
-        return false;
+        return SEQC_NOT_FOUND;
     OMNode *cur = m->root;
     while (cur->left)
         cur = cur->left;
     if (out)
         memcpy(out, node_key(cur), m->key_size);
-    return true;
+    return SEQC_OK;
 }
 
-bool omap_max_key(const OMap *m, void *out)
+SeqcStatus omap_max_key(const OMap *m, void *out)
 {
     if (!m || !m->root)
-        return false;
+        return SEQC_NOT_FOUND;
     OMNode *cur = m->root;
     while (cur->right)
         cur = cur->right;
     if (out)
         memcpy(out, node_key(cur), m->key_size);
-    return true;
+    return SEQC_OK;
 }
 
-bool omap_min_entry(const OMap *m, void *key_out, void *val_out)
+SeqcStatus omap_min_entry(const OMap *m, void *key_out, void *val_out)
 {
     if (!m || !m->root)
-        return false;
+        return SEQC_NOT_FOUND;
     OMNode *cur = m->root;
     while (cur->left)
         cur = cur->left;
@@ -324,13 +338,13 @@ bool omap_min_entry(const OMap *m, void *key_out, void *val_out)
         memcpy(key_out, node_key(cur), m->key_size);
     if (val_out)
         memcpy(val_out, node_val(cur, m->key_size), m->val_size);
-    return true;
+    return SEQC_OK;
 }
 
-bool omap_max_entry(const OMap *m, void *key_out, void *val_out)
+SeqcStatus omap_max_entry(const OMap *m, void *key_out, void *val_out)
 {
     if (!m || !m->root)
-        return false;
+        return SEQC_NOT_FOUND;
     OMNode *cur = m->root;
     while (cur->right)
         cur = cur->right;
@@ -338,7 +352,7 @@ bool omap_max_entry(const OMap *m, void *key_out, void *val_out)
         memcpy(key_out, node_key(cur), m->key_size);
     if (val_out)
         memcpy(val_out, node_val(cur, m->key_size), m->val_size);
-    return true;
+    return SEQC_OK;
 }
 
 size_t omap_len(const OMap *m)

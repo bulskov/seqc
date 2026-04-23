@@ -49,6 +49,34 @@ to abandon an iterator early (e.g. after `iter_find`).
 | `compare_fn`  | `int fn(const void *a, const void *b)`                   | `iter_sort`, `iter_min`, `iter_max`, sorted containers                                   |
 | `flat_map_fn` | `void fn(const void *elem, Iter *out, void *ctx)`        | `iter_flat_map`                                                                          |  | `hash_fn` | `size_t fn(const void *key, size_t key_size)` | `hashmap_create`, `set_create` |
 | `eq_fn`       | `bool fn(const void *a, const void *b, size_t key_size)` | `hashmap_create`, `set_create`                                                           |
+
+---
+
+## SeqcStatus
+
+All mutating operations that can fail return a `SeqcStatus` (defined in
+`iter/iter.h`).
+
+```c
+typedef enum {
+    SEQC_OK        = 0,  /* success — treat as false in error checks  */
+    SEQC_NOT_FOUND = 1,  /* element absent or collection empty        */
+    SEQC_DUPLICATE = 2,  /* element already present (sets, trees)     */
+    SEQC_OOM       = 3,  /* allocation failed                         */
+    SEQC_INVALID   = 4,  /* invalid argument (e.g. NULL out pointer)  */
+} SeqcStatus;
+```
+
+The zero value `SEQC_OK` is falsy so you can write either style:
+
+```c
+if (vec_push(v, &x))       { /* error */ }   /* truthy = any failure */
+if (vec_push(v, &x) != SEQC_OK) { /* error */ }   /* explicit */
+```
+
+Predicate functions (`_contains`, `_is_empty`, `_is_healthy`, `string_equals`,
+…) keep `bool` return types and are unaffected.
+
 ---
 
 ## Sources

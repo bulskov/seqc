@@ -56,11 +56,11 @@ OMap  *m = omap_create(sizeof(int), sizeof(double),
 ### `omap_set`
 
 ```c
-bool omap_set(OMap *m, const void *key, const void *value);
+SeqcStatus omap_set(OMap *m, const void *key, const void *value);
 ```
 
-Insert or update. Returns `true` if a new key was inserted, `false` if an existing
-key was updated.
+Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
+an existing one. Returns `SEQC_OOM` if an allocation fails.
 
 ```c
 int    k = 1;
@@ -73,15 +73,15 @@ omap_set(m, &k, &v);
 ### `omap_get`
 
 ```c
-bool omap_get(const OMap *m, const void *key, void *out);
+SeqcStatus omap_get(const OMap *m, const void *key, void *out);
 ```
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
-presence only. Returns `true` if found, `false` otherwise.
+presence only. Returns `SEQC_OK` if found, `SEQC_NOT_FOUND` otherwise.
 
 ```c
 double val;
-if (omap_get(m, &(int){1}, &val))
+if (omap_get(m, &(int){1}, &val) == SEQC_OK)
     printf("%.2f\n", val);
 ```
 
@@ -98,35 +98,37 @@ bool omap_contains(const OMap *m, const void *key);
 ### `omap_remove`
 
 ```c
-bool omap_remove(OMap *m, const void *key);
+SeqcStatus omap_remove(OMap *m, const void *key);
 ```
 
-Remove by key. Returns `true` if removed, `false` if not found.
+Remove by key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
 ### `omap_min_key` / `omap_max_key`
 
 ```c
-bool omap_min_key(const OMap *m, void *out);
-bool omap_max_key(const OMap *m, void *out);
+SeqcStatus omap_min_key(const OMap *m, void *out);
+SeqcStatus omap_max_key(const OMap *m, void *out);
 ```
 
-Copy the smallest / largest key into `*out`. Returns `false` if the map is
-empty; `out` may be `NULL` to test for non-emptiness.
+Copy the smallest / largest key into `*out`. Returns `SEQC_NOT_FOUND` if the
+map is empty; `out` may be `NULL` to test for non-emptiness. Returns
+`SEQC_OK` on success.
 
 ---
 
 ### `omap_min_entry` / `omap_max_entry`
 
 ```c
-bool omap_min_entry(const OMap *m, void *key_out, void *val_out);
-bool omap_max_entry(const OMap *m, void *key_out, void *val_out);
+SeqcStatus omap_min_entry(const OMap *m, void *key_out, void *val_out);
+SeqcStatus omap_max_entry(const OMap *m, void *key_out, void *val_out);
 ```
 
 Copy both the key and value at the minimum / maximum position into
 `*key_out` and `*val_out` respectively. Either output pointer may be `NULL`
-to skip that field. Returns `false` if the map is empty.
+to skip that field. Returns `SEQC_NOT_FOUND` if the map is empty;
+`SEQC_OK` on success.
 
 Prefer these over `omap_min_key` + `omap_get` when you need both key and
 value, since the latter would require two tree walks.

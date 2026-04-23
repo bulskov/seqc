@@ -38,6 +38,8 @@ static DListNode *make_node(const DList *l, const void *elem)
 {
     DListNode *node = l->allocator.alloc(
         l->allocator.ctx, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    if (!node)
+        return NULL;
     node->prev = NULL;
     node->next = NULL;
     memcpy(node_data(node), elem, l->elem_size);
@@ -73,11 +75,13 @@ DList *dlist_create(size_t elem_size, Allocator allocator)
     return l;
 }
 
-void dlist_push_front(DList *l, const void *elem)
+SeqcStatus dlist_push_front(DList *l, const void *elem)
 {
     if (!l || !elem)
-        return;
+        return SEQC_INVALID;
     DListNode *node = make_node(l, elem);
+    if (!node)
+        return SEQC_OOM;
     node->next = l->head;
     if (l->head)
         l->head->prev = node;
@@ -85,13 +89,16 @@ void dlist_push_front(DList *l, const void *elem)
         l->tail = node;
     l->head = node;
     l->len++;
+    return SEQC_OK;
 }
 
-void dlist_push_back(DList *l, const void *elem)
+SeqcStatus dlist_push_back(DList *l, const void *elem)
 {
     if (!l || !elem)
-        return;
+        return SEQC_INVALID;
     DListNode *node = make_node(l, elem);
+    if (!node)
+        return SEQC_OOM;
     node->prev = l->tail;
     if (l->tail)
         l->tail->next = node;
@@ -99,26 +106,27 @@ void dlist_push_back(DList *l, const void *elem)
         l->head = node;
     l->tail = node;
     l->len++;
+    return SEQC_OK;
 }
 
-bool dlist_pop_front(DList *l, void *out)
+SeqcStatus dlist_pop_front(DList *l, void *out)
 {
     if (!l || !l->head)
-        return false;
+        return SEQC_NOT_FOUND;
     if (out)
         memcpy(out, node_data(l->head), l->elem_size);
     unlink_and_free(l, l->head);
-    return true;
+    return SEQC_OK;
 }
 
-bool dlist_pop_back(DList *l, void *out)
+SeqcStatus dlist_pop_back(DList *l, void *out)
 {
     if (!l || !l->tail)
-        return false;
+        return SEQC_NOT_FOUND;
     if (out)
         memcpy(out, node_data(l->tail), l->elem_size);
     unlink_and_free(l, l->tail);
-    return true;
+    return SEQC_OK;
 }
 
 void *dlist_front(const DList *l)

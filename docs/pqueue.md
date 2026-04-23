@@ -75,7 +75,7 @@ PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
 // Identical to pushing all elements one-by-one but O(n) instead of O(n log n)
 
 int v_out;
-while (pqueue_pop(q, &v_out))
+while (pqueue_pop(q, &v_out) == SEQC_OK)
     printf("%d\n", v_out);  // 0 1 2 3 4 5 6 7 8 9
 arena_free(a);
 ```
@@ -85,25 +85,26 @@ arena_free(a);
 ### `pqueue_push`
 
 ```c
-void pqueue_push(PQueue *q, const void *elem);
+SeqcStatus pqueue_push(PQueue *q, const void *elem);
 ```
 
-Push a copy of `elem` and restore the heap property via sift-up. O(log n).
+Push a copy of `elem` and restore the heap property via sift-up. Returns
+`SEQC_OOM` on allocation failure; `SEQC_OK` otherwise. O(log n).
 
 ---
 
 ### `pqueue_pop`
 
 ```c
-bool pqueue_pop(PQueue *q, void *out);
+SeqcStatus pqueue_pop(PQueue *q, void *out);
 ```
 
 Remove and return the minimum element. Copies it into `*out` if `out` is not
-`NULL`. Returns `true` on success, `false` if empty. O(log n).
+`NULL`. Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty. O(log n).
 
 ```c
 int v;
-while (pqueue_pop(q, &v))
+while (pqueue_pop(q, &v) == SEQC_OK)
     printf("%d\n", v);  // ascending order
 ```
 
@@ -112,16 +113,16 @@ while (pqueue_pop(q, &v))
 ### `pqueue_peek`
 
 ```c
-bool pqueue_peek(const PQueue *q, void *out);
+SeqcStatus pqueue_peek(const PQueue *q, void *out);
 ```
 
 Copy the minimum element into `*out` without removing it. `out` may be `NULL`
-to test for non-emptiness. Returns `true` if the queue is non-empty, `false`
-otherwise. O(1).
+to test for non-emptiness. Returns `SEQC_OK` if the queue is non-empty,
+`SEQC_NOT_FOUND` otherwise. O(1).
 
 ```c
 int top;
-if (pqueue_peek(q, &top))
+if (pqueue_peek(q, &top) == SEQC_OK)
     printf("min: %d\n", top);
 ```
 

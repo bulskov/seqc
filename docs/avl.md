@@ -45,10 +45,11 @@ AVLTree *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 ### `avl_insert`
 
 ```c
-bool avl_insert(AVLTree *t, const void *elem);
+SeqcStatus avl_insert(AVLTree *t, const void *elem);
 ```
 
-Insert a copy of `elem`. Returns `true` if inserted, `false` if duplicate.
+Insert a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
+already present (tree unchanged), `SEQC_OOM` on allocation failure.
 
 ---
 
@@ -63,10 +64,10 @@ bool avl_contains(const AVLTree *t, const void *elem);
 ### `avl_remove`
 
 ```c
-bool avl_remove(AVLTree *t, const void *elem);
+SeqcStatus avl_remove(AVLTree *t, const void *elem);
 ```
 
-Remove `elem`. Returns `true` if removed, `false` if not found.
+Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 

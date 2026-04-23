@@ -188,20 +188,25 @@ StringBuilder *sb_create(Allocator allocator)
     return sb;
 }
 
-void sb_append(StringBuilder *sb, String s)
+SeqcStatus sb_append(StringBuilder *sb, String s)
 {
     for (size_t i = 0; i < s.len; i++)
-        vec_push(sb->chars, &s.ptr[i]);
+    {
+        SeqcStatus st = vec_push(sb->chars, &s.ptr[i]);
+        if (st != SEQC_OK)
+            return st;
+    }
+    return SEQC_OK;
 }
 
-void sb_append_char(StringBuilder *sb, char c)
+SeqcStatus sb_append_char(StringBuilder *sb, char c)
 {
-    vec_push(sb->chars, &c);
+    return vec_push(sb->chars, &c);
 }
 
-void sb_append_cstr(StringBuilder *sb, const char *s)
+SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s)
 {
-    sb_append(sb, string_from_cstr(s));
+    return sb_append(sb, string_from_cstr(s));
 }
 
 String sb_finish(const StringBuilder *sb)
@@ -210,15 +215,16 @@ String sb_finish(const StringBuilder *sb)
     return (String){(const char *)s.ptr, s.len};
 }
 
-void sb_append_int(StringBuilder *sb, long long value)
+SeqcStatus sb_append_int(StringBuilder *sb, long long value)
 {
     char buf[32];
     int n = snprintf(buf, sizeof buf, "%lld", value);
     if (n > 0)
-        sb_append_cstr(sb, buf);
+        return sb_append_cstr(sb, buf);
+    return SEQC_OK;
 }
 
-void sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
+SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
 {
     /* First pass: measure */
     va_list ap;
@@ -226,20 +232,28 @@ void sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
     int n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
     if (n <= 0)
-        return;
+        return SEQC_OK;
     /* Second pass: write into a stack buffer (common case) or heap */
     char stack_buf[256];
     char *buf = (size_t)n + 1 <= sizeof stack_buf
                     ? stack_buf
                     : sb->allocator.alloc(
                           sb->allocator.ctx, (size_t)n + 1, _Alignof(char));
+    if (!buf)
+        return SEQC_OOM;
     va_start(ap, fmt);
     vsnprintf(buf, (size_t)n + 1, fmt, ap);
     va_end(ap);
+    SeqcStatus st = SEQC_OK;
     for (int i = 0; i < n; i++)
-        sb_append_char(sb, buf[i]);
+    {
+        st = sb_append_char(sb, buf[i]);
+        if (st != SEQC_OK)
+            break;
+    }
     if (buf != stack_buf && sb->allocator.free)
         sb->allocator.free(sb->allocator.ctx, buf);
+    return st;
 }
 
 /* string_join is defined after the builder because it uses StringBuilder. */

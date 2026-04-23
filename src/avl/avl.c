@@ -40,6 +40,8 @@ static AVLNode *make_node(const AVLTree *t, const void *elem)
 {
     AVLNode *n = t->allocator.alloc(
         t->allocator.ctx, node_alloc_size(t->elem_size), _Alignof(max_align_t));
+    if (!n)
+        return NULL;
     n->left = n->right = NULL;
     n->height = 1;
     memcpy(node_data(n), elem, t->elem_size);
@@ -152,18 +154,28 @@ AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator)
 /* --- insert ------------------------------------------------------------- */
 
 static AVLNode *do_insert(
-    AVLTree *t, AVLNode *node, const void *elem, bool *inserted)
+    AVLTree *t, AVLNode *node, const void *elem, bool *inserted, bool *oom)
 {
     if (!node)
     {
+        AVLNode *n = make_node(t, elem);
+        if (!n) { *oom = true; return NULL; }
         *inserted = true;
-        return make_node(t, elem);
+        return n;
     }
     int c = t->cmp(elem, node_data(node));
     if (c < 0)
-        node->left = do_insert(t, node->left, elem, inserted);
+    {
+        AVLNode *new_left = do_insert(t, node->left, elem, inserted, oom);
+        if (*oom) return node; /* preserve existing tree on OOM */
+        node->left = new_left;
+    }
     else if (c > 0)
-        node->right = do_insert(t, node->right, elem, inserted);
+    {
+        AVLNode *new_right = do_insert(t, node->right, elem, inserted, oom);
+        if (*oom) return node;
+        node->right = new_right;
+    }
     else
     {
         *inserted = false;
@@ -172,15 +184,20 @@ static AVLNode *do_insert(
     return rebalance(node);
 }
 
-bool avl_insert(AVLTree *t, const void *elem)
+SeqcStatus avl_insert(AVLTree *t, const void *elem)
 {
     if (!t || !elem)
-        return false;
+        return SEQC_INVALID;
     bool inserted = false;
-    t->root = do_insert(t, t->root, elem, &inserted);
+    bool oom = false;
+    AVLNode *new_root = do_insert(t, t->root, elem, &inserted, &oom);
+    if (oom)
+        return SEQC_OOM;
+    if (new_root)
+        t->root = new_root;
     if (inserted)
         t->len++;
-    return inserted;
+    return inserted ? SEQC_OK : SEQC_DUPLICATE;
 }
 
 /* --- contains ----------------------------------------------------------- */
@@ -256,15 +273,15 @@ static AVLNode *do_remove(
     return rebalance(node);
 }
 
-bool avl_remove(AVLTree *t, const void *elem)
+SeqcStatus avl_remove(AVLTree *t, const void *elem)
 {
     if (!t || !elem)
-        return false;
+        return SEQC_INVALID;
     bool removed = false;
     t->root = do_remove(t, t->root, elem, &removed);
     if (removed)
         t->len--;
-    return removed;
+    return removed ? SEQC_OK : SEQC_NOT_FOUND;
 }
 
 /* --- min / max ---------------------------------------------------------- */

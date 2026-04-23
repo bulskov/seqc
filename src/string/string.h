@@ -79,11 +79,11 @@ String string_trim_right(String s);
 typedef struct StringBuilder StringBuilder;
 
 StringBuilder *sb_create(Allocator allocator);
-void sb_append(StringBuilder *sb, String s);
-void sb_append_char(StringBuilder *sb, char c);
-void sb_append_cstr(StringBuilder *sb, const char *s);
-void sb_append_int(StringBuilder *sb, long long value);
-void sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
+SeqcStatus sb_append(StringBuilder *sb, String s);
+SeqcStatus sb_append_char(StringBuilder *sb, char c);
+SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s);
+SeqcStatus sb_append_int(StringBuilder *sb, long long value);
+SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
 String sb_finish(const StringBuilder *sb); /* view — no copy      */
 
 /* --- HashMap helpers ---------------------------------------------------- */

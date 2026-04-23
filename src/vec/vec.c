@@ -67,24 +67,27 @@ size_t vec_cap(const Vec *v)
     return v ? v->cap : 0;
 }
 
-void vec_push(Vec *v, const void *elem)
+SeqcStatus vec_push(Vec *v, const void *elem)
 {
     if (!v || !elem)
-    {
-        return;
-    }
+        return SEQC_INVALID;
     if (v->len == v->cap)
     {
-        v->cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
-        v->data = v->allocator.realloc(
+        size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
+        void *new_data = v->allocator.realloc(
             v->allocator.ctx,
             v->data,
             v->len * v->elem_size,
-            v->cap * v->elem_size,
+            new_cap * v->elem_size,
             _Alignof(max_align_t));
+        if (!new_data)
+            return SEQC_OOM;
+        v->data = new_data;
+        v->cap = new_cap;
     }
     memcpy((char *)v->data + v->len * v->elem_size, elem, v->elem_size);
     v->len++;
+    return SEQC_OK;
 }
 
 void *vec_get(const Vec *v, size_t i)
@@ -96,12 +99,14 @@ void *vec_get(const Vec *v, size_t i)
     return (char *)v->data + i * v->elem_size;
 }
 
-bool vec_get_copy(const Vec *v, size_t i, void *out)
+SeqcStatus vec_get_copy(const Vec *v, size_t i, void *out)
 {
-    if (!v || i >= v->len || !out)
-        return false;
+    if (!v || !out)
+        return SEQC_INVALID;
+    if (i >= v->len)
+        return SEQC_NOT_FOUND;
     memcpy(out, (char *)v->data + i * v->elem_size, v->elem_size);
-    return true;
+    return SEQC_OK;
 }
 
 Slice vec_as_slice(const Vec *v)
@@ -131,14 +136,14 @@ Iter vec_iter_rev(const Vec *v)
     return iter_from_slice_rev(vec_as_slice(v), v->allocator);
 }
 
-bool vec_pop(Vec *v, void *out)
+SeqcStatus vec_pop(Vec *v, void *out)
 {
     if (!v || v->len == 0)
-        return false;
+        return SEQC_NOT_FOUND;
     v->len--;
     if (out)
         memcpy(out, (char *)v->data + v->len * v->elem_size, v->elem_size);
-    return true;
+    return SEQC_OK;
 }
 
 void vec_set(Vec *v, size_t i, const void *elem)
@@ -148,28 +153,36 @@ void vec_set(Vec *v, size_t i, const void *elem)
     memcpy((char *)v->data + i * v->elem_size, elem, v->elem_size);
 }
 
-void vec_reserve(Vec *v, size_t capacity)
+SeqcStatus vec_reserve(Vec *v, size_t capacity)
 {
-    if (!v || capacity <= v->cap)
-        return;
-    v->data = v->allocator.realloc(
+    if (!v)
+        return SEQC_INVALID;
+    if (capacity <= v->cap)
+        return SEQC_OK;
+    void *new_data = v->allocator.realloc(
         v->allocator.ctx,
         v->data,
         v->len * v->elem_size,
         capacity * v->elem_size,
         _Alignof(max_align_t));
+    if (!new_data)
+        return SEQC_OOM;
+    v->data = new_data;
     v->cap = capacity;
+    return SEQC_OK;
 }
 
-void vec_insert(Vec *v, size_t i, const void *elem)
+SeqcStatus vec_insert(Vec *v, size_t i, const void *elem)
 {
     if (!v || !elem || i > v->len)
-        return;
+        return SEQC_INVALID;
     /* ensure space */
     if (v->len == v->cap)
     {
         size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
-        vec_reserve(v, new_cap);
+        SeqcStatus s = vec_reserve(v, new_cap);
+        if (s != SEQC_OK)
+            return s;
     }
     /* shift elements [i .. len-1] right by one */
     memmove(
@@ -178,6 +191,7 @@ void vec_insert(Vec *v, size_t i, const void *elem)
         (v->len - i) * v->elem_size);
     memcpy((char *)v->data + i * v->elem_size, elem, v->elem_size);
     v->len++;
+    return SEQC_OK;
 }
 
 void vec_remove(Vec *v, size_t i)
@@ -225,4 +239,30 @@ void vec_free(Vec *v)
     Allocator al = v->allocator;
     if (al.free)
         al.free(al.ctx, v);
+}
+
+SeqcStatus vec_extend(Vec *v, Iter it)
+{
+    if (!v)
+    {
+        iter_drop(&it);
+        return SEQC_INVALID;
+    }
+    void *elem = v->allocator.alloc(v->allocator.ctx, v->elem_size, _Alignof(max_align_t));
+    if (!elem)
+    {
+        iter_drop(&it);
+        return SEQC_OOM;
+    }
+    SeqcStatus st = SEQC_OK;
+    while (it.next(&it, elem))
+    {
+        st = vec_push(v, elem);
+        if (st != SEQC_OK)
+            break;
+    }
+    iter_drop(&it);
+    if (v->allocator.free)
+        v->allocator.free(v->allocator.ctx, elem);
+    return st;
 }

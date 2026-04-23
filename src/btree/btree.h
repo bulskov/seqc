@@ -13,11 +13,11 @@ typedef struct BTreeNode BTreeNode;
 typedef struct BTree BTree;
 
 BTree *btree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
-bool btree_insert(
-    BTree *t, const void *elem); /* true=inserted false=duplicate */
+/* SEQC_OK=inserted, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
+SeqcStatus btree_insert(BTree *t, const void *elem);
 bool btree_contains(const BTree *t, const void *elem);
-bool btree_remove(
-    BTree *t, const void *elem); /* true=removed  false=not found */
+/* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
+SeqcStatus btree_remove(BTree *t, const void *elem);
 void *btree_min(const BTree *t); /* NULL if empty          */
 void *btree_max(const BTree *t); /* NULL if empty          */
 size_t btree_len(const BTree *t);
