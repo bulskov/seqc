@@ -1,5 +1,4 @@
 #include "set.h"
-
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
@@ -31,8 +30,10 @@ static size_t set_slot(const Set *s, const void *key)
     return s->hash(key, s->elem_size) & (s->cap - 1);
 }
 
-/* Insert a bucket whose key is already allocated.  Does not touch s->len. */
-static void set_insert_raw(Set *s, SetBucket incoming)
+/* Insert a bucket whose key is already allocated.  Does not touch s->len.
+ * Returns true if inserted, false if a duplicate was found (incoming.key
+ * is freed on duplicate so the caller does not need to). */
+static bool set_insert_raw(Set *s, SetBucket incoming)
 {
     size_t slot = set_slot(s, incoming.key);
     incoming.psl = 1;
@@ -44,7 +45,13 @@ static void set_insert_raw(Set *s, SetBucket incoming)
             *cur = incoming;
             if (incoming.psl > s->max_psl)
                 s->max_psl = incoming.psl;
-            return;
+            return true;
+        }
+        if (s->eq(cur->key, incoming.key, s->elem_size))
+        {
+            if (s->allocator.free)
+                s->allocator.free(s->allocator.ctx, incoming.key);
+            return false; /* duplicate */
         }
         /* Robin Hood: steal the slot from the "rich" (low psl) bucket */
         if (cur->psl < incoming.psl)
@@ -109,16 +116,17 @@ bool set_contains(const Set *s, const void *elem)
     if (!s || !elem || s->len == 0)
         return false;
     size_t slot = set_slot(s, elem);
-    for (size_t i = 0; i < s->cap; i++)
+    uint8_t probe = 1;
+    while (1)
     {
-        size_t idx = (slot + i) & (s->cap - 1);
-        const SetBucket *b = &s->buckets[idx];
-        if (b->psl == 0)
+        const SetBucket *b = &s->buckets[slot];
+        if (b->psl == 0 || b->psl < probe)
             return false;
         if (s->eq(b->key, elem, s->elem_size))
             return true;
+        slot = (slot + 1) & (s->cap - 1);
+        probe++;
     }
-    return false;
 }
 
 SeqcStatus set_add(Set *s, const void *elem)
@@ -136,8 +144,6 @@ SeqcStatus set_add(Set *s, const void *elem)
         memset(s->buckets, 0, SET_INITIAL_CAP * sizeof(SetBucket));
         s->cap = SET_INITIAL_CAP;
     }
-    if (set_contains(s, elem))
-        return SEQC_DUPLICATE;
     if (s->len * 4 >= s->cap * 3 || s->max_psl >= SET_PSL_THRESHOLD)
     {
         SeqcStatus rs = set_resize(s);
@@ -149,7 +155,8 @@ SeqcStatus set_add(Set *s, const void *elem)
     if (!key)
         return SEQC_OOM;
     memcpy(key, elem, s->elem_size);
-    set_insert_raw(s, (SetBucket){key, 0});
+    if (!set_insert_raw(s, (SetBucket){key, 0}))
+        return SEQC_DUPLICATE; /* key freed inside set_insert_raw */
     s->len++;
     return SEQC_OK;
 }
@@ -159,11 +166,11 @@ SeqcStatus set_remove(Set *s, const void *elem)
     if (!s || !elem || s->len == 0)
         return SEQC_NOT_FOUND;
     size_t slot = set_slot(s, elem);
-    for (size_t i = 0; i < s->cap; i++)
+    uint8_t probe = 1;
+    while (1)
     {
-        size_t idx = (slot + i) & (s->cap - 1);
-        SetBucket *b = &s->buckets[idx];
-        if (b->psl == 0)
+        SetBucket *b = &s->buckets[slot];
+        if (b->psl == 0 || b->psl < probe)
             return SEQC_NOT_FOUND;
         if (s->eq(b->key, elem, s->elem_size))
         {
@@ -172,27 +179,33 @@ SeqcStatus set_remove(Set *s, const void *elem)
             /* backward shift to restore Robin Hood invariant */
             for (;;)
             {
-                size_t next = (idx + 1) & (s->cap - 1);
+                size_t next = (slot + 1) & (s->cap - 1);
                 SetBucket *nb = &s->buckets[next];
                 if (nb->psl <= 1)
                 {
-                    s->buckets[idx] = (SetBucket){NULL, 0};
+                    s->buckets[slot] = (SetBucket){NULL, 0};
                     break;
                 }
-                s->buckets[idx] = *nb;
-                s->buckets[idx].psl--;
-                idx = next;
+                s->buckets[slot] = *nb;
+                s->buckets[slot].psl--;
+                slot = next;
             }
             s->len--;
             return SEQC_OK;
         }
+        slot = (slot + 1) & (s->cap - 1);
+        probe++;
     }
-    return SEQC_NOT_FOUND;
 }
 
 size_t set_len(const Set *s)
 {
     return s ? s->len : 0;
+}
+
+bool set_is_empty(const Set *s)
+{
+    return set_len(s) == 0;
 }
 
 void set_free(Set *s)
@@ -298,6 +311,8 @@ Iter set_iter(const Set *s)
         return (Iter){0};
     SetIterState *state = s->allocator.alloc(
         s->allocator.ctx, sizeof *state, _Alignof(SetIterState));
+    if (!state)
+        return (Iter){0};
     *state = (SetIterState){s->buckets, s->cap, 0, s->elem_size};
     return (Iter){
         .next = set_iter_next,
@@ -342,6 +357,8 @@ Iter set_iter_rev(const Set *s)
         return (Iter){0};
     SetIterRevState *state = s->allocator.alloc(
         s->allocator.ctx, sizeof *state, _Alignof(SetIterRevState));
+    if (!state)
+        return (Iter){0};
     *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
     return (Iter){
         .next = set_iter_rev_next,

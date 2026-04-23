@@ -1,4 +1,5 @@
 #include "string.h"
+#include "vec/vec.h"
 
 #include <ctype.h>
 #include <errno.h>

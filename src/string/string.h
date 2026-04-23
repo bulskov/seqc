@@ -5,7 +5,7 @@
 
 #include "arena/arena.h" /* for Allocator, Scratch */
 #include "iter/iter.h"
-#include "vec/vec.h"
+
 
 #include <stdarg.h>
 

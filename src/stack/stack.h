@@ -1,7 +1,7 @@
 #pragma once
 
 #include "iter/iter.h"
-#include "vec/vec.h"
+
 
 /* Stack — LIFO wrapper over Vec */
 typedef struct Stack Stack;

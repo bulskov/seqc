@@ -10,7 +10,7 @@ add_library(seqc STATIC
     list/list.c
     set/set.c
     dlist/dlist.c
-    btree/btree.c
+    bstree/bstree.c
     avl/avl.c
     omap/omap.c
     pqueue/pqueue.c

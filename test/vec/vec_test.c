@@ -2,6 +2,7 @@
 
 #include "arena/arena.h"
 #include "vec/vec.h"
+#include "../oom_alloc.h"
 
 Test(vec, create_is_empty)
 {
@@ -380,4 +381,25 @@ Test(vec, insert_when_full_triggers_grow)
     cr_assert_eq(*(int *)vec_get(v, 1), 0);
     cr_assert_eq(vec_len(v), 17);
     arena_free(a);
+}
+
+/* ---- OOM paths --------------------------------------------------------- */
+
+Test(vec, create_returns_null_on_oom)
+{
+    Vec *v = vec_create(sizeof(int), null_allocator());
+    cr_assert_null(v);
+}
+
+Test(vec, push_returns_oom_when_grow_fails)
+{
+    /* alloc #1 succeeds (Vec struct), alloc #2 (data buffer grow) fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(1, &ctx);
+    Vec *v = vec_create(sizeof(int), al);
+    cr_assert_not_null(v);
+    int x = 1;
+    cr_assert_eq(vec_push(v, &x), SEQC_OOM);
+    cr_assert_eq(vec_len(v), 0);
+    free(v); /* allocated by oom_alloc's malloc */
 }

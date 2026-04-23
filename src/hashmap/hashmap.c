@@ -1,4 +1,5 @@
 #include "hashmap.h"
+#include "iter/hash.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -24,7 +25,7 @@ struct HashMap
     Allocator allocator;
 };
 
-size_t hashmap_fnv1a(const void *key, size_t key_size)
+size_t hash_fnv1a(const void *key, size_t key_size)
 {
     if (key_size == 0 || key == NULL)
     {
@@ -40,7 +41,7 @@ size_t hashmap_fnv1a(const void *key, size_t key_size)
     return (size_t)hash;
 }
 
-bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size)
+bool hash_eq_bytes(const void *a, const void *b, size_t key_size)
 {
     if (key_size == 0)
         return true; /* treat all zero-size keys as equal */
@@ -51,13 +52,15 @@ bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size)
     return memcmp(a, b, key_size) == 0;
 }
 
-size_t hashmap_fnv1a_str(const void *key, size_t key_size)
+size_t hash_fnv1a_str(const void *key, size_t key_size)
 {
     if (key_size != sizeof(char *) || key == NULL)
     {
         return 0; /* invalid key size for string map */
     }
     const char *s = *(const char *const *)key;
+    if(!s)
+        return 0;
     uint64_t hash = 14695981039346656037ULL;
     for (; *s; s++)
     {
@@ -67,7 +70,7 @@ size_t hashmap_fnv1a_str(const void *key, size_t key_size)
     return (size_t)hash;
 }
 
-bool hashmap_eq_str(const void *a, const void *b, size_t key_size)
+bool hash_eq_str(const void *a, const void *b, size_t key_size)
 {
     if (key_size != sizeof(char *) || a == NULL || b == NULL)
     {
@@ -82,28 +85,45 @@ static size_t hashmap_get_slot(const HashMap *map, const void *key)
     return h & (map->cap - 1);
 }
 
-static bool hashmap_set_bucket(HashMap *map, size_t slot, Bucket *bucket)
+static void hashmap_insert_raw(HashMap *map, Bucket incoming)
 {
-    Bucket *b = &map->buckets[slot];
-    b->key = map->allocator.alloc(
-        map->allocator.ctx, map->key_size, _Alignof(max_align_t));
-    if (!b->key)
-        return false;
-    b->value = map->allocator.alloc(
-        map->allocator.ctx, map->val_size, _Alignof(max_align_t));
-    if (!b->value)
+    size_t slot = map->hash(incoming.key, map->key_size) & (map->cap - 1);
+    incoming.psl = 1;
+    for (;;)
     {
-        if (map->allocator.free)
-            map->allocator.free(map->allocator.ctx, b->key);
-        b->key = NULL;
-        return false;
+        Bucket *cur = &map->buckets[slot];
+        if (cur->psl == 0)
+        {
+            *cur = incoming;
+            if (incoming.psl > map->max_psl)
+                map->max_psl = incoming.psl;
+            map->len++;
+            return;
+        }
+        if (map->eq(cur->key, incoming.key, map->key_size))
+        {
+            /* update in-place: install new value, free displaced copies */
+            void *old_val = cur->value;
+            cur->value = incoming.value;
+            if (map->allocator.free)
+            {
+                map->allocator.free(map->allocator.ctx, incoming.key);
+                map->allocator.free(map->allocator.ctx, old_val);
+            }
+            return;
+        }
+        if (cur->psl < incoming.psl)
+        {
+            Bucket tmp = *cur; /* pointer swap — no allocation */
+            *cur = incoming;
+            if (incoming.psl > map->max_psl)
+                map->max_psl = incoming.psl;
+            incoming = tmp;
+        }
+        incoming.psl++;
+        assert(incoming.psl != 0);
+        slot = (slot + 1) & (map->cap - 1);
     }
-    memcpy(b->key, bucket->key, map->key_size);
-    memcpy(b->value, bucket->value, map->val_size);
-    b->psl = bucket->psl;
-    if (bucket->psl > map->max_psl)
-        map->max_psl = bucket->psl;
-    return true;
 }
 
 static SeqcStatus hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
@@ -125,19 +145,39 @@ static SeqcStatus hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
     for (size_t i = 0; i < old_cap; i++)
     {
         if (old_buckets[i].psl != 0)
-        {
-            hashmap_set(map, old_buckets[i].key, old_buckets[i].value);
-            if (map->allocator.free)
-            {
-                map->allocator.free(map->allocator.ctx, old_buckets[i].key);
-                map->allocator.free(map->allocator.ctx, old_buckets[i].value);
-            }
-        }
+            hashmap_insert_raw(map, old_buckets[i]); /* transfers ownership */
     }
     if (map->allocator.free)
         map->allocator.free(map->allocator.ctx, old_buckets);
     return SEQC_OK;
 }
+
+SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
+{
+    if (!map || !map->buckets || !key || !value)
+        return SEQC_INVALID;
+    if ((map->len + 1) * 4 > map->cap * 3 || map->max_psl >= HASH_PSL_THRESHOLD) {
+        SeqcStatus rs = hashmap_resize_and_rehash(map, map->cap * 2);
+        if (rs != SEQC_OK) return rs;
+    }
+
+    // Allocate copies once — this is the only allocation point
+    void *key_copy = map->allocator.alloc(
+        map->allocator.ctx, map->key_size, _Alignof(max_align_t));
+    if (!key_copy) return SEQC_OOM;
+    void *val_copy = map->allocator.alloc(
+        map->allocator.ctx, map->val_size, _Alignof(max_align_t));
+    if (!val_copy) {
+        if (map->allocator.free) map->allocator.free(map->allocator.ctx, key_copy);
+        return SEQC_OOM;
+    }
+    memcpy(key_copy, key, map->key_size);
+    memcpy(val_copy, value, map->val_size);
+
+    hashmap_insert_raw(map, (Bucket){key_copy, val_copy, 0});
+    return SEQC_OK;
+}
+
 
 HashMap *hashmap_create(
     size_t key_size,
@@ -161,8 +201,11 @@ HashMap *hashmap_create(
 
     Bucket *buckets =
         allocator.alloc(allocator.ctx, cap * sizeof(Bucket), _Alignof(Bucket));
-    if (!buckets)
+    if (!buckets) {
+        if (allocator.free)
+            allocator.free(allocator.ctx, m);
         return NULL;
+    }
     memset(buckets, 0, cap * sizeof(Bucket));
     *m = (HashMap){
         .buckets = buckets,
@@ -224,57 +267,20 @@ size_t hashmap_len(const HashMap *map)
     return map ? map->len : 0;
 }
 
+bool hashmap_is_empty(const HashMap *map)
+{
+    return hashmap_len(map) == 0;
+}
+
 bool hashmap_contains(const HashMap *map, const void *key)
 {
     return hashmap_get(map, key, NULL) == SEQC_OK;
 }
 
-SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
-{
-    if (!map || !map->buckets || !key || !value)
-        return SEQC_INVALID;
-    if ((map->len + 1) * 4 > map->cap * 3 ||
-        map->max_psl >= HASHMAP_PSL_THRESHOLD)
-    {
-        SeqcStatus rs = hashmap_resize_and_rehash(map, map->cap * 2);
-        if (rs != SEQC_OK)
-            return rs;
-    }
-
-    Bucket bucket = {.key = (void *)key, .value = (void *)value, .psl = 1};
-    size_t slot = hashmap_get_slot(map, key);
-
-    while (1)
-    {
-        if (map->buckets[slot].psl == 0)
-        {
-            if (!hashmap_set_bucket(map, slot, &bucket))
-                return SEQC_OOM;
-            map->len++;
-            return SEQC_OK;
-        }
-        if (map->eq(map->buckets[slot].key, bucket.key, map->key_size))
-        {
-            memcpy(map->buckets[slot].value, bucket.value, map->val_size);
-            return SEQC_OK;
-        }
-        if (map->buckets[slot].psl < bucket.psl)
-        {
-            /* Robin Hood: steal the slot and reinsert the displaced bucket */
-            Bucket temp = map->buckets[slot];
-            if (!hashmap_set_bucket(map, slot, &bucket))
-                return SEQC_OOM;
-            bucket = temp;
-        }
-        bucket.psl++;
-        assert(bucket.psl != 0); /* uint8_t overflow: degenerate hash function */
-        slot = (slot + 1) & (map->cap - 1);
-    }
-}
 
 bool hashmap_is_healthy(const HashMap *map)
 {
-    return map && map->max_psl <= HASHMAP_PSL_THRESHOLD / 2;
+    return map && map->max_psl <= HASH_PSL_THRESHOLD / 2;
 }
 
 HashMapStats hashmap_audit(const HashMap *map)
@@ -301,7 +307,7 @@ HashMapStats hashmap_audit(const HashMap *map)
         .load_factor = load_factor,
         .max_psl = max_psl,
         .mean_psl = mean_psl,
-        .is_healthy = mean_psl < 3.0 && max_psl <= HASHMAP_PSL_THRESHOLD / 2,
+        .is_healthy = mean_psl < 3.0 && max_psl <= HASH_PSL_THRESHOLD / 2,
     };
 }
 
@@ -311,9 +317,11 @@ SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out)
         return SEQC_INVALID;
     size_t slot = hashmap_get_slot(map, key);
 
+    uint8_t probe = 1;
     while (1)
     {
-        if (map->buckets[slot].psl == 0)
+        uint8_t cur_psl = map->buckets[slot].psl;
+        if (cur_psl == 0 || cur_psl < probe)
             return SEQC_NOT_FOUND;
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
@@ -322,6 +330,7 @@ SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out)
             return SEQC_OK;
         }
         slot = (slot + 1) & (map->cap - 1);
+        probe++;
     }
 }
 
@@ -331,9 +340,11 @@ SeqcStatus hashmap_delete(HashMap *map, const void *key)
         return SEQC_INVALID;
     size_t slot = hashmap_get_slot(map, key);
 
+    uint8_t probe = 1;
     while (1)
     {
-        if (map->buckets[slot].psl == 0)
+        uint8_t cur_psl = map->buckets[slot].psl;
+        if (cur_psl == 0 || cur_psl < probe)
             return SEQC_NOT_FOUND;
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
@@ -359,6 +370,7 @@ SeqcStatus hashmap_delete(HashMap *map, const void *key)
             return SEQC_OK;
         }
         slot = (slot + 1) & (map->cap - 1);
+        probe++;
     }
 }
 

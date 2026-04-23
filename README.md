@@ -25,7 +25,7 @@ The abstraction is intentionally `void *`-based. Type safety is the caller's res
 There are no macros in the public interface.
 
 ```
-Vec / List / BTree / ...
+Vec / List / BSTree / ...
       │
       ▼
     Iter ──[filter]──[map]──[take]──[skip]──► iter_collect() ──► Slice
@@ -75,7 +75,7 @@ A `release` preset is also available.
 | `set`     | Open-addressing hash set (Robin Hood)                 | [docs/set.md](docs/set.md)         |
 | `hashmap` | Open-addressing hash map (Robin Hood)                 | [docs/hashmap.md](docs/hashmap.md) |
 | `string`  | Bounded string + StringBuilder + iter sources         | [docs/string.md](docs/string.md)   |
-| `btree`   | Unbalanced binary search tree                         | [docs/btree.md](docs/btree.md)     |
+| `bstree`  | Unbalanced binary search tree                         | [docs/bstree.md](docs/bstree.md)   |
 | `avl`     | Self-balancing AVL tree                               | [docs/avl.md](docs/avl.md)         |
 | `omap`    | Ordered map backed by AVL tree                        | [docs/omap.md](docs/omap.md)       |
 | `pqueue`  | Binary min-heap priority queue                        | [docs/pqueue.md](docs/pqueue.md)   |
@@ -96,20 +96,21 @@ static void double_it(const void *in, void *out, void *ctx) {
 }
 
 static int int_cmp(const void *a, const void *b) {
-    return *(const int *)a - *(const int *)b;
+    int x = *(const int *)a, y = *(const int *)b;
+    return (x > y) - (x < y);
 }
 
 int main(void) {
     Arena *a = arena_create(4096);
-    Vec    v = vec_create(sizeof(int), arena_allocator(a));
+    Vec   *v = vec_create(sizeof(int), arena_allocator(a));
 
     for (int i = 0; i < 10; i++)
-        vec_push(&v, &i);
+        vec_push(v, &i);
 
     // filter evens, double them, sort, collect
     Slice result = iter_sort(
                        iter_map(
-                           iter_filter(vec_iter(&v), is_even, NULL),
+                           iter_filter(vec_iter(v), is_even, NULL),
                            double_it, NULL, sizeof(int)),
                        int_cmp, arena_allocator(a));
 
@@ -137,10 +138,10 @@ int main(void) {
 | `list_iter(&l)`                                                          | List elements front→back                            | [list](docs/list.md)       |
 | `dlist_iter(&l)` / `dlist_iter_reverse(&l)`                              | DList forward / reverse                             | [dlist](docs/dlist.md)     |
 | `set_iter(&s)` / `set_iter_rev(&s)`                                      | Set elements (unordered)                            | [set](docs/set.md)         |
-| `iter_from_hashmap(&m)`                                                  | `MapEntry` pairs (`HashMapEntry` alias)             | [hashmap](docs/hashmap.md) |
+| `hashmap_iter(m)` / `hashmap_iter_rev(m)`                                | `MapEntry` pairs (`HashMapEntry` alias)             | [hashmap](docs/hashmap.md) |
 | `string_chars(s, al)` / `string_chars_rev(s, al)`                        | `char` values                                       | [string](docs/string.md)   |
 | `string_split(s, delim, al)`                                             | `String` tokens                                     | [string](docs/string.md)   |
-| `btree_iter(&t)` / `btree_iter_rev(&t)` / `btree_iter_range(&t, lo, hi)` | BST elements                                        | [btree](docs/btree.md)     |
+| `bstree_iter(t)` / `bstree_iter_rev(t)` / `bstree_iter_range(t, lo, hi)` | BST elements                                        | [bstree](docs/bstree.md)   |
 | `avl_iter(&t)` / `avl_iter_rev(&t)` / `avl_iter_range(&t, lo, hi)`       | AVL elements                                        | [avl](docs/avl.md)         |
 | `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)`    | `MapEntry` pairs (`OMapEntry` alias)                | [omap](docs/omap.md)       |
 
@@ -194,7 +195,7 @@ The test suite uses [Criterion](https://github.com/Snaipe/Criterion).
 | `set`     |     95% |      100% |      78% |
 | `hashmap` |     90% |      100% |      74% |
 | `string`  |     94% |      100% |      72% |
-| `btree`   |     92% |      100% |      73% |
+| `bstree`  |     92% |      100% |      73% |
 | `avl`     |     93% |      100% |      76% |
 | `omap`    |     88% |       97% |      67% |
 | `pqueue`  |     98% |      100% |      80% |

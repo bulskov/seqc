@@ -49,6 +49,10 @@ Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator)
         .cap = capacity,
         .elem_size = elem_size,
         .allocator = allocator};
+    if (!v->data)    {
+        allocator.free(allocator.ctx, v);
+        return NULL;
+    }
     return v;
 }
 

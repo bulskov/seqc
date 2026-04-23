@@ -212,12 +212,12 @@ Use `sys_allocator()` when:
 
 ```c
 // per-collection lifetime: caller is responsible for hashmap_free()
-HashMap m = hashmap_create(sizeof(int), sizeof(int),
-                           hashmap_fnv1a, hashmap_eq_bytes,
-                           sys_allocator());
-hashmap_set(&m, &k, &v);
+HashMap *m = hashmap_create(sizeof(int), sizeof(int),
+                             hash_fnv1a, hash_eq_bytes,
+                             sys_allocator());
+hashmap_set(m, &k, &v);
 // ...
-hashmap_free(&m); // releases all bucket/key/value memory
+hashmap_free(m); // releases all bucket/key/value memory
 ```
 
 Mixing allocators is explicitly supported — different collections in the same
@@ -227,17 +227,17 @@ program can use different allocators:
 Arena *request_arena = arena_create(64 * 1024);
 
 // results live for the whole request (freed with the arena)
-Vec results = vec_create(sizeof(Result), arena_allocator(request_arena));
+Vec *results = vec_create(sizeof(Result), arena_allocator(request_arena));
 
 // lookup table has its own lifetime, freed independently
-HashMap cache = hashmap_create(sizeof(int), sizeof(CacheEntry),
-                               hashmap_fnv1a, hashmap_eq_bytes,
-                               sys_allocator());
+HashMap *cache = hashmap_create(sizeof(int), sizeof(CacheEntry),
+                                hash_fnv1a, hash_eq_bytes,
+                                sys_allocator());
 
 // ... handle request ...
 
 arena_free(request_arena); // frees results
-hashmap_free(&cache);      // frees cache independently
+hashmap_free(cache);       // frees cache independently
 ```
 
 ---
@@ -263,7 +263,7 @@ Arena  *a  = arena_create(1024 * 1024);
 Scratch sc = arena_scratch_push(a);
 
 // sort needs scratch space — freed at pop
-Slice sorted = iter_sort(vec_iter(&v), int_cmp);
+Slice sorted = iter_sort(vec_iter(v), int_cmp, scratch_allocator(&sc));
 
 arena_scratch_pop(&sc);
 // sorted is now invalid; use it before popping
@@ -286,15 +286,15 @@ Arena *a = arena_create(4096);
 
 // iterator chain: scratch-backed, freed at pop
 Scratch sc = arena_scratch_push(a);
-Slice sorted = iter_sort(vec_iter(&v), int_cmp, scratch_allocator(&sc));
+Slice sorted = iter_sort(vec_iter(v), int_cmp, scratch_allocator(&sc));
 process(sorted);
 arena_scratch_pop(&sc); // sorted memory released
 
 // persistent lookup table: freed explicitly when the table is done
-HashMap index = hashmap_create(sizeof(char *), sizeof(int),
-                               hashmap_fnv1a_str, hashmap_eq_str,
-                               sys_allocator());
-build_index(&index, data);
+HashMap *index = hashmap_create(sizeof(char *), sizeof(int),
+                                hash_fnv1a_str, hash_eq_str,
+                                sys_allocator());
+build_index(index, data);
 // ... use index across multiple requests ...
-hashmap_free(&index);
+hashmap_free(index);
 ```

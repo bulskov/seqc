@@ -40,36 +40,38 @@ directly into live bucket storage — do not modify the map while iterating.
 
 ## Built-in hash / equality helpers
 
-### `hashmap_fnv1a`
+These live in `iter/hash.h` (included via `hashmap/hashmap.h`).
+
+### `hash_fnv1a`
 
 ```c
-size_t hashmap_fnv1a(const void *key, size_t key_size);
+size_t hash_fnv1a(const void *key, size_t key_size);
 ```
 
 FNV-1a hash over the raw bytes of the key. Suitable for any fixed-size type
 (`int`, `size_t`, structs, …).
 
-### `hashmap_eq_bytes`
+### `hash_eq_bytes`
 
 ```c
-bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
+bool hash_eq_bytes(const void *a, const void *b, size_t key_size);
 ```
 
 Bytewise equality. Suitable for any fixed-size type.
 
-### `hashmap_fnv1a_str`
+### `hash_fnv1a_str`
 
 ```c
-size_t hashmap_fnv1a_str(const void *key, size_t key_size);
+size_t hash_fnv1a_str(const void *key, size_t key_size);
 ```
 
 Hash a `char *` key by hashing the pointed-to string rather than the pointer
 value. Use when the key type is `char *` (i.e. `key_size = sizeof(char *)`).
 
-### `hashmap_eq_str`
+### `hash_eq_str`
 
 ```c
-bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
+bool hash_eq_str(const void *a, const void *b, size_t key_size);
 ```
 
 `strcmp`-based equality for `char *` keys.
@@ -94,7 +96,7 @@ Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero.
 ```c
 Arena   *a = arena_create(4096);
 HashMap *m = hashmap_create(sizeof(int), sizeof(double),
-                             hashmap_fnv1a, hashmap_eq_bytes,
+                             hash_fnv1a, hash_eq_bytes,
                              arena_allocator(a));
 ```
 
@@ -312,7 +314,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 
 Arena   *a = arena_create(4096);
 HashMap *m = hashmap_create(sizeof(char *), sizeof(int),
-                             hashmap_fnv1a_str, hashmap_eq_str,
+                             hash_fnv1a_str, hash_eq_str,
                              arena_allocator(a));
 
 const char *keys[]   = {"apple", "banana", "cherry"};
@@ -323,7 +325,7 @@ for (int i = 0; i < 3; i++)
 
 const char *k = "banana";
 int count;
-if (hashmap_get(m, &k, &count))
+if (hashmap_get(m, &k, &count) == SEQC_OK)
     printf("%d\n", count);  // 1
 
 arena_free(a);

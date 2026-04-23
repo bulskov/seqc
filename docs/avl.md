@@ -5,7 +5,7 @@ The height invariant `|height(L) - height(R)| <= 1` is maintained via LL / RR /
 LR / RL rotations.
 
 **Header:** `src/avl/avl.h`  
-**See also:** [`btree`](btree.md) · [`omap`](omap.md) · [`iter`](iter.md) · [`arena`](arena.md)
+**See also:** [`bstree`](bstree.md) · [`omap`](omap.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---
 

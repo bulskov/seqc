@@ -1,4 +1,5 @@
 #include "stack.h"
+#include "vec/vec.h"
 
 #include <string.h>
 
@@ -14,6 +15,11 @@ Stack *stack_create(size_t elem_size, Allocator allocator)
     if (!s)
         return NULL;
     s->vec = vec_create(elem_size, allocator);
+    if (!s->vec) {
+        if (allocator.free)
+            allocator.free(allocator.ctx, s);
+        return NULL;
+    }
     s->allocator = allocator;
     return s;
 }

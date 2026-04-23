@@ -7,13 +7,6 @@
 
 typedef struct HashMap HashMap;
 
-/* Default hash and equality functions suitable for any fixed-size key type */
-size_t hashmap_fnv1a(const void *key, size_t key_size);
-bool hashmap_eq_bytes(const void *a, const void *b, size_t key_size);
-
-/* String variants: key is a (char *), key_size is sizeof(char *) */
-size_t hashmap_fnv1a_str(const void *key, size_t key_size);
-bool hashmap_eq_str(const void *a, const void *b, size_t key_size);
 
 /* Pointer-pair yielded by hashmap_iter — see MapEntry in iter/iter.h.
  * Do not modify the map while iterating. */
@@ -28,6 +21,7 @@ HashMap *hashmap_create(
 void hashmap_free(HashMap *map);
 void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);
+bool hashmap_is_empty(const HashMap *map);
 /* Drain iter of MapEntry, inserting each key-value pair into map. */
 SeqcStatus hashmap_set_all(HashMap *map, Iter it);
 bool hashmap_contains(const HashMap *map, const void *key);
@@ -43,9 +37,6 @@ Iter hashmap_iter_rev(const HashMap *map);
 
 /* --- Health / diagnostics ----------------------------------------------- */
 
-/* PSL above this triggers an automatic resize to protect against uint8_t
- * overflow (max storable PSL is 255). Indicates a degenerate hash function. */
-#define HASHMAP_PSL_THRESHOLD 128
 
 typedef struct
 {

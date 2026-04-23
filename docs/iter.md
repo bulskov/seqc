@@ -172,9 +172,9 @@ Other sources live on their respective modules:
 | `list_iter`                                          | [list](list.md)       |
 | `dlist_iter` / `dlist_iter_reverse`                  | [dlist](dlist.md)     |
 | `set_iter`                                           | [set](set.md)         |
-| `iter_from_hashmap`                                  | [hashmap](hashmap.md) |
+| `hashmap_iter` / `hashmap_iter_rev`                   | [hashmap](hashmap.md) |
 | `string_chars` / `string_chars_rev` / `string_split` | [string](string.md)   |
-| `btree_iter` / `btree_iter_rev` / `btree_iter_range` | [btree](btree.md)     |
+| `bstree_iter` / `bstree_iter_rev` / `bstree_iter_range` | [bstree](bstree.md) |
 | `avl_iter` / `avl_iter_rev` / `avl_iter_range`       | [avl](avl.md)         |
 | `omap_iter` / `omap_iter_rev` / `omap_iter_range`    | [omap](omap.md)       |
 

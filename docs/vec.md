@@ -78,7 +78,7 @@ for (int i = 0; i < 100; i++) {
 ### `vec_pop`
 
 ```c
-bool vec_pop(Vec *v, void *out);
+SeqcStatus vec_pop(Vec *v, void *out);
 ```
 
 Remove the last element. Copies it into `*out` if `out` is not `NULL`.

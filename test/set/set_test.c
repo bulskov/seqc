@@ -2,6 +2,7 @@
 
 #include "arena/arena.h"
 #include "set/set.h"
+#include "../oom_alloc.h"
 
 /* ---- hash/eq for int keys ---------------------------------------------- */
 
@@ -446,4 +447,118 @@ Test(set, difference_empty_when_subset)
     cr_assert_eq(set_difference(dst, s1, s2), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
     arena_free(a);
+}
+
+/* ---- set algebra edge cases -------------------------------------------- */
+
+Test(set, union_with_empty)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s, &i);
+    cr_assert_eq(set_union(dst, s, empty), SEQC_OK);
+    cr_assert_eq(set_len(dst), 5);
+    for (int i = 0; i < 5; i++)
+        cr_assert(set_contains(dst, &i));
+    arena_free(a);
+}
+
+Test(set, intersection_with_empty)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s, &i);
+    cr_assert_eq(set_intersection(dst, s, empty), SEQC_OK);
+    cr_assert_eq(set_len(dst), 0);
+    arena_free(a);
+}
+
+Test(set, difference_with_empty)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s, &i);
+    /* s \ {} == s */
+    cr_assert_eq(set_difference(dst, s, empty), SEQC_OK);
+    cr_assert_eq(set_len(dst), 5);
+    for (int i = 0; i < 5; i++)
+        cr_assert(set_contains(dst, &i));
+    arena_free(a);
+}
+
+Test(set, difference_self_is_empty)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s, &i);
+    /* s \ s == {} */
+    cr_assert_eq(set_difference(dst, s, s), SEQC_OK);
+    cr_assert_eq(set_len(dst), 0);
+    arena_free(a);
+}
+
+Test(set, intersection_self_equals_self)
+{
+    Arena *a = arena_create(4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    for (int i = 0; i < 5; i++) set_add(s, &i);
+    /* s ∩ s == s */
+    cr_assert_eq(set_intersection(dst, s, s), SEQC_OK);
+    cr_assert_eq(set_len(dst), 5);
+    for (int i = 0; i < 5; i++)
+        cr_assert(set_contains(dst, &i));
+    arena_free(a);
+}
+
+Test(set, union_both_empty)
+{
+    Arena *a = arena_create(256);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    cr_assert_eq(set_union(dst, s1, s2), SEQC_OK);
+    cr_assert_eq(set_len(dst), 0);
+    arena_free(a);
+}
+
+/* ---- OOM paths --------------------------------------------------------- */
+
+Test(set, create_returns_null_on_oom)
+{
+    Set *s = set_create(sizeof(int), int_hash, int_eq, null_allocator());
+    cr_assert_null(s);
+}
+
+Test(set, add_returns_oom_when_bucket_alloc_fails)
+{
+    /* alloc #1 (Set struct) ok; alloc #2 (bucket array on first add) fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(1, &ctx);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
+    cr_assert_not_null(s);
+    int v = 1;
+    cr_assert_eq(set_add(s, &v), SEQC_OOM);
+    cr_assert_eq(set_len(s), 0);
+    set_free(s); /* oom_free ignores remaining count, so this is safe */
+}
+
+Test(set, add_returns_oom_when_key_alloc_fails)
+{
+    /* alloc #1: Set struct; alloc #2: bucket array; alloc #3: key copy fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(2, &ctx);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
+    cr_assert_not_null(s);
+    int v = 1;
+    cr_assert_eq(set_add(s, &v), SEQC_OOM);
+    cr_assert_eq(set_len(s), 0);
+    set_free(s); /* oom_free ignores remaining count, so this is safe */
 }

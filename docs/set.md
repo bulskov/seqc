@@ -31,16 +31,16 @@ Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq,
 Create an empty set. Returns `NULL` if `elem_size` is zero. You must supply a
 hash function and an equality function. `hash_fn` and `eq_fn` are defined in
 [`iter/iter.h`](iter.md#function-pointer-types) (included transitively).
-For integer-sized keys use `hashmap_fnv1a` / `hashmap_eq_bytes` from
-[`hashmap.h`](hashmap.md). For `char *` keys use `hashmap_fnv1a_str` /
-`hashmap_eq_str`.
+For integer-sized keys use `hash_fnv1a` / `hash_eq_bytes` from
+[`iter/hash.h`](hashmap.md#built-in-hash--equality-helpers). For `char *` keys
+use `hash_fnv1a_str` / `hash_eq_str`.
 
 ```c
-#include "hashmap/hashmap.h"
+#include "iter/hash.h"
 
 Arena *a = arena_create(4096);
 Set   *s = set_create(sizeof(int),
-                      hashmap_fnv1a, hashmap_eq_bytes,
+                      hash_fnv1a, hash_eq_bytes,
                       arena_allocator(a));
 ```
 
@@ -250,10 +250,10 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 ## Example
 
 ```c
-#include "hashmap/hashmap.h"
+#include "iter/hash.h"
 
 Arena *a = arena_create(4096);
-Set   *s = set_create(sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+Set   *s = set_create(sizeof(int), hash_fnv1a, hash_eq_bytes,
                       arena_allocator(a));
 
 int nums[] = {1, 2, 3, 2, 1};

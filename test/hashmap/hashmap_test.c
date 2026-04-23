@@ -3,6 +3,8 @@
 #include "arena/arena.h"
 #include "hashmap/hashmap.h"
 #include "iter/iter.h"
+#include "iter/hash.h"
+#include "../oom_alloc.h"
 
 /* ---- string-keyed helpers ---- */
 static HashMap *make_str_map(Arena *a)
@@ -10,8 +12,8 @@ static HashMap *make_str_map(Arena *a)
     return hashmap_create(
         sizeof(char *),
         sizeof(int),
-        hashmap_fnv1a_str,
-        hashmap_eq_str,
+        hash_fnv1a_str,
+        hash_eq_str,
         arena_allocator(a));
 }
 
@@ -100,8 +102,8 @@ Test(hashmap, create_is_empty)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     cr_assert_eq(hashmap_len(m), 0);
     hashmap_free(m);
@@ -114,8 +116,8 @@ Test(hashmap, set_and_get)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 1, v = 42;
     hashmap_set(m, &k, &v);
@@ -132,8 +134,8 @@ Test(hashmap, get_missing_returns_null)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 99;
     cr_assert_neq(hashmap_get(m, &k, NULL), SEQC_OK);
@@ -147,8 +149,8 @@ Test(hashmap, set_updates_existing_key)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 1, v1 = 10, v2 = 20;
     hashmap_set(m, &k, &v1);
@@ -167,8 +169,8 @@ Test(hashmap, delete_existing)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 7, v = 77;
     hashmap_set(m, &k, &v);
@@ -185,8 +187,8 @@ Test(hashmap, delete_missing)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 5;
     cr_assert_neq(hashmap_delete(m, &k), SEQC_OK);
@@ -200,8 +202,8 @@ Test(hashmap, delete_and_reinsert)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 3, v1 = 30, v2 = 300;
     hashmap_set(m, &k, &v1);
@@ -220,8 +222,8 @@ Test(hashmap, many_entries_triggers_resize)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 0; i < 100; i++)
     {
@@ -253,8 +255,8 @@ Test(hashmap, iter_foreach_sums_values)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 4; i++)
     {
@@ -281,8 +283,8 @@ Test(hashmap, iter_filter_entries)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 4; i++)
     {
@@ -301,8 +303,8 @@ Test(hashmap, delete_middle_of_cluster)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     /* Insert several keys and delete one in the middle to exercise backward
      * shift */
@@ -334,8 +336,8 @@ Test(hashmap, clear_empties_map)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 0; i < 5; i++)
     {
@@ -355,8 +357,8 @@ Test(hashmap, clear_allows_reuse)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 0; i < 3; i++)
     {
@@ -381,8 +383,8 @@ Test(hashmap, iter_rev_visits_same_entries_in_reverse)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 5; i++)
     {
@@ -417,8 +419,8 @@ Test(hashmap, iter_rev_empty)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     Iter it = hashmap_iter_rev(m);
     HashMapEntry e;
@@ -436,8 +438,8 @@ Test(hashmap, contains_returns_true_for_existing_key)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 42, v = 99;
     hashmap_set(m, &k, &v);
@@ -452,8 +454,8 @@ Test(hashmap, contains_returns_false_for_missing_key)
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
-        hashmap_fnv1a,
-        hashmap_eq_bytes,
+        hash_fnv1a,
+        hash_eq_bytes,
         arena_allocator(a));
     int k = 42;
     cr_assert(!hashmap_contains(m, &k));
@@ -506,7 +508,7 @@ Test(hashmap, collision_probe_set_and_get)
         sizeof(int),
         sizeof(int),
         always_zero_hash,
-        hashmap_eq_bytes,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 4; i++)
     {
@@ -536,7 +538,7 @@ Test(hashmap, robin_hood_displacement)
         sizeof(int),
         sizeof(int),
         robin_hood_hash,
-        hashmap_eq_bytes,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 4; i++)
     {
@@ -566,7 +568,7 @@ Test(hashmap, collision_delete_probe_and_backward_shift)
         sizeof(int),
         sizeof(int),
         always_zero_hash,
-        hashmap_eq_bytes,
+        hash_eq_bytes,
         arena_allocator(a));
     for (int i = 1; i <= 4; i++)
     {
@@ -592,21 +594,21 @@ Test(hashmap, collision_delete_probe_and_backward_shift)
 
 /* ---- guard / edge-case tests ------------------------------------------- */
 
-/* hashmap_fnv1a returns 0 for NULL key or zero key_size. */
+/* hash_fnv1a returns 0 for NULL key or zero key_size. */
 Test(hashmap, fnv1a_null_and_zero_size)
 {
     int x = 1;
-    cr_assert_eq(hashmap_fnv1a(NULL, sizeof(int)), (size_t)0);
-    cr_assert_eq(hashmap_fnv1a(&x, 0), (size_t)0);
+    cr_assert_eq(hash_fnv1a(NULL, sizeof(int)), (size_t)0);
+    cr_assert_eq(hash_fnv1a(&x, 0), (size_t)0);
 }
 
-/* hashmap_eq_bytes: zero-size keys are always equal; NULL pointers are not. */
+/* hash_eq_bytes: zero-size keys are always equal; NULL pointers are not. */
 Test(hashmap, eq_bytes_edge_cases)
 {
     int a = 1, b = 1;
-    cr_assert(hashmap_eq_bytes(&a, &b, 0));
-    cr_assert(!hashmap_eq_bytes(NULL, &b, sizeof(int)));
-    cr_assert(!hashmap_eq_bytes(&a, NULL, sizeof(int)));
+    cr_assert(hash_eq_bytes(&a, &b, 0));
+    cr_assert(!hash_eq_bytes(NULL, &b, sizeof(int)));
+    cr_assert(!hash_eq_bytes(&a, NULL, sizeof(int)));
 }
 
 /* hashmap_create returns a zero-initialised map when args are invalid. */
@@ -615,7 +617,7 @@ Test(hashmap, create_invalid_args_returns_zero_map)
     Arena *a = arena_create(256);
     /* key_size == 0 */
     HashMap *m = hashmap_create(
-        0, sizeof(int), hashmap_fnv1a, hashmap_eq_bytes, arena_allocator(a));
+        0, sizeof(int), hash_fnv1a, hash_eq_bytes, arena_allocator(a));
     cr_assert_null(m);
     arena_free(a);
 }
@@ -630,7 +632,7 @@ Test(hashmap, sys_alloc_free_releases_memory)
 {
     Allocator al = sys_allocator();
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes, al);
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     for (int i = 0; i < 5; i++)
     {
         int v = i * 10;
@@ -645,7 +647,7 @@ Test(hashmap, sys_alloc_clear_frees_entries)
 {
     Allocator al = sys_allocator();
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes, al);
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     for (int i = 0; i < 4; i++)
     {
         int v = i;
@@ -669,7 +671,7 @@ Test(hashmap, sys_alloc_resize_frees_old_buckets)
      * keys/values through the sys allocator. */
     Allocator al = sys_allocator();
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes, al);
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     /* Initial cap is 16; resize triggers when len > 12. */
     for (int i = 0; i < 14; i++)
     {
@@ -690,7 +692,7 @@ Test(hashmap, is_healthy_normal_load)
 {
     Arena *a = arena_create(8192);
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes,
         arena_allocator(a));
     for (int i = 0; i < 50; i++)
     {
@@ -705,7 +707,7 @@ Test(hashmap, audit_normal_load)
 {
     Arena *a = arena_create(8192);
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hashmap_fnv1a, hashmap_eq_bytes,
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes,
         arena_allocator(a));
     for (int i = 0; i < 50; i++)
     {
@@ -720,4 +722,52 @@ Test(hashmap, audit_normal_load)
     cr_assert(s.mean_psl >= 1.0);
     cr_assert(s.is_healthy);
     arena_free(a);
+}
+
+/* ---- OOM paths --------------------------------------------------------- */
+
+Test(hashmap, create_returns_null_on_oom)
+{
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, null_allocator());
+    cr_assert_null(m);
+}
+
+Test(hashmap, create_returns_null_when_bucket_alloc_fails)
+{
+    /* alloc #1 (HashMap struct) succeeds, alloc #2 (bucket array) fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(1, &ctx);
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    cr_assert_null(m);
+    /* no leak: struct was freed by hashmap_create on bucket failure */
+}
+
+Test(hashmap, set_returns_oom_when_key_alloc_fails)
+{
+    /* allocs 1-2: create (struct + buckets); alloc 3 (key copy) fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(2, &ctx);
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    cr_assert_not_null(m);
+    int k = 1, v = 1;
+    cr_assert_eq(hashmap_set(m, &k, &v), SEQC_OOM);
+    cr_assert_eq(hashmap_len(m), 0);
+    hashmap_free(m);
+}
+
+Test(hashmap, set_returns_oom_when_val_alloc_fails)
+{
+    /* allocs 1-2: create; alloc 3 (key copy) ok; alloc 4 (val copy) fails */
+    OomCtx ctx;
+    Allocator al = oom_after_allocator(3, &ctx);
+    HashMap *m = hashmap_create(
+        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    cr_assert_not_null(m);
+    int k = 1, v = 1;
+    cr_assert_eq(hashmap_set(m, &k, &v), SEQC_OOM);
+    cr_assert_eq(hashmap_len(m), 0);
+    hashmap_free(m);
 }

@@ -17,6 +17,7 @@ bool set_contains(const Set *s, const void *elem);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
 SeqcStatus set_remove(Set *s, const void *elem);
 size_t set_len(const Set *s);
+bool set_is_empty(const Set *s);
 void set_free(Set *s);
 void set_clear(Set *s);
 Iter set_iter(const Set *s);     /* order unspecified */
