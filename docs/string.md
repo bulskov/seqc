@@ -45,14 +45,31 @@ Sentinel returned by `string_find` when no match is found.
 
 ## Construction
 
+### `string_view_cstr`
+
+```c
+String string_view_cstr(const char *s);
+```
+
+Wrap a null-terminated C string as a non-owning `String` view. No copy is
+made — the returned `String` must not outlive `s`. Prefer `STRING_LIT` for
+string literals and `string_from_cstr` when the cstr lifetime is uncertain.
+
 ### `string_from_cstr`
 
 ```c
-String string_from_cstr(const char *s);
+String string_from_cstr(const char *s, Allocator allocator);
 ```
 
-Wrap a null-terminated C string as a `String`. No copy — the string must
-outlive the returned view.
+Copy `s` into allocator-owned memory and return an owning `String`. Safe to
+use when you cannot guarantee that the original cstr will remain valid.
+
+```c
+Arena  *a = arena_create(256);
+char    buf[] = "hello";
+String  s = string_from_cstr(buf, arena_allocator(a));
+buf[0] = 'X'; /* s.ptr[0] is still 'h' — independent copy */
+```
 
 ### `string_copy`
 

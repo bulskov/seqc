@@ -23,7 +23,13 @@ typedef struct
 
 /* --- Construction ------------------------------------------------------- */
 
-String string_from_cstr(const char *s);            /* wraps, no copy      */
+/* Wrap a null-terminated C string without copying.  The caller retains
+ * ownership; the returned String must not outlive the original cstr. */
+String string_view_cstr(const char *s);
+
+/* Copy s into allocator-owned memory, returning an owning String. */
+String string_from_cstr(const char *s, Allocator allocator);
+
 String string_copy(String s, Allocator allocator); /* allocator copy      */
 const char *string_to_cstr(
     String s, Allocator allocator); /* copy + null-terminate */

@@ -10,11 +10,25 @@
 
 /* --- Construction ------------------------------------------------------- */
 
-String string_from_cstr(const char *s)
+String string_view_cstr(const char *s)
 {
     if (!s)
         return (String){NULL, 0};
     return (String){s, strlen(s)};
+}
+
+String string_from_cstr(const char *s, Allocator allocator)
+{
+    if (!s)
+        return (String){NULL, 0};
+    size_t len = strlen(s);
+    if (len == 0)
+        return (String){NULL, 0};
+    char *buf = allocator.alloc(allocator.ctx, len, 1);
+    if (!buf)
+        return (String){NULL, 0};
+    memcpy(buf, s, len);
+    return (String){buf, len};
 }
 
 String string_copy(String s, Allocator allocator)
@@ -207,7 +221,7 @@ SeqcStatus sb_append_char(StringBuilder *sb, char c)
 
 SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s)
 {
-    return sb_append(sb, string_from_cstr(s));
+    return sb_append(sb, string_view_cstr(s));
 }
 
 String sb_finish(const StringBuilder *sb)

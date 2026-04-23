@@ -8,8 +8,19 @@
 
 Test(string, from_cstr_length)
 {
-    String s = string_from_cstr("hello");
+    String s = string_view_cstr("hello");
     cr_assert_eq(s.len, 5);
+}
+
+Test(string, from_cstr_copies_content)
+{
+    Arena *a = arena_create(256);
+    char buf[] = "hello";
+    String s = string_from_cstr(buf, arena_allocator(a));
+    cr_assert_eq(s.len, 5);
+    buf[0] = 'X'; /* mutate source */
+    cr_assert_eq(s.ptr[0], 'h'); /* copy unaffected */
+    arena_free(a);
 }
 
 Test(string, from_lit_macro)
@@ -32,7 +43,7 @@ Test(string, copy_is_independent)
 {
     Arena *a = arena_create(256);
     char buf[] = "mutable";
-    String s = string_from_cstr(buf);
+    String s = string_view_cstr(buf);
     String c = string_copy(s, arena_allocator(a));
     buf[0] = 'X';
     cr_assert_eq(c.ptr[0], 'm'); /* copy unaffected */
@@ -263,7 +274,7 @@ Test(string, hashmap_string_keys)
 
     /* Key from different pointer but same content must still hit */
     char buf[] = "foo";
-    String k1_copy = string_from_cstr(buf);
+    String k1_copy = string_view_cstr(buf);
     int g1c;
     cr_assert_eq(hashmap_get(map, &k1_copy, &g1c), SEQC_OK); cr_assert_eq(g1c, 1);
 
