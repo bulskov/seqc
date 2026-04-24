@@ -89,7 +89,7 @@ Pointer to the head / tail element data. Returns `NULL` if empty.
 ### `list_is_empty` / `list_len`
 
 ```c
-int    list_is_empty(const List *l);
+bool   list_is_empty(const List *l);
 size_t list_len(const List *l);
 ```
 

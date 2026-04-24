@@ -164,19 +164,19 @@ Iter it = iter_range(10, 0, -2, arena_allocator(a));
 
 Other sources live on their respective modules:
 
-| Source                                               | Module                |
-| ---------------------------------------------------- | --------------------- |
-| `vec_iter` / `vec_iter_rev`                          | [vec](vec.md)         |
-| `stack_iter`                                         | [stack](stack.md)     |
-| `queue_iter`                                         | [queue](queue.md)     |
-| `list_iter`                                          | [list](list.md)       |
-| `dlist_iter` / `dlist_iter_reverse`                  | [dlist](dlist.md)     |
-| `set_iter`                                           | [set](set.md)         |
-| `hashmap_iter` / `hashmap_iter_rev`                   | [hashmap](hashmap.md) |
-| `string_chars` / `string_chars_rev` / `string_split` | [string](string.md)   |
-| `bstree_iter` / `bstree_iter_rev` / `bstree_iter_range` | [bstree](bstree.md) |
-| `avl_iter` / `avl_iter_rev` / `avl_iter_range`       | [avl](avl.md)         |
-| `omap_iter` / `omap_iter_rev` / `omap_iter_range`    | [omap](omap.md)       |
+| Source                                                  | Module                |
+| ------------------------------------------------------- | --------------------- |
+| `vec_iter` / `vec_iter_rev`                             | [vec](vec.md)         |
+| `stack_iter`                                            | [stack](stack.md)     |
+| `queue_iter`                                            | [queue](queue.md)     |
+| `list_iter`                                             | [list](list.md)       |
+| `dlist_iter` / `dlist_iter_rev`                         | [dlist](dlist.md)     |
+| `set_iter`                                              | [set](set.md)         |
+| `hashmap_iter` / `hashmap_iter_rev`                     | [hashmap](hashmap.md) |
+| `string_chars` / `string_chars_rev` / `string_split`    | [string](string.md)   |
+| `bstree_iter` / `bstree_iter_rev` / `bstree_iter_range` | [bstree](bstree.md)   |
+| `avl_iter` / `avl_iter_rev` / `avl_iter_range`          | [avl](avl.md)         |
+| `omap_iter` / `omap_iter_rev` / `omap_iter_range`       | [omap](omap.md)       |
 
 ---
 

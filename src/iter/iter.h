@@ -57,7 +57,7 @@ Iter iter_generate(
     generate_fn fn, void *ctx, size_t elem_size, Allocator allocator);
 
 /* Yields long long integers from start (inclusive) to end (exclusive) by
- * step.  step must not be zero.  Yields nothing if the range is empty
+ * step.  step=0 yields an empty range.  Yields nothing if the range is empty
  * (e.g. start >= end with positive step). */
 Iter iter_range(
     long long start, long long end, long long step, Allocator allocator);

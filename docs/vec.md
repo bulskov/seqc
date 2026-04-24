@@ -201,7 +201,7 @@ Return a non-owning [`Slice`](slice.md) view of the entire Vec buffer.
 
 ```c
 Slice s = vec_as_slice(v);
-Slice sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp);
+Slice sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp, arena_allocator(a));
 ```
 
 ---

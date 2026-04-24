@@ -100,7 +100,7 @@ printf("front=%d back=%d\n",
 ### `queue_is_empty` / `queue_len`
 
 ```c
-int    queue_is_empty(const Queue *q);
+bool   queue_is_empty(const Queue *q);
 size_t queue_len(const Queue *q);
 ```
 

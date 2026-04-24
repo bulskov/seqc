@@ -77,10 +77,11 @@ Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
-### `set_len`
+### `set_len` / `set_is_empty`
 
 ```c
 size_t set_len(const Set *s);
+bool   set_is_empty(const Set *s);
 ```
 
 ---

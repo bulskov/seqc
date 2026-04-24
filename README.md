@@ -70,6 +70,7 @@ A `release` preset is also available.
 | `vec`     | Growable array                                        | [docs/vec.md](docs/vec.md)         |
 | `stack`   | LIFO wrapper over Vec                                 | [docs/stack.md](docs/stack.md)     |
 | `queue`   | FIFO ring buffer                                      | [docs/queue.md](docs/queue.md)     |
+| `ringbuf` | Double-ended circular buffer (deque)                  | [docs/ringbuf.md](docs/ringbuf.md) |
 | `list`    | Singly-linked list                                    | [docs/list.md](docs/list.md)       |
 | `dlist`   | Doubly-linked list                                    | [docs/dlist.md](docs/dlist.md)     |
 | `set`     | Open-addressing hash set (Robin Hood)                 | [docs/set.md](docs/set.md)         |
@@ -135,8 +136,9 @@ int main(void) {
 | `vec_iter(&v)` / `vec_iter_rev(&v)`                                      | Vec elements                                        | [vec](docs/vec.md)         |
 | `stack_iter(&s)`                                                         | Stack elements bottom→top                           | [stack](docs/stack.md)     |
 | `queue_iter(&q)`                                                         | Queue elements front→back                           | [queue](docs/queue.md)     |
+| `ringbuf_iter(r)` / `ringbuf_iter_rev(r)`                                | RingBuf elements front→back / reverse               | [ringbuf](docs/ringbuf.md) |
 | `list_iter(&l)`                                                          | List elements front→back                            | [list](docs/list.md)       |
-| `dlist_iter(&l)` / `dlist_iter_reverse(&l)`                              | DList forward / reverse                             | [dlist](docs/dlist.md)     |
+| `dlist_iter(&l)` / `dlist_iter_rev(&l)`                                  | DList forward / reverse                             | [dlist](docs/dlist.md)     |
 | `set_iter(&s)` / `set_iter_rev(&s)`                                      | Set elements (unordered)                            | [set](docs/set.md)         |
 | `hashmap_iter(m)` / `hashmap_iter_rev(m)`                                | `MapEntry` pairs (`HashMapEntry` alias)             | [hashmap](docs/hashmap.md) |
 | `string_chars(s, al)` / `string_chars_rev(s, al)`                        | `char` values                                       | [string](docs/string.md)   |
@@ -206,28 +208,7 @@ parameters that are always `_Alignof(max_align_t)` in practice.
 
 ## Known gaps / roadmap
 
-### API / encapsulation (should fix before publishing)
 
-- ~~**PSL capped at `uint8_t` with no assertion**~~ — fixed: `max_psl` is now
-  tracked in both `HashMap` and `Set`. A resize is triggered when
-  `max_psl >= PSL_THRESHOLD` (128), preventing silent `uint8_t` overflow.
-  A debug-build `assert` fires first if the threshold is bypassed.
-  `hashmap_is_healthy` / `set_is_healthy` (O(1)) and `hashmap_audit` /
-  `set_audit` (O(n)) are available for diagnostic use.
-
-### Ergonomics (lower priority)
-
-- ~~**`iter_range` / `iter_generate` / `iter_from_slice` take an `Allocator` they
-  never use**~~ — by design. All three allocate their internal `state` struct
-  through the passed-in allocator (a bump-pointer op with an arena), and the
-  allocator propagates automatically to every downstream adaptor in the chain.
-  Removing it from sources would break the uniform "caller owns memory" contract
-  and create an inconsistent interface: some `Iter`s would need an allocator
-  passed later, some would not. With an arena the cost is negligible.
-
-- ~~**`list_pop_back` is O(n)**~~ — documented in [docs/list.md](docs/list.md):
-  `list_pop_back` must walk to the second-to-last node; use
-  [`dlist`](docs/dlist.md) if you need O(1) pop from both ends.
 
 ### Future / platform
 

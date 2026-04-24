@@ -91,7 +91,7 @@ HashMap *hashmap_create(size_t key_size, size_t val_size,
                         Allocator allocator);
 ```
 
-Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero.
+Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero, if `hash` or `eq` is `NULL`, if `allocator.alloc` is `NULL`, or if an allocation fails.
 
 ```c
 Arena   *a = arena_create(4096);
@@ -109,7 +109,8 @@ SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value);
 ```
 
 Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
-an existing one. Returns `SEQC_OOM` if an allocation fails.
+an existing one. Returns `SEQC_OOM` if an allocation fails. Returns
+`SEQC_INVALID` if `map`, `key`, or `value` is `NULL`.
 
 ```c
 int    k = 42;
@@ -127,6 +128,7 @@ SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out);
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
 presence only. Returns `SEQC_OK` if found, `SEQC_NOT_FOUND` otherwise.
+Returns `SEQC_INVALID` if `map` or `key` is `NULL`.
 
 ```c
 double val;
@@ -142,7 +144,8 @@ if (hashmap_get(m, &k, &val) == SEQC_OK)
 SeqcStatus hashmap_delete(HashMap *map, const void *key);
 ```
 
-Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
+Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
+`SEQC_INVALID` if `map` or `key` is `NULL`.
 
 ---
 
@@ -167,6 +170,17 @@ if (hashmap_contains(m, &k))
 ```c
 size_t hashmap_len(const HashMap *map);
 ```
+
+---
+
+### `hashmap_is_empty`
+
+```c
+bool hashmap_is_empty(const HashMap *map);
+```
+
+Returns `true` if the map contains no entries. Equivalent to
+`hashmap_len(map) == 0`.
 
 ---
 
@@ -208,8 +222,8 @@ SeqcStatus hashmap_set_all(HashMap *map, Iter it);
 ```
 
 Drain `it` (which must yield `HashMapEntry` values), inserting each key-value
-pair into `map`. Returns `SEQC_OOM` on the first allocation failure;
-the iterator is always dropped.
+pair into `map`. Returns `SEQC_OOM` on the first allocation failure.
+Returns `SEQC_INVALID` if `map` is `NULL`. The iterator is always dropped.
 
 ```c
 /* Merge map b into map a */
@@ -248,16 +262,15 @@ Robin Hood hashing keeps probe-sequence lengths (PSLs) short for well-distribute
 hash functions. A high PSL indicates a poor or degenerate hash. The map tracks
 `max_psl` internally at zero cost and uses it as a secondary resize trigger.
 
-### `HASHMAP_PSL_THRESHOLD`
+### `HASH_PSL_THRESHOLD`
 
 ```c
-#define HASHMAP_PSL_THRESHOLD 128
+#define HASH_PSL_THRESHOLD 128
 ```
 
-When `max_psl` reaches this value during an insert the table is resized and
-rehashed immediately — well before the `uint8_t` PSL field could wrap to 0
-and silently corrupt the table. A debug-build `assert` fires first if the
-threshold is somehow bypassed.
+Defined in `iter/hash.h`. When `max_psl` reaches this value during an insert
+the table is resized and rehashed immediately — well before the `uint8_t` PSL
+field could wrap to 0 and silently corrupt the table.
 
 ### `HashMapStats`
 
@@ -268,7 +281,7 @@ typedef struct {
     double  load_factor;
     uint8_t max_psl;    /* worst-case probe length over all stored buckets */
     double  mean_psl;   /* average probe length over occupied buckets */
-    bool    is_healthy; /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
+    bool    is_healthy; /* mean_psl < 3.0 and max_psl <= HASH_PSL_THRESHOLD/2 */
 } HashMapStats;
 ```
 
@@ -278,7 +291,7 @@ typedef struct {
 bool hashmap_is_healthy(const HashMap *map);
 ```
 
-O(1) check. Returns `false` when `max_psl > HASHMAP_PSL_THRESHOLD / 2` (64),
+O(1) check. Returns `false` when `max_psl > HASH_PSL_THRESHOLD / 2` (64),
 which is a strong signal of a poor hash function. Call after a bulk-load
 phase to validate your hash.
 

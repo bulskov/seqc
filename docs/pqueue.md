@@ -132,7 +132,7 @@ if (pqueue_peek(q, &top) == SEQC_OK)
 
 ```c
 size_t pqueue_len(const PQueue *q);
-int    pqueue_is_empty(const PQueue *q);
+bool   pqueue_is_empty(const PQueue *q);
 ```
 
 ---

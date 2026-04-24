@@ -9,24 +9,15 @@ Doubly-linked list. O(1) push and pop at both ends.
 
 ## Types
 
-### `DListNode`
+### `DListNode` / `DList`
 
 ```c
 typedef struct DListNode DListNode;
-struct DListNode {
-  DListNode *prev;
-  DListNode *next;
-  /* element data stored inline after the header, aligned to max_align_t */
-};
-```
-
-### `DList`
-
-```c
 typedef struct DList DList;
 ```
 
-Opaque handle.
+Both are opaque handles. Element data is stored inline immediately after each
+node header, aligned to `max_align_t`.
 
 ---
 
@@ -90,7 +81,7 @@ Pointer to head / tail data. Returns `NULL` if empty.
 ### `dlist_is_empty` / `dlist_len`
 
 ```c
-int    dlist_is_empty(const DList *l);
+bool   dlist_is_empty(const DList *l);
 size_t dlist_len(const DList *l);
 ```
 
@@ -104,10 +95,10 @@ Iter dlist_iter(const DList *l);
 
 Forward [`Iter`](iter.md) from front to back.
 
-### `dlist_iter_reverse`
+### `dlist_iter_rev`
 
 ```c
-Iter dlist_iter_reverse(const DList *l);
+Iter dlist_iter_rev(const DList *l);
 ```
 
 Reverse [`Iter`](iter.md) from back to front.
@@ -151,7 +142,7 @@ while (fwd.next(&fwd, &v)) printf("%d ", v);
 iter_drop(&fwd);
 
 // reverse: 5 4 3 2 1
-Iter rev = dlist_iter_reverse(l);
+Iter rev = dlist_iter_rev(l);
 while (rev.next(&rev, &v)) printf("%d ", v);
 iter_drop(&rev);
 

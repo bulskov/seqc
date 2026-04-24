@@ -43,10 +43,10 @@ typedef struct
     double load_factor;
     uint8_t max_psl; /* highest probe-sequence length of any stored bucket */
     double mean_psl; /* average PSL over occupied buckets */
-    bool is_healthy; /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
+    bool is_healthy; /* mean_psl < 3.0 and max_psl <= HASH_PSL_THRESHOLD/2 */
 } HashMapStats;
 
-/* O(1) — returns false when max_psl has exceeded HASHMAP_PSL_THRESHOLD/2,
+/* O(1) — returns false when max_psl has exceeded HASH_PSL_THRESHOLD/2,
  * indicating a poor hash function. */
 bool hashmap_is_healthy(const HashMap *map);
 

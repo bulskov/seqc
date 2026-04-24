@@ -78,7 +78,7 @@ the stack is empty.
 ### `stack_is_empty` / `stack_len`
 
 ```c
-int    stack_is_empty(const Stack *s);
+bool   stack_is_empty(const Stack *s);
 size_t stack_len(const Stack *s);
 ```
 
