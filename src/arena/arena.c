@@ -4,7 +4,43 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
+
+/* ---- platform memory: mmap on POSIX, VirtualAlloc on Windows ----------- */
+
+#ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+
+static void *platform_mem_alloc(size_t size)
+{
+    void *p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    return p; /* NULL on failure, same sentinel as mmap failure */
+}
+
+static void platform_mem_free(void *ptr, size_t size)
+{
+    (void)size;
+    VirtualFree(ptr, 0, MEM_RELEASE);
+}
+
+#else /* POSIX */
+#  include <sys/mman.h>
+#  ifndef MAP_ANONYMOUS          /* BSDs expose MAP_ANON, not MAP_ANONYMOUS */
+#    define MAP_ANONYMOUS MAP_ANON
+#  endif
+
+static void *platform_mem_alloc(size_t size)
+{
+    void *p = mmap(NULL, size, PROT_READ | PROT_WRITE,
+                   MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    return (p == MAP_FAILED) ? NULL : p;
+}
+
+static void platform_mem_free(void *ptr, size_t size)
+{
+    munmap(ptr, size);
+}
+#endif
 
 #define ARENA_BLOCK_SIZE 4096
 
@@ -30,17 +66,9 @@ static size_t arena_align_to_block_size(size_t size)
 
 static MemBlock *arena_create_block(size_t capacity, size_t offset)
 {
-    void *mem = mmap(
-        NULL,
-        capacity,
-        PROT_READ | PROT_WRITE,
-        MAP_ANONYMOUS | MAP_PRIVATE,
-        -1,
-        0);
-    if (mem == MAP_FAILED)
-    {
+    void *mem = platform_mem_alloc(capacity);
+    if (!mem)
         return NULL;
-    }
     MemBlock *block = (MemBlock *)((char *)mem + offset);
     block->pos = offset + sizeof(MemBlock);
     block->buf = mem;
@@ -193,7 +221,7 @@ void arena_reset_hard(Arena *arena)
     while (block)
     {
         MemBlock *next = block->next;
-        munmap(block->buf, block->cap);
+        platform_mem_free(block->buf, block->cap);
         block = next;
     }
     head->next = NULL;
@@ -207,7 +235,7 @@ void arena_free(Arena *a)
     while (block)
     {
         MemBlock *next = block->next;
-        munmap(block->buf, block->cap);
+        platform_mem_free(block->buf, block->cap);
         block = next;
     }
 }
@@ -273,7 +301,7 @@ void arena_scratch_pop(Scratch *scratch)
     while (block)
     {
         MemBlock *next = block->next;
-        munmap(block->buf, block->cap);
+        platform_mem_free(block->buf, block->cap);
         block = next;
     }
     saved->next = NULL;

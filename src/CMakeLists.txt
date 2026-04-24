@@ -20,6 +20,7 @@ add_library(seqc STATIC
 target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(seqc PRIVATE
-    -Wall -Wextra -Wpedantic
-    -Wno-unused-parameter
+    $<IF:$<C_COMPILER_ID:MSVC>,
+        /W4,
+        -Wall -Wextra -Wpedantic -Wno-unused-parameter>
 )

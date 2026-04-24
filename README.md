@@ -207,9 +207,3 @@ The remaining branch gaps are defensive NULL-pointer guards and `align`
 parameters that are always `_Alignof(max_align_t)` in practice.
 
 ## Known gaps / roadmap
-
-
-
-### Future / platform
-
-- Cross-platform: `arena` uses `mmap`/`munmap` (`<sys/mman.h>`); needs `VirtualAlloc` path for Windows
