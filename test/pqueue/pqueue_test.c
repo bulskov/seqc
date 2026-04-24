@@ -337,3 +337,44 @@ Test(pqueue, sys_alloc_free_releases_memory)
     pqueue_free(q);
     /* memory released — verified by sys_allocator not leaking */
 }
+
+/* ---- pqueue_drain ------------------------------------------------------ */
+
+Test(pqueue, drain_yields_sorted_slice)
+{
+    Arena *a = arena_create(1024);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    int vals[] = {9, 3, 7, 1, 5, 2, 8, 4, 6};
+    for (int i = 0; i < 9; i++)
+        pqueue_push(q, &vals[i]);
+    Slice s = pqueue_drain(q, arena_allocator(a));
+    cr_assert_eq(s.len, 9);
+    cr_assert(pqueue_is_empty(q));
+    for (size_t i = 1; i < s.len; i++)
+        cr_assert_leq(*(int *)slice_get(s, i - 1), *(int *)slice_get(s, i));
+    arena_free(a);
+}
+
+Test(pqueue, drain_empty_returns_empty_slice)
+{
+    Arena *a = arena_create(256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    Slice s = pqueue_drain(q, arena_allocator(a));
+    cr_assert_eq(s.len, 0);
+    cr_assert_null(s.ptr);
+    arena_free(a);
+}
+
+Test(pqueue, drain_queue_is_reusable)
+{
+    Arena *a = arena_create(1024);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    int x = 7;
+    pqueue_push(q, &x);
+    pqueue_drain(q, arena_allocator(a));
+    cr_assert(pqueue_is_empty(q));
+    x = 3;
+    pqueue_push(q, &x);
+    cr_assert_eq(pqueue_len(q), 1);
+    arena_free(a);
+}

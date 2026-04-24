@@ -170,6 +170,26 @@ Empty the priority queue. The underlying Vec buffer is retained.
 
 ---
 
+### `pqueue_drain`
+
+```c
+Slice pqueue_drain(PQueue *q, Allocator allocator);
+```
+
+Pop all elements in priority order into an `allocator`-owned [`Slice`](slice.md).
+The queue is empty after this call but is not freed and may be reused.
+Returns an empty Slice (NULL ptr, len 0) if the queue is empty or allocation
+fails.
+
+```c
+/* drain and iterate in sorted order */
+Slice sorted = pqueue_drain(q, arena_allocator(a));
+for (size_t i = 0; i < sorted.len; i++)
+    printf("%d\n", *(int *)slice_get(sorted, i));
+```
+
+---
+
 ### `pqueue_free`
 
 ```c

@@ -421,6 +421,49 @@ static void expand(const void *elem, Iter *out, void *ctx) {
 
 ---
 
+### `iter_peekable`
+
+```c
+Iter iter_peekable(Iter source);
+bool iter_peek(Iter *it, void *out);  /* inline helper */
+```
+
+Wraps `source` so that `iter_peek` can inspect the next element without
+consuming it. The peeked element is buffered internally and returned again by
+the next call to `next`. Calling `iter_peek` on a non-peekable iterator returns
+`false`.
+
+```c
+Iter it = iter_peekable(vec_iter(v));
+int ahead;
+if (iter_peek(&it, &ahead) && ahead == SENTINEL) {
+    /* handle sentinel without consuming it */
+}
+```
+
+---
+
+### `iter_dedup`
+
+```c
+Iter iter_dedup(Iter source, compare_fn cmp);
+```
+
+Skip consecutive elements that compare equal (i.e. `cmp` returns `0`).
+Non-adjacent duplicates are kept. Pair with `iter_sort` to yield only unique
+values.
+
+```c
+/* collect unique sorted values */
+Slice unique = iter_collect(
+    iter_dedup(
+        iter_from_slice(iter_sort(iter_from_slice(s, al), int_cmp, al), al),
+        int_cmp),
+    al);
+```
+
+---
+
 ## Terminals
 
 Terminals consume the iterator and free its resources.

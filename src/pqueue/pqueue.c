@@ -177,3 +177,21 @@ Iter pqueue_iter_rev(const PQueue *q)
         return (Iter){0};
     return vec_iter_rev(q->data);
 }
+
+Slice pqueue_drain(PQueue *q, Allocator allocator)
+{
+    size_t n = pqueue_len(q);
+    size_t elem_size = vec_elem_size(q->data);
+    if (n == 0)
+        return (Slice){NULL, 0, elem_size};
+    char *buf =
+        allocator.alloc(allocator.ctx, n * elem_size, _Alignof(max_align_t));
+    if (!buf)
+    {
+        pqueue_clear(q);
+        return (Slice){NULL, 0, elem_size};
+    }
+    for (size_t i = 0; i < n; i++)
+        pqueue_pop(q, buf + i * elem_size);
+    return (Slice){buf, n, elem_size};
+}

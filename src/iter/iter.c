@@ -955,6 +955,145 @@ Iter iter_chunks(Iter source, size_t n)
                   .allocator = source.allocator};
 }
 
+/* ---- iter_peekable ----------------------------------------------------- */
+
+typedef struct
+{
+    Iter source;
+    void *buf;
+    bool has_peeked;
+    bool source_done;
+} PeekableState;
+
+static bool peekable_next(Iter *it, void *out)
+{
+    PeekableState *s = it->state;
+    if (s->has_peeked)
+    {
+        memcpy(out, s->buf, it->elem_size);
+        s->has_peeked = false;
+        return true;
+    }
+    if (s->source_done)
+        return false;
+    return s->source.next(&s->source, out);
+}
+
+static bool peekable_peek(Iter *it, void *out)
+{
+    PeekableState *s = it->state;
+    if (!s->has_peeked)
+    {
+        if (s->source_done)
+            return false;
+        if (!s->source.next(&s->source, s->buf))
+        {
+            s->source_done = true;
+            return false;
+        }
+        s->has_peeked = true;
+    }
+    if (out)
+        memcpy(out, s->buf, it->elem_size);
+    return true;
+}
+
+static void peekable_drop(Iter *it)
+{
+    if (!it->state)
+        return;
+    PeekableState *s = it->state;
+    iter_drop(&s->source);
+    if (it->allocator.free)
+    {
+        it->allocator.free(it->allocator.ctx, s->buf);
+        it->allocator.free(it->allocator.ctx, s);
+    }
+}
+
+Iter iter_peekable(Iter source)
+{
+    PeekableState *s = source.allocator.alloc(
+        source.allocator.ctx, sizeof *s, _Alignof(PeekableState));
+    void *buf = source.allocator.alloc(
+        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    if (!s || !buf)
+    {
+        if (s && source.allocator.free)
+            source.allocator.free(source.allocator.ctx, s);
+        if (buf && source.allocator.free)
+            source.allocator.free(source.allocator.ctx, buf);
+        return (Iter){0};
+    }
+    *s = (PeekableState){source, buf, false, false};
+    return (Iter){.next = peekable_next,
+                  .drop = peekable_drop,
+                  .peek = peekable_peek,
+                  .state = s,
+                  .elem_size = source.elem_size,
+                  .allocator = source.allocator};
+}
+
+/* ---- iter_dedup -------------------------------------------------------- */
+
+typedef struct
+{
+    Iter source;
+    compare_fn cmp;
+    void *last_buf;
+    bool has_last;
+} DedupState;
+
+static bool dedup_next(Iter *it, void *out)
+{
+    DedupState *s = it->state;
+    while (s->source.next(&s->source, out))
+    {
+        if (!s->has_last || s->cmp(out, s->last_buf) != 0)
+        {
+            memcpy(s->last_buf, out, it->elem_size);
+            s->has_last = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+static void dedup_drop(Iter *it)
+{
+    if (!it->state)
+        return;
+    DedupState *s = it->state;
+    iter_drop(&s->source);
+    if (it->allocator.free)
+    {
+        it->allocator.free(it->allocator.ctx, s->last_buf);
+        it->allocator.free(it->allocator.ctx, s);
+    }
+}
+
+Iter iter_dedup(Iter source, compare_fn cmp)
+{
+    DedupState *s = source.allocator.alloc(
+        source.allocator.ctx, sizeof *s, _Alignof(DedupState));
+    void *last_buf = source.allocator.alloc(
+        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    if (!s || !last_buf)
+    {
+        if (s && source.allocator.free)
+            source.allocator.free(source.allocator.ctx, s);
+        if (last_buf && source.allocator.free)
+            source.allocator.free(source.allocator.ctx, last_buf);
+        return (Iter){0};
+    }
+    *s = (DedupState){source, cmp, last_buf, false};
+    return (Iter){.next = dedup_next,
+                  .drop = dedup_drop,
+                  .state = s,
+                  .elem_size = source.elem_size,
+                  .allocator = source.allocator};
+}
+
 /* ---- iter_flat_map ----------------------------------------------------- */
 
 typedef struct

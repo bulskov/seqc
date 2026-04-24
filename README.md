@@ -163,6 +163,8 @@ int main(void) {
 | `iter_window(it, n)`                   | Sliding window of size n (yields Slice)         | [iter](docs/iter.md) |
 | `iter_chunks(it, n)`                   | Non-overlapping chunks of size n (yields Slice) | [iter](docs/iter.md) |
 | `iter_flat_map(it, fn, ctx, out_size)` | Expand each element into a sub-iterator         | [iter](docs/iter.md) |
+| `iter_peekable(it)`                    | Wrap so `iter_peek()` can inspect without consuming | [iter](docs/iter.md) |
+| `iter_dedup(it, cmp)`                  | Skip consecutive equal elements                 | [iter](docs/iter.md) |
 
 ### Terminals (consume)
 

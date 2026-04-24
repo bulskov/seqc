@@ -965,3 +965,116 @@ Test(iter, range_zero_step_returns_empty)
     arena_scratch_pop(&sc);
     arena_free(arena);
 }
+
+/* ---- iter_peekable ----------------------------------------------------- */
+
+Test(iter, peekable_peek_does_not_consume)
+{
+    int data[] = {10, 20, 30};
+    Slice s = {data, 3, sizeof(int)};
+    Arena *a = arena_create(512);
+    Scratch sc = arena_scratch_push(a);
+    Iter it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
+    int peeked, got;
+    cr_assert(iter_peek(&it, &peeked));
+    cr_assert_eq(peeked, 10);
+    cr_assert(it.next(&it, &got));
+    cr_assert_eq(got, 10); /* peek did not consume */
+    cr_assert(it.next(&it, &got));
+    cr_assert_eq(got, 20);
+    iter_drop(&it);
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}
+
+Test(iter, peekable_peek_at_end_returns_false)
+{
+    int data[] = {1};
+    Slice s = {data, 1, sizeof(int)};
+    Arena *a = arena_create(256);
+    Scratch sc = arena_scratch_push(a);
+    Iter it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
+    int got;
+    it.next(&it, &got); /* consume the only element */
+    cr_assert_not(iter_peek(&it, &got));
+    iter_drop(&it);
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}
+
+Test(iter, peekable_multiple_peeks_return_same)
+{
+    int data[] = {42, 99};
+    Slice s = {data, 2, sizeof(int)};
+    Arena *a = arena_create(256);
+    Scratch sc = arena_scratch_push(a);
+    Iter it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
+    int p1, p2;
+    cr_assert(iter_peek(&it, &p1));
+    cr_assert(iter_peek(&it, &p2));
+    cr_assert_eq(p1, p2); /* repeated peek returns same value */
+    iter_drop(&it);
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}
+
+/* ---- iter_dedup -------------------------------------------------------- */
+
+static int int_cmp_dedup(const void *a, const void *b)
+{
+    int x = *(const int *)a, y = *(const int *)b;
+    return (x > y) - (x < y);
+}
+
+Test(iter, dedup_removes_consecutive_duplicates)
+{
+    int data[] = {1, 1, 2, 3, 3, 3, 4};
+    Slice s = {data, 7, sizeof(int)};
+    Arena *a = arena_create(512);
+    Scratch sc = arena_scratch_push(a);
+    Slice result = iter_collect(
+        iter_dedup(iter_from_slice(s, scratch_allocator(&sc)), int_cmp_dedup),
+        scratch_allocator(&sc));
+    cr_assert_eq(result.len, 4);
+    cr_assert_eq(*(int *)slice_get(result, 0), 1);
+    cr_assert_eq(*(int *)slice_get(result, 1), 2);
+    cr_assert_eq(*(int *)slice_get(result, 2), 3);
+    cr_assert_eq(*(int *)slice_get(result, 3), 4);
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}
+
+Test(iter, dedup_non_consecutive_duplicates_kept)
+{
+    int data[] = {1, 2, 1, 2};
+    Slice s = {data, 4, sizeof(int)};
+    Arena *a = arena_create(512);
+    Scratch sc = arena_scratch_push(a);
+    size_t n = iter_count(
+        iter_dedup(iter_from_slice(s, scratch_allocator(&sc)), int_cmp_dedup));
+    cr_assert_eq(n, 4); /* no adjacent duplicates */
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}
+
+Test(iter, sort_then_dedup_unique_values)
+{
+    int data[] = {3, 1, 2, 1, 3, 2};
+    Slice s = {data, 6, sizeof(int)};
+    Arena *a = arena_create(512);
+    Scratch sc = arena_scratch_push(a);
+    Slice result = iter_collect(
+        iter_dedup(
+            iter_from_slice(
+                iter_sort(iter_from_slice(s, scratch_allocator(&sc)),
+                          int_cmp_dedup, scratch_allocator(&sc)),
+                scratch_allocator(&sc)),
+            int_cmp_dedup),
+        scratch_allocator(&sc));
+    cr_assert_eq(result.len, 3);
+    cr_assert_eq(*(int *)slice_get(result, 0), 1);
+    cr_assert_eq(*(int *)slice_get(result, 1), 2);
+    cr_assert_eq(*(int *)slice_get(result, 2), 3);
+    arena_scratch_pop(&sc);
+    arena_free(a);
+}

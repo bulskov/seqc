@@ -294,6 +294,22 @@ vec_extend(dst, vec_iter(src));  /* copy all elements from src */
 
 ---
 
+### `vec_sort`
+
+```c
+void vec_sort(Vec *v, compare_fn cmp);
+```
+
+Sort the elements of `v` in-place using `qsort`. No allocation. `cmp` follows
+the same sign convention as `iter_sort`. A NULL `v`, NULL `cmp`, or a vec with
+fewer than two elements is a no-op.
+
+```c
+vec_sort(v, int_cmp);  /* sort in-place; vec's buffer is modified directly */
+```
+
+---
+
 ## Example
 
 ```c

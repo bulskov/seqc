@@ -38,5 +38,6 @@ Iter vec_iter(const Vec *v);
 Iter vec_iter_rev(const Vec *v);
 /* Drain iter, pushing each element into v; stops and returns on OOM. */
 SeqcStatus vec_extend(Vec *v, Iter it);
+void vec_sort(Vec *v, compare_fn cmp); /* sort in-place; no allocation */
 void vec_clear(Vec *v); /* reset len to 0, keep buffer */
 void vec_free(Vec *v);

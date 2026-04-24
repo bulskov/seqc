@@ -2,6 +2,7 @@
 #include "arena/arena.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define INITIAL_CAP 16
@@ -245,6 +246,13 @@ void vec_free(Vec *v)
     Allocator al = v->allocator;
     if (al.free)
         al.free(al.ctx, v);
+}
+
+void vec_sort(Vec *v, compare_fn cmp)
+{
+    if (!v || !cmp || v->len < 2)
+        return;
+    qsort(v->data, v->len, v->elem_size, cmp);
 }
 
 SeqcStatus vec_extend(Vec *v, Iter it)

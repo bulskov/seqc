@@ -33,6 +33,7 @@ struct Iter
         Iter *it,
         void *out);         /* writes elem_size bytes; returns true or false */
     void (*drop)(Iter *it); /* frees internal state; NULL is valid     */
+    bool (*peek)(Iter *it, void *out); /* NULL if not peekable            */
     void *state;
     size_t elem_size;
     Allocator allocator; /* used by adaptors that need to allocate state */
@@ -43,6 +44,14 @@ static inline void iter_drop(Iter *it)
 {
     if (it && it->drop)
         it->drop(it);
+}
+
+/* Look at the next element without consuming it.
+ * Returns false if the iterator is exhausted or not peekable.
+ * Only valid on iterators returned by iter_peekable. */
+static inline bool iter_peek(Iter *it, void *out)
+{
+    return it && it->peek && it->peek(it, out);
 }
 
 /* --- Sources ------------------------------------------------------------ */
@@ -116,6 +125,16 @@ Iter iter_chunks(Iter source, size_t n);
 typedef void (*flat_map_fn)(const void *elem, Iter *out, void *ctx);
 Iter iter_flat_map(
     Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size);
+
+/* Wraps source so that iter_peek() can inspect the next element without
+ * consuming it.  iter_next() on a peekable iterator consumes the buffered
+ * element first. */
+Iter iter_peekable(Iter source);
+
+/* Skips consecutive duplicate elements according to cmp.
+ * Two adjacent elements are considered duplicates when cmp returns 0.
+ * Useful after iter_sort to yield only unique values. */
+Iter iter_dedup(Iter source, compare_fn cmp);
 
 /* --- Terminals (consume and drop the iterator) -------------------------- */
 

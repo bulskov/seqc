@@ -43,3 +43,7 @@ Iter pqueue_iter(
 Iter pqueue_iter_rev(const PQueue *q); /* reverse heap-storage order */
 void pqueue_clear(PQueue *q);          /* empty the queue, keep buffer */
 void pqueue_free(PQueue *q);
+
+/* Pop all elements in priority order into an allocator-owned Slice.
+ * The queue is empty after this call; the PQueue itself is not freed. */
+Slice pqueue_drain(PQueue *q, Allocator allocator);

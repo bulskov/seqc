@@ -403,3 +403,44 @@ Test(vec, push_returns_oom_when_grow_fails)
     cr_assert_eq(vec_len(v), 0);
     free(v); /* allocated by oom_alloc's malloc */
 }
+
+/* ---- vec_sort ---------------------------------------------------------- */
+
+static int int_cmp(const void *a, const void *b)
+{
+    int x = *(const int *)a, y = *(const int *)b;
+    return (x > y) - (x < y);
+}
+
+Test(vec, sort_orders_elements)
+{
+    Arena *a = arena_create(512);
+    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    int vals[] = {5, 2, 8, 1, 9, 3};
+    for (int i = 0; i < 6; i++)
+        vec_push(v, &vals[i]);
+    vec_sort(v, int_cmp);
+    for (size_t i = 1; i < vec_len(v); i++)
+        cr_assert_leq(*(int *)vec_get(v, i - 1), *(int *)vec_get(v, i));
+    arena_free(a);
+}
+
+Test(vec, sort_empty_is_noop)
+{
+    Arena *a = arena_create(256);
+    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    vec_sort(v, int_cmp); /* must not crash */
+    cr_assert_eq(vec_len(v), 0);
+    arena_free(a);
+}
+
+Test(vec, sort_single_element_is_noop)
+{
+    Arena *a = arena_create(256);
+    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    int x = 42;
+    vec_push(v, &x);
+    vec_sort(v, int_cmp);
+    cr_assert_eq(*(int *)vec_get(v, 0), 42);
+    arena_free(a);
+}
