@@ -34,14 +34,14 @@ Test(dlist, push_back_iter_forward)
     arena_free(a);
 }
 
-Test(dlist, iter_reverse)
+Test(dlist, iter_rev)
 {
     Arena *a = arena_create(512);
     DList *l = dlist_create(sizeof(int), arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
-    Iter it = dlist_iter_reverse(l);
+    Iter it = dlist_iter_rev(l);
     int got[3];
     size_t n = 0;
     while (it.next(&it, &got[n]))
