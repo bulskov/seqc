@@ -27,3 +27,6 @@ target_compile_options(seqc PRIVATE
         /W4,
         -Wall -Wextra -Wpedantic -Wno-unused-parameter>
 )
+
+install(TARGETS seqc ARCHIVE DESTINATION lib)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/seqc DESTINATION include)
