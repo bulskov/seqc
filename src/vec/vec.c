@@ -1,6 +1,7 @@
 #include "vec.h"
 #include "arena/arena.h"
 
+#include <stdint.h>
 #include <string.h>
 
 #define INITIAL_CAP 16
@@ -23,12 +24,11 @@ Vec *vec_create(size_t elem_size, Allocator allocator)
     Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
     if (!v)
         return NULL;
-    *v = (Vec){
-        .data = NULL,
-        .len = 0,
-        .cap = 0,
-        .elem_size = elem_size,
-        .allocator = allocator};
+    *v = (Vec){.data = NULL,
+               .len = 0,
+               .cap = 0,
+               .elem_size = elem_size,
+               .allocator = allocator};
     return v;
 }
 
@@ -42,14 +42,14 @@ Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator)
     Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
     if (!v)
         return NULL;
-    *v = (Vec){
-        .data = allocator.alloc(
-            allocator.ctx, capacity * elem_size, _Alignof(max_align_t)),
-        .len = 0,
-        .cap = capacity,
-        .elem_size = elem_size,
-        .allocator = allocator};
-    if (!v->data)    {
+    *v = (Vec){.data = allocator.alloc(
+                   allocator.ctx, capacity * elem_size, _Alignof(max_align_t)),
+               .len = 0,
+               .cap = capacity,
+               .elem_size = elem_size,
+               .allocator = allocator};
+    if (!v->data)
+    {
         allocator.free(allocator.ctx, v);
         return NULL;
     }
@@ -77,6 +77,8 @@ SeqcStatus vec_push(Vec *v, const void *elem)
         return SEQC_INVALID;
     if (v->len == v->cap)
     {
+        if (v->cap > SIZE_MAX / 2)
+            return SEQC_OOM;
         size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
         void *new_data = v->allocator.realloc(
             v->allocator.ctx,
@@ -252,7 +254,8 @@ SeqcStatus vec_extend(Vec *v, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = v->allocator.alloc(v->allocator.ctx, v->elem_size, _Alignof(max_align_t));
+    void *elem = v->allocator.alloc(
+        v->allocator.ctx, v->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);

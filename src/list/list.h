@@ -9,8 +9,6 @@
 /* Singly-linked list.  Element data is stored inline immediately after each
  * node header, aligned to max_align_t. */
 
- 
-
 typedef struct List List;
 
 List *list_create(size_t elem_size, Allocator allocator);

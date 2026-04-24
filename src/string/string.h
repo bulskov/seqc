@@ -6,7 +6,6 @@
 #include "arena/arena.h" /* for Allocator, Scratch */
 #include "iter/iter.h"
 
-
 #include <stdarg.h>
 
 typedef struct

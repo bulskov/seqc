@@ -142,26 +142,33 @@ OMap *omap_create(
     OMap *m = allocator.alloc(allocator.ctx, sizeof(OMap), _Alignof(OMap));
     if (!m)
         return NULL;
-    *m = (OMap){
-        .root = NULL,
-        .len = 0,
-        .key_size = key_size,
-        .val_size = val_size,
-        .cmp = cmp,
-        .allocator = allocator};
+    *m = (OMap){.root = NULL,
+                .len = 0,
+                .key_size = key_size,
+                .val_size = val_size,
+                .cmp = cmp,
+                .allocator = allocator};
     return m;
 }
 
 /* ---- set (insert or update) ------------------------------------------- */
 
 static OMNode *do_set(
-    OMap *m, OMNode *node, const void *key, const void *value, bool *inserted,
+    OMap *m,
+    OMNode *node,
+    const void *key,
+    const void *value,
+    bool *inserted,
     bool *oom)
 {
     if (!node)
     {
         OMNode *n = make_node(m, key, value);
-        if (!n) { *oom = true; return NULL; }
+        if (!n)
+        {
+            *oom = true;
+            return NULL;
+        }
         *inserted = true;
         return n;
     }
@@ -169,13 +176,15 @@ static OMNode *do_set(
     if (c < 0)
     {
         OMNode *new_left = do_set(m, node->left, key, value, inserted, oom);
-        if (*oom) return node;
+        if (*oom)
+            return node;
         node->left = new_left;
     }
     else if (c > 0)
     {
         OMNode *new_right = do_set(m, node->right, key, value, inserted, oom);
-        if (*oom) return node;
+        if (*oom)
+            return node;
         node->right = new_right;
     }
     else
@@ -454,19 +463,17 @@ Iter omap_iter(const OMap *m)
         return (Iter){0};
     OMapIterState *s = m->allocator.alloc(
         m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
-    *s = (OMapIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = m->root,
-        .key_size = m->key_size,
-        .allocator = m->allocator};
-    return (Iter){
-        .next = omap_iter_next,
-        .drop = omap_iter_drop,
-        .state = s,
-        .elem_size = sizeof(OMapEntry),
-        .allocator = m->allocator};
+    *s = (OMapIterState){.stack = NULL,
+                         .stack_len = 0,
+                         .stack_cap = 0,
+                         .current = m->root,
+                         .key_size = m->key_size,
+                         .allocator = m->allocator};
+    return (Iter){.next = omap_iter_next,
+                  .drop = omap_iter_drop,
+                  .state = s,
+                  .elem_size = sizeof(OMapEntry),
+                  .allocator = m->allocator};
 }
 
 static bool omap_iter_rev_next(Iter *it, void *out)
@@ -504,19 +511,17 @@ Iter omap_iter_rev(const OMap *m)
         return (Iter){0};
     OMapIterState *s = m->allocator.alloc(
         m->allocator.ctx, sizeof *s, _Alignof(OMapIterState));
-    *s = (OMapIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = m->root,
-        .key_size = m->key_size,
-        .allocator = m->allocator};
-    return (Iter){
-        .next = omap_iter_rev_next,
-        .drop = omap_iter_drop,
-        .state = s,
-        .elem_size = sizeof(OMapEntry),
-        .allocator = m->allocator};
+    *s = (OMapIterState){.stack = NULL,
+                         .stack_len = 0,
+                         .stack_cap = 0,
+                         .current = m->root,
+                         .key_size = m->key_size,
+                         .allocator = m->allocator};
+    return (Iter){.next = omap_iter_rev_next,
+                  .drop = omap_iter_drop,
+                  .state = s,
+                  .elem_size = sizeof(OMapEntry),
+                  .allocator = m->allocator};
 }
 
 /* ---- range iterator ---------------------------------------------------- */
@@ -624,23 +629,21 @@ Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key)
             m->allocator.ctx, m->key_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi_key, m->key_size);
     }
-    *s = (OMapRangeIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = NULL,
-        .key_size = m->key_size,
-        .allocator = m->allocator,
-        .cmp = m->cmp,
-        .hi_key = hi_copy};
+    *s = (OMapRangeIterState){.stack = NULL,
+                              .stack_len = 0,
+                              .stack_cap = 0,
+                              .current = NULL,
+                              .key_size = m->key_size,
+                              .allocator = m->allocator,
+                              .cmp = m->cmp,
+                              .hi_key = hi_copy};
     if (lo_key)
         omap_push_lo(s, m->root, lo_key);
     else
         s->current = m->root;
-    return (Iter){
-        .next = omap_range_iter_next,
-        .drop = omap_range_iter_drop,
-        .state = s,
-        .elem_size = sizeof(OMapEntry),
-        .allocator = m->allocator};
+    return (Iter){.next = omap_range_iter_next,
+                  .drop = omap_range_iter_drop,
+                  .state = s,
+                  .elem_size = sizeof(OMapEntry),
+                  .allocator = m->allocator};
 }

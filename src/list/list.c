@@ -50,12 +50,11 @@ List *list_create(size_t elem_size, Allocator allocator)
     List *l = allocator.alloc(allocator.ctx, sizeof(List), _Alignof(List));
     if (!l)
         return NULL;
-    *l = (List){
-        .head = NULL,
-        .tail = NULL,
-        .len = 0,
-        .elem_size = elem_size,
-        .allocator = allocator};
+    *l = (List){.head = NULL,
+                .tail = NULL,
+                .len = 0,
+                .elem_size = elem_size,
+                .allocator = allocator};
     return l;
 }
 
@@ -203,10 +202,9 @@ Iter list_iter(const List *l)
     ListIterState *s = l->allocator.alloc(
         l->allocator.ctx, sizeof *s, _Alignof(ListIterState));
     *s = (ListIterState){l->head, l->elem_size};
-    return (Iter){
-        .next = list_iter_next,
-        .drop = list_iter_drop,
-        .state = s,
-        .elem_size = l->elem_size,
-        .allocator = l->allocator};
+    return (Iter){.next = list_iter_next,
+                  .drop = list_iter_drop,
+                  .state = s,
+                  .elem_size = l->elem_size,
+                  .allocator = l->allocator};
 }

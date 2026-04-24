@@ -20,13 +20,12 @@ Queue *queue_create(size_t elem_size, Allocator allocator)
     Queue *q = allocator.alloc(allocator.ctx, sizeof(Queue), _Alignof(Queue));
     if (!q)
         return NULL;
-    *q = (Queue){
-        .buf = NULL,
-        .cap = 0,
-        .len = 0,
-        .head = 0,
-        .elem_size = elem_size,
-        .allocator = allocator};
+    *q = (Queue){.buf = NULL,
+                 .cap = 0,
+                 .len = 0,
+                 .head = 0,
+                 .elem_size = elem_size,
+                 .allocator = allocator};
     return q;
 }
 
@@ -161,12 +160,11 @@ Iter queue_iter(const Queue *q)
     QueueIterState *s = q->allocator.alloc(
         q->allocator.ctx, sizeof *s, _Alignof(QueueIterState));
     *s = (QueueIterState){q->buf, q->head, q->cap, q->len, q->elem_size};
-    return (Iter){
-        .next = queue_iter_next,
-        .drop = queue_iter_drop,
-        .state = s,
-        .elem_size = q->elem_size,
-        .allocator = q->allocator};
+    return (Iter){.next = queue_iter_next,
+                  .drop = queue_iter_drop,
+                  .state = s,
+                  .elem_size = q->elem_size,
+                  .allocator = q->allocator};
 }
 
 /* ---- iter_rev ---------------------------------------------------------- */
@@ -205,10 +203,9 @@ Iter queue_iter_rev(const Queue *q)
         q->allocator.ctx, sizeof *s, _Alignof(QueueIterRevState));
     size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
     *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
-    return (Iter){
-        .next = queue_iter_rev_next,
-        .drop = queue_iter_rev_drop,
-        .state = s,
-        .elem_size = q->elem_size,
-        .allocator = q->allocator};
+    return (Iter){.next = queue_iter_rev_next,
+                  .drop = queue_iter_rev_drop,
+                  .state = s,
+                  .elem_size = q->elem_size,
+                  .allocator = q->allocator};
 }

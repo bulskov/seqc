@@ -19,7 +19,8 @@ struct HashMap
     size_t len;
     size_t key_size;
     size_t val_size;
-    uint8_t max_psl; /* highest PSL of any stored bucket; updated on every insert */
+    uint8_t
+        max_psl; /* highest PSL of any stored bucket; updated on every insert */
     hash_fn hash;
     eq_fn eq;
     Allocator allocator;
@@ -59,7 +60,7 @@ size_t hash_fnv1a_str(const void *key, size_t key_size)
         return 0; /* invalid key size for string map */
     }
     const char *s = *(const char *const *)key;
-    if(!s)
+    if (!s)
         return 0;
     uint64_t hash = 14695981039346656037ULL;
     for (; *s; s++)
@@ -156,19 +157,24 @@ SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
 {
     if (!map || !map->buckets || !key || !value)
         return SEQC_INVALID;
-    if ((map->len + 1) * 4 > map->cap * 3 || map->max_psl >= HASH_PSL_THRESHOLD) {
+    if ((map->len + 1) * 4 > map->cap * 3 || map->max_psl >= HASH_PSL_THRESHOLD)
+    {
         SeqcStatus rs = hashmap_resize_and_rehash(map, map->cap * 2);
-        if (rs != SEQC_OK) return rs;
+        if (rs != SEQC_OK)
+            return rs;
     }
 
     // Allocate copies once — this is the only allocation point
     void *key_copy = map->allocator.alloc(
         map->allocator.ctx, map->key_size, _Alignof(max_align_t));
-    if (!key_copy) return SEQC_OOM;
+    if (!key_copy)
+        return SEQC_OOM;
     void *val_copy = map->allocator.alloc(
         map->allocator.ctx, map->val_size, _Alignof(max_align_t));
-    if (!val_copy) {
-        if (map->allocator.free) map->allocator.free(map->allocator.ctx, key_copy);
+    if (!val_copy)
+    {
+        if (map->allocator.free)
+            map->allocator.free(map->allocator.ctx, key_copy);
         return SEQC_OOM;
     }
     memcpy(key_copy, key, map->key_size);
@@ -177,7 +183,6 @@ SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
     hashmap_insert_raw(map, (Bucket){key_copy, val_copy, 0});
     return SEQC_OK;
 }
-
 
 HashMap *hashmap_create(
     size_t key_size,
@@ -201,21 +206,21 @@ HashMap *hashmap_create(
 
     Bucket *buckets =
         allocator.alloc(allocator.ctx, cap * sizeof(Bucket), _Alignof(Bucket));
-    if (!buckets) {
+    if (!buckets)
+    {
         if (allocator.free)
             allocator.free(allocator.ctx, m);
         return NULL;
     }
     memset(buckets, 0, cap * sizeof(Bucket));
-    *m = (HashMap){
-        .buckets = buckets,
-        .cap = cap,
-        .len = 0,
-        .key_size = key_size,
-        .val_size = val_size,
-        .hash = hash,
-        .eq = eq,
-        .allocator = allocator};
+    *m = (HashMap){.buckets = buckets,
+                   .cap = cap,
+                   .len = 0,
+                   .key_size = key_size,
+                   .val_size = val_size,
+                   .hash = hash,
+                   .eq = eq,
+                   .allocator = allocator};
     return m;
 }
 
@@ -276,7 +281,6 @@ bool hashmap_contains(const HashMap *map, const void *key)
 {
     return hashmap_get(map, key, NULL) == SEQC_OK;
 }
-
 
 bool hashmap_is_healthy(const HashMap *map)
 {
@@ -442,12 +446,11 @@ Iter hashmap_iter(const HashMap *map)
         _Alignof(HashMapIterState));
     if (s)
         *s = (HashMapIterState){map, 0};
-    return (Iter){
-        .next = hashmap_iter_next,
-        .drop = hashmap_iter_drop,
-        .state = s,
-        .elem_size = sizeof(HashMapEntry),
-        .allocator = map->allocator};
+    return (Iter){.next = hashmap_iter_next,
+                  .drop = hashmap_iter_drop,
+                  .state = s,
+                  .elem_size = sizeof(HashMapEntry),
+                  .allocator = map->allocator};
 }
 
 Iter hashmap_iter_rev(const HashMap *map)
@@ -462,12 +465,11 @@ Iter hashmap_iter_rev(const HashMap *map)
         _Alignof(HashMapIterState));
     if (s)
         *s = (HashMapIterState){map, map->cap}; /* start past the last slot */
-    return (Iter){
-        .next = hashmap_iter_rev_next,
-        .drop = hashmap_iter_drop,
-        .state = s,
-        .elem_size = sizeof(HashMapEntry),
-        .allocator = map->allocator};
+    return (Iter){.next = hashmap_iter_rev_next,
+                  .drop = hashmap_iter_drop,
+                  .state = s,
+                  .elem_size = sizeof(HashMapEntry),
+                  .allocator = map->allocator};
 }
 
 SeqcStatus hashmap_set_all(HashMap *map, Iter it)

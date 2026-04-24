@@ -6,16 +6,15 @@
 #include "arena/arena.h"
 #include "slice/slice.h"
 
-
 /* --- Error / status codes ---------------------------------------------- */
 
 typedef enum
 {
-    SEQC_OK = 0,       /* operation succeeded / element found    */
-    SEQC_NOT_FOUND,    /* element or key is absent               */
-    SEQC_DUPLICATE,    /* element already present (no-op insert) */
-    SEQC_OOM,          /* allocator returned NULL                */
-    SEQC_INVALID,      /* NULL or otherwise invalid argument     */
+    SEQC_OK = 0,    /* operation succeeded / element found    */
+    SEQC_NOT_FOUND, /* element or key is absent               */
+    SEQC_DUPLICATE, /* element already present (no-op insert) */
+    SEQC_OOM,       /* allocator returned NULL                */
+    SEQC_INVALID,   /* NULL or otherwise invalid argument     */
 } SeqcStatus;
 
 typedef struct Iter Iter;
@@ -127,7 +126,8 @@ size_t iter_count(Iter it);
 void iter_foreach(Iter it, visitor_fn visit, void *ctx);
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx);
 
-/* Collects into `allocator` and sorts in-place using cmp; returns sorted Slice */
+/* Collects into `allocator` and sorts in-place using cmp; returns sorted Slice
+ */
 Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator);
 
 /* Returns 1 and writes first match to *out (may be NULL) if found */

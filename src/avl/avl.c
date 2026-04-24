@@ -142,12 +142,11 @@ AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator)
         allocator.alloc(allocator.ctx, sizeof(AVLTree), _Alignof(AVLTree));
     if (!t)
         return NULL;
-    *t = (AVLTree){
-        .root = NULL,
-        .len = 0,
-        .elem_size = elem_size,
-        .cmp = cmp,
-        .allocator = allocator};
+    *t = (AVLTree){.root = NULL,
+                   .len = 0,
+                   .elem_size = elem_size,
+                   .cmp = cmp,
+                   .allocator = allocator};
     return t;
 }
 
@@ -159,7 +158,11 @@ static AVLNode *do_insert(
     if (!node)
     {
         AVLNode *n = make_node(t, elem);
-        if (!n) { *oom = true; return NULL; }
+        if (!n)
+        {
+            *oom = true;
+            return NULL;
+        }
         *inserted = true;
         return n;
     }
@@ -167,13 +170,15 @@ static AVLNode *do_insert(
     if (c < 0)
     {
         AVLNode *new_left = do_insert(t, node->left, elem, inserted, oom);
-        if (*oom) return node; /* preserve existing tree on OOM */
+        if (*oom)
+            return node; /* preserve existing tree on OOM */
         node->left = new_left;
     }
     else if (c > 0)
     {
         AVLNode *new_right = do_insert(t, node->right, elem, inserted, oom);
-        if (*oom) return node;
+        if (*oom)
+            return node;
         node->right = new_right;
     }
     else
@@ -405,19 +410,17 @@ Iter avl_iter(const AVLTree *t)
         return (Iter){0};
     AVLIterState *s =
         t->allocator.alloc(t->allocator.ctx, sizeof *s, _Alignof(AVLIterState));
-    *s = (AVLIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = t->root,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
-    return (Iter){
-        .next = avl_iter_next,
-        .drop = avl_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    *s = (AVLIterState){.stack = NULL,
+                        .stack_len = 0,
+                        .stack_cap = 0,
+                        .current = t->root,
+                        .elem_size = t->elem_size,
+                        .allocator = t->allocator};
+    return (Iter){.next = avl_iter_next,
+                  .drop = avl_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }
 
 static bool avl_iter_rev_next(Iter *it, void *out)
@@ -454,19 +457,17 @@ Iter avl_iter_rev(const AVLTree *t)
         return (Iter){0};
     AVLIterState *s =
         t->allocator.alloc(t->allocator.ctx, sizeof *s, _Alignof(AVLIterState));
-    *s = (AVLIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = t->root,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
-    return (Iter){
-        .next = avl_iter_rev_next,
-        .drop = avl_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    *s = (AVLIterState){.stack = NULL,
+                        .stack_len = 0,
+                        .stack_cap = 0,
+                        .current = t->root,
+                        .elem_size = t->elem_size,
+                        .allocator = t->allocator};
+    return (Iter){.next = avl_iter_rev_next,
+                  .drop = avl_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }
 
 /* ---- range iterator ---------------------------------------------------- */
@@ -572,23 +573,21 @@ Iter avl_iter_range(const AVLTree *t, const void *lo, const void *hi)
             t->allocator.ctx, t->elem_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi, t->elem_size);
     }
-    *s = (AVLRangeIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = NULL,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator,
-        .cmp = t->cmp,
-        .hi = hi_copy};
+    *s = (AVLRangeIterState){.stack = NULL,
+                             .stack_len = 0,
+                             .stack_cap = 0,
+                             .current = NULL,
+                             .elem_size = t->elem_size,
+                             .allocator = t->allocator,
+                             .cmp = t->cmp,
+                             .hi = hi_copy};
     if (lo)
         avl_push_lo(s, t->root, lo);
     else
         s->current = t->root;
-    return (Iter){
-        .next = avl_range_iter_next,
-        .drop = avl_range_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    return (Iter){.next = avl_range_iter_next,
+                  .drop = avl_range_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }

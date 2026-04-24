@@ -66,12 +66,11 @@ DList *dlist_create(size_t elem_size, Allocator allocator)
     DList *l = allocator.alloc(allocator.ctx, sizeof(DList), _Alignof(DList));
     if (!l)
         return NULL;
-    *l = (DList){
-        .head = NULL,
-        .tail = NULL,
-        .len = 0,
-        .elem_size = elem_size,
-        .allocator = allocator};
+    *l = (DList){.head = NULL,
+                 .tail = NULL,
+                 .len = 0,
+                 .elem_size = elem_size,
+                 .allocator = allocator};
     return l;
 }
 
@@ -216,25 +215,23 @@ Iter dlist_iter(const DList *l)
     DListIterState *s = l->allocator.alloc(
         l->allocator.ctx, sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->head, l->elem_size};
-    return (Iter){
-        .next = dlist_iter_next_fwd,
-        .drop = dlist_iter_drop,
-        .state = s,
-        .elem_size = l->elem_size,
-        .allocator = l->allocator};
+    return (Iter){.next = dlist_iter_next_fwd,
+                  .drop = dlist_iter_drop,
+                  .state = s,
+                  .elem_size = l->elem_size,
+                  .allocator = l->allocator};
 }
 
-Iter dlist_iter_reverse(const DList *l)
+Iter dlist_iter_rev(const DList *l)
 {
     if (!l)
         return (Iter){0};
     DListIterState *s = l->allocator.alloc(
         l->allocator.ctx, sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->tail, l->elem_size};
-    return (Iter){
-        .next = dlist_iter_next_rev,
-        .drop = dlist_iter_drop,
-        .state = s,
-        .elem_size = l->elem_size,
-        .allocator = l->allocator};
+    return (Iter){.next = dlist_iter_next_rev,
+                  .drop = dlist_iter_drop,
+                  .state = s,
+                  .elem_size = l->elem_size,
+                  .allocator = l->allocator};
 }

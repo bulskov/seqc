@@ -8,9 +8,9 @@
 struct RingBuf
 {
     void *data;
-    size_t cap;      /* always a power of 2, or 0 when uninitialised */
+    size_t cap; /* always a power of 2, or 0 when uninitialised */
     size_t len;
-    size_t head;     /* index of first element */
+    size_t head; /* index of first element */
     size_t elem_size;
     Allocator allocator;
 };
@@ -50,15 +50,17 @@ static SeqcStatus rb_grow(RingBuf *r)
             /* wrapped: copy from head to end, then from 0 to wrap point */
             size_t first = r->cap - r->head;
             memcpy(nd, rb_ptr(r, r->head), first * r->elem_size);
-            memcpy((char *)nd + first * r->elem_size, r->data,
-                   (r->len - first) * r->elem_size);
+            memcpy(
+                (char *)nd + first * r->elem_size,
+                r->data,
+                (r->len - first) * r->elem_size);
         }
     }
 
     if (r->allocator.free && r->data)
         r->allocator.free(r->allocator.ctx, r->data);
     r->data = nd;
-    r->cap  = new_cap;
+    r->cap = new_cap;
     r->head = 0;
     return SEQC_OK;
 }
@@ -67,14 +69,15 @@ static SeqcStatus rb_grow(RingBuf *r)
 
 RingBuf *ringbuf_create(size_t elem_size, Allocator allocator)
 {
-    RingBuf *r = allocator.alloc(allocator.ctx, sizeof(RingBuf), _Alignof(RingBuf));
+    RingBuf *r =
+        allocator.alloc(allocator.ctx, sizeof(RingBuf), _Alignof(RingBuf));
     if (!r)
         return NULL;
     *r = (RingBuf){
-        .data      = NULL,
-        .cap       = 0,
-        .len       = 0,
-        .head      = 0,
+        .data = NULL,
+        .cap = 0,
+        .len = 0,
+        .head = 0,
         .elem_size = elem_size,
         .allocator = allocator,
     };
@@ -164,7 +167,7 @@ void ringbuf_clear(RingBuf *r)
 {
     if (!r)
         return;
-    r->len  = 0;
+    r->len = 0;
     r->head = 0;
 }
 
@@ -223,9 +226,9 @@ Iter ringbuf_iter(const RingBuf *r)
         return (Iter){0};
     *st = (RingBufIterState){r, 0};
     return (Iter){
-        .next      = ringbuf_iter_next,
-        .drop      = ringbuf_iter_drop,
-        .state     = st,
+        .next = ringbuf_iter_next,
+        .drop = ringbuf_iter_drop,
+        .state = st,
         .elem_size = r->elem_size,
         .allocator = r->allocator,
     };
@@ -241,9 +244,9 @@ Iter ringbuf_iter_rev(const RingBuf *r)
         return (Iter){0};
     *st = (RingBufIterState){r, r->len}; /* starts past the last element */
     return (Iter){
-        .next      = ringbuf_iter_rev_next,
-        .drop      = ringbuf_iter_drop,
-        .state     = st,
+        .next = ringbuf_iter_rev_next,
+        .drop = ringbuf_iter_drop,
+        .state = st,
         .elem_size = r->elem_size,
         .allocator = r->allocator,
     };

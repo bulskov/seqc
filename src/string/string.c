@@ -43,6 +43,8 @@ String string_copy(String s, Allocator allocator)
 const char *string_to_cstr(String s, Allocator allocator)
 {
     char *buf = allocator.alloc(allocator.ctx, s.len + 1, 1);
+    if (!buf)
+        return NULL;
     if (s.ptr && s.len > 0)
         memcpy(buf, s.ptr, s.len);
     buf[s.len] = '\0';
@@ -382,15 +384,27 @@ static void split_drop(Iter *it)
 
 Iter string_split(String s, String delim, Allocator allocator)
 {
+    if (s.ptr == NULL)
+    {
+        /* Edge case: split on NULL string → emit one empty token */
+        String empty = {NULL, 0};
+        return iter_from_slice((Slice){&empty, 1, sizeof(String)}, allocator);
+    }
+
+    if (!delim.ptr || delim.len == 0)
+    {
+        /* Edge case: split on empty delimiter → emit each character */
+        return string_chars(s, allocator);
+    }
+
     SplitState *state = allocator.alloc(
         allocator.ctx, sizeof(SplitState), _Alignof(SplitState));
     *state = (SplitState){s, delim, 0};
-    return (Iter){
-        .next = split_next,
-        .drop = split_drop,
-        .state = state,
-        .elem_size = sizeof(String),
-        .allocator = allocator};
+    return (Iter){.next = split_next,
+                  .drop = split_drop,
+                  .state = state,
+                  .elem_size = sizeof(String),
+                  .allocator = allocator};
 }
 
 /* --- HashMap helpers ---------------------------------------------------- */

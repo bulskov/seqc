@@ -17,7 +17,8 @@ struct Set
     size_t cap; /* always a power of 2 */
     size_t len;
     size_t elem_size;
-    uint8_t max_psl; /* highest PSL of any stored bucket; updated on every insert */
+    uint8_t
+        max_psl; /* highest PSL of any stored bucket; updated on every insert */
     hash_fn hash;
     eq_fn eq;
     Allocator allocator;
@@ -63,7 +64,8 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
             incoming = tmp;
         }
         incoming.psl++;
-        assert(incoming.psl != 0); /* uint8_t overflow: degenerate hash function */
+        assert(
+            incoming.psl != 0); /* uint8_t overflow: degenerate hash function */
         slot = (slot + 1) & (s->cap - 1);
     }
 }
@@ -94,20 +96,18 @@ static SeqcStatus set_resize(Set *s)
 
 /* ---- public API -------------------------------------------------------- */
 
-Set *set_create(
-    size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator)
+Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator)
 {
     Set *s = allocator.alloc(allocator.ctx, sizeof(Set), _Alignof(Set));
     if (!s)
         return NULL;
-    *s = (Set){
-        .buckets = NULL,
-        .cap = 0,
-        .len = 0,
-        .elem_size = elem_size,
-        .hash = hash,
-        .eq = eq,
-        .allocator = allocator};
+    *s = (Set){.buckets = NULL,
+               .cap = 0,
+               .len = 0,
+               .elem_size = elem_size,
+               .hash = hash,
+               .eq = eq,
+               .allocator = allocator};
     return s;
 }
 
@@ -314,12 +314,11 @@ Iter set_iter(const Set *s)
     if (!state)
         return (Iter){0};
     *state = (SetIterState){s->buckets, s->cap, 0, s->elem_size};
-    return (Iter){
-        .next = set_iter_next,
-        .drop = set_iter_drop,
-        .state = state,
-        .elem_size = s->elem_size,
-        .allocator = s->allocator};
+    return (Iter){.next = set_iter_next,
+                  .drop = set_iter_drop,
+                  .state = state,
+                  .elem_size = s->elem_size,
+                  .allocator = s->allocator};
 }
 
 typedef struct
@@ -360,12 +359,11 @@ Iter set_iter_rev(const Set *s)
     if (!state)
         return (Iter){0};
     *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
-    return (Iter){
-        .next = set_iter_rev_next,
-        .drop = set_iter_rev_drop,
-        .state = state,
-        .elem_size = s->elem_size,
-        .allocator = s->allocator};
+    return (Iter){.next = set_iter_rev_next,
+                  .drop = set_iter_rev_drop,
+                  .state = state,
+                  .elem_size = s->elem_size,
+                  .allocator = s->allocator};
 }
 
 /* ---- set algebra ------------------------------------------------------- */
@@ -439,7 +437,8 @@ SeqcStatus set_add_all(Set *s, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = s->allocator.alloc(s->allocator.ctx, s->elem_size, _Alignof(max_align_t));
+    void *elem = s->allocator.alloc(
+        s->allocator.ctx, s->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);

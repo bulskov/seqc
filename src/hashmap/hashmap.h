@@ -7,7 +7,6 @@
 
 typedef struct HashMap HashMap;
 
-
 /* Pointer-pair yielded by hashmap_iter — see MapEntry in iter/iter.h.
  * Do not modify the map while iterating. */
 typedef MapEntry HashMapEntry;
@@ -37,15 +36,14 @@ Iter hashmap_iter_rev(const HashMap *map);
 
 /* --- Health / diagnostics ----------------------------------------------- */
 
-
 typedef struct
 {
     size_t len;
     size_t cap;
     double load_factor;
-    uint8_t max_psl;  /* highest probe-sequence length of any stored bucket */
-    double mean_psl;  /* average PSL over occupied buckets */
-    bool is_healthy;  /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
+    uint8_t max_psl; /* highest probe-sequence length of any stored bucket */
+    double mean_psl; /* average PSL over occupied buckets */
+    bool is_healthy; /* mean_psl < 3.0 and max_psl <= HASHMAP_PSL_THRESHOLD/2 */
 } HashMapStats;
 
 /* O(1) — returns false when max_psl has exceeded HASHMAP_PSL_THRESHOLD/2,

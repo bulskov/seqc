@@ -39,7 +39,7 @@ OMap *omap_create(size_t key_size, size_t val_size,
                   compare_fn cmp, Allocator allocator);
 ```
 
-Create an empty ordered map. Returns `NULL` if `key_size` or `val_size` is zero.
+Create an empty ordered map. Returns `NULL` if allocation fails.
 
 ```c
 static int int_cmp(const void *a, const void *b) {
@@ -60,7 +60,8 @@ SeqcStatus omap_set(OMap *m, const void *key, const void *value);
 ```
 
 Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
-an existing one. Returns `SEQC_OOM` if an allocation fails.
+an existing one. Returns `SEQC_OOM` if an allocation fails. Returns
+`SEQC_INVALID` if `m`, `key`, or `value` is `NULL`.
 
 ```c
 int    k = 1;
@@ -78,6 +79,7 @@ SeqcStatus omap_get(const OMap *m, const void *key, void *out);
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
 presence only. Returns `SEQC_OK` if found, `SEQC_NOT_FOUND` otherwise.
+Returns `SEQC_INVALID` if `m` or `key` is `NULL`.
 
 ```c
 double val;
@@ -101,7 +103,8 @@ bool omap_contains(const OMap *m, const void *key);
 SeqcStatus omap_remove(OMap *m, const void *key);
 ```
 
-Remove by key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
+Remove by key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
+`SEQC_INVALID` if `m` or `key` is `NULL`.
 
 ---
 

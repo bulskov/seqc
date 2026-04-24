@@ -251,11 +251,10 @@ size_t arena_capacity(const Arena *a)
 Allocator arena_allocator(Arena *arena)
 {
     assert(arena);
-    return (Allocator){
-        .alloc = (alloc_fn)arena_alloc,
-        .realloc = (realloc_fn)arena_realloc,
-        .free = (free_fn)NULL,
-        .ctx = arena};
+    return (Allocator){.alloc = (alloc_fn)arena_alloc,
+                       .realloc = (realloc_fn)arena_realloc,
+                       .free = (free_fn)NULL,
+                       .ctx = arena};
 }
 
 Scratch arena_scratch_push(Arena *arena)
@@ -313,9 +312,8 @@ static void sys_free_fn(void *ctx, void *ptr)
 
 Allocator sys_allocator(void)
 {
-    return (Allocator){
-        .alloc = sys_alloc_fn,
-        .realloc = sys_realloc_fn,
-        .free = sys_free_fn,
-        .ctx = NULL};
+    return (Allocator){.alloc = sys_alloc_fn,
+                       .realloc = sys_realloc_fn,
+                       .free = sys_free_fn,
+                       .ctx = NULL};
 }

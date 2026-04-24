@@ -9,8 +9,7 @@
 
 typedef struct Set Set;
 
-Set *set_create(
-    size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator);
+Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator);
 /* SEQC_OK=added, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
 SeqcStatus set_add(Set *s, const void *elem);
 bool set_contains(const Set *s, const void *elem);
@@ -22,7 +21,8 @@ void set_free(Set *s);
 void set_clear(Set *s);
 Iter set_iter(const Set *s);     /* order unspecified */
 Iter set_iter_rev(const Set *s); /* reverse bucket-storage order */
-/* Drain iter, adding each element into s; SEQC_DUPLICATE is silently skipped. */
+/* Drain iter, adding each element into s; SEQC_DUPLICATE is silently skipped.
+ */
 SeqcStatus set_add_all(Set *s, Iter it);
 
 /* --- Set algebra -------------------------------------------------------- */
@@ -43,9 +43,9 @@ typedef struct
     size_t len;
     size_t cap;
     double load_factor;
-    uint8_t max_psl;  /* highest probe-sequence length of any stored bucket */
-    double mean_psl;  /* average PSL over occupied buckets */
-    bool is_healthy;  /* mean_psl < 3.0 and max_psl <= SET_PSL_THRESHOLD/2 */
+    uint8_t max_psl; /* highest probe-sequence length of any stored bucket */
+    double mean_psl; /* average PSL over occupied buckets */
+    bool is_healthy; /* mean_psl < 3.0 and max_psl <= SET_PSL_THRESHOLD/2 */
 } SetStats;
 
 /* O(1) — returns false when max_psl has exceeded SET_PSL_THRESHOLD/2. */

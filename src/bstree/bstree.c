@@ -51,15 +51,15 @@ static BSTreeNode *make_node(const BSTree *t, const void *elem)
 
 BSTree *bstree_create(size_t elem_size, compare_fn cmp, Allocator allocator)
 {
-    BSTree *t = allocator.alloc(allocator.ctx, sizeof(BSTree), _Alignof(BSTree));
+    BSTree *t =
+        allocator.alloc(allocator.ctx, sizeof(BSTree), _Alignof(BSTree));
     if (!t)
         return NULL;
-    *t = (BSTree){
-        .root = NULL,
-        .len = 0,
-        .elem_size = elem_size,
-        .cmp = cmp,
-        .allocator = allocator};
+    *t = (BSTree){.root = NULL,
+                  .len = 0,
+                  .elem_size = elem_size,
+                  .cmp = cmp,
+                  .allocator = allocator};
     return t;
 }
 
@@ -289,19 +289,17 @@ Iter bstree_iter(const BSTree *t)
         return (Iter){0};
     BSTreeIterState *s = t->allocator.alloc(
         t->allocator.ctx, sizeof *s, _Alignof(BSTreeIterState));
-    *s = (BSTreeIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = t->root,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
-    return (Iter){
-        .next = bstree_iter_next,
-        .drop = bstree_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    *s = (BSTreeIterState){.stack = NULL,
+                           .stack_len = 0,
+                           .stack_cap = 0,
+                           .current = t->root,
+                           .elem_size = t->elem_size,
+                           .allocator = t->allocator};
+    return (Iter){.next = bstree_iter_next,
+                  .drop = bstree_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }
 
 static bool bstree_iter_rev_next(Iter *it, void *out)
@@ -338,19 +336,17 @@ Iter bstree_iter_rev(const BSTree *t)
         return (Iter){0};
     BSTreeIterState *s = t->allocator.alloc(
         t->allocator.ctx, sizeof *s, _Alignof(BSTreeIterState));
-    *s = (BSTreeIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = t->root,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
-    return (Iter){
-        .next = bstree_iter_rev_next,
-        .drop = bstree_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    *s = (BSTreeIterState){.stack = NULL,
+                           .stack_len = 0,
+                           .stack_cap = 0,
+                           .current = t->root,
+                           .elem_size = t->elem_size,
+                           .allocator = t->allocator};
+    return (Iter){.next = bstree_iter_rev_next,
+                  .drop = bstree_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }
 
 /* ---- range iterator ---------------------------------------------------- */
@@ -457,23 +453,21 @@ Iter bstree_iter_range(const BSTree *t, const void *lo, const void *hi)
             t->allocator.ctx, t->elem_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi, t->elem_size);
     }
-    *s = (BSTreeRangeIterState){
-        .stack = NULL,
-        .stack_len = 0,
-        .stack_cap = 0,
-        .current = NULL,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator,
-        .cmp = t->cmp,
-        .hi = hi_copy};
+    *s = (BSTreeRangeIterState){.stack = NULL,
+                                .stack_len = 0,
+                                .stack_cap = 0,
+                                .current = NULL,
+                                .elem_size = t->elem_size,
+                                .allocator = t->allocator,
+                                .cmp = t->cmp,
+                                .hi = hi_copy};
     if (lo)
         bstree_push_lo(s, t->root, lo);
     else
         s->current = t->root;
-    return (Iter){
-        .next = bstree_range_iter_next,
-        .drop = bstree_range_iter_drop,
-        .state = s,
-        .elem_size = t->elem_size,
-        .allocator = t->allocator};
+    return (Iter){.next = bstree_range_iter_next,
+                  .drop = bstree_range_iter_drop,
+                  .state = s,
+                  .elem_size = t->elem_size,
+                  .allocator = t->allocator};
 }

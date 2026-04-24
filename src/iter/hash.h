@@ -1,9 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-
+#include <stddef.h>
+#include <stdint.h>
 
 /* PSL above this triggers an automatic resize to protect against uint8_t
  * overflow (max storable PSL is 255). Indicates a degenerate hash function. */

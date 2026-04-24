@@ -19,8 +19,8 @@ SeqcStatus avl_insert(AVLTree *t, const void *elem);
 bool avl_contains(const AVLTree *t, const void *elem);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
 SeqcStatus avl_remove(AVLTree *t, const void *elem);
-void *avl_min(const AVLTree *t);   /* NULL if empty          */
-void *avl_max(const AVLTree *t);   /* NULL if empty          */
+void *avl_min(const AVLTree *t); /* NULL if empty          */
+void *avl_max(const AVLTree *t); /* NULL if empty          */
 size_t avl_len(const AVLTree *t);
 int avl_height(const AVLTree *t);    /* 0 if empty             */
 Iter avl_iter(const AVLTree *t);     /* ascending, in-order    */

@@ -5,5 +5,8 @@
         "ctest": true,
         "llvm-cov-18": true,
         "cmake": true
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
     }
 }

@@ -30,7 +30,8 @@ SeqcStatus omap_get(const OMap *m, const void *key, void *out);
 bool omap_contains(const OMap *m, const void *key);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
 SeqcStatus omap_remove(OMap *m, const void *key);
-/* Copy the min/max key into out (may be NULL). Returns SEQC_NOT_FOUND if empty. */
+/* Copy the min/max key into out (may be NULL). Returns SEQC_NOT_FOUND if empty.
+ */
 SeqcStatus omap_min_key(const OMap *m, void *out);
 SeqcStatus omap_max_key(const OMap *m, void *out);
 /* Copy the key and value at the min/max position into key_out and val_out
