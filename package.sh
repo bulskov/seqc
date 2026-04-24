@@ -12,6 +12,9 @@ cmake --preset release -DBUILD_TESTING=OFF
 cmake --build --preset release
 cmake --install build/release --prefix "$STAGE/$NAME"
 
+cp README.md "$STAGE/$NAME/"
+cp -r docs   "$STAGE/$NAME/"
+
 (cd "$STAGE" && zip -r "${OLDPWD}/${NAME}.zip" "$NAME")
 
 echo "Created ${NAME}.zip"
