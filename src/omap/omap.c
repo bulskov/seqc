@@ -1,4 +1,4 @@
-#include "omap.h"
+#include "seqc/omap.h"
 
 #include <string.h>
 

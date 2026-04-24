@@ -2,7 +2,7 @@
 
 Open-addressing hash map using Robin Hood hashing.
 
-**Header:** `src/hashmap/hashmap.h`  
+**Header:** `include/seqc/hashmap.h`  
 **See also:** [`set`](set.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---
@@ -323,7 +323,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 ## Example: string keys
 
 ```c
-#include "hashmap/hashmap.h"
+#include "seqc/hashmap.h"
 
 Arena   *a = arena_create(4096);
 HashMap *m = hashmap_create(sizeof(char *), sizeof(int),

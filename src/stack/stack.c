@@ -1,5 +1,5 @@
-#include "stack.h"
-#include "vec/vec.h"
+#include "seqc/stack.h"
+#include "seqc/vec.h"
 
 #include <string.h>
 

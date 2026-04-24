@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "bstree/bstree.h"
+#include "seqc/arena.h"
+#include "seqc/bstree.h"
 
 /* ---- comparator -------------------------------------------------------- */
 

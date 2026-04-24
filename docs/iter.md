@@ -4,7 +4,7 @@ Lazy iterator pipeline. Every data source exposes an `Iter`; adaptors transform
 one `Iter` into another; terminals consume the iterator and produce a result.
 Nothing allocates or runs until a terminal is called.
 
-**Header:** `src/iter/iter.h`  
+**Header:** `include/seqc/iter.h`  
 **See also:** [`arena`](arena.md) · [`slice`](slice.md) · [`vec`](vec.md)
 
 ---
@@ -611,9 +611,9 @@ success, `false` if the iterator was empty.
 ## Full pipeline example
 
 ```c
-#include "arena/arena.h"
-#include "vec/vec.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/vec.h"
+#include "seqc/iter.h"
 
 static bool is_even(const void *e, void *ctx)  { return *(const int *)e % 2 == 0; }
 static void triple(const void *in, void *out, void *ctx) {

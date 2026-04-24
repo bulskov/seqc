@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 
 /* Ordered map backed by an AVL tree.
  * Keys are kept sorted by compare_fn; all operations are O(log n).

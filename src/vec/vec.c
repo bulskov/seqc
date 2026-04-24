@@ -1,5 +1,5 @@
-#include "vec.h"
-#include "arena/arena.h"
+#include "seqc/vec.h"
+#include "seqc/arena.h"
 
 #include <stdint.h>
 #include <stdlib.h>

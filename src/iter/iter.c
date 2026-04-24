@@ -1,5 +1,5 @@
-#include "iter.h"
-#include "arena/arena.h"
+#include "seqc/iter.h"
+#include "seqc/arena.h"
 
 #include <stddef.h>
 #include <stdlib.h>

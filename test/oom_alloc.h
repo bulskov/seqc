@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "arena/arena.h"
+#include "seqc/arena.h"
 
 /* ---- null allocator (always fails) ------------------------------------- */
 

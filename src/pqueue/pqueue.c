@@ -1,4 +1,4 @@
-#include "pqueue.h"
+#include "seqc/pqueue.h"
 
 #include <string.h>
 

@@ -2,9 +2,9 @@
 
 #include <stddef.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
-#include "vec/vec.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
+#include "seqc/vec.h"
 
 /* Binary min-heap priority queue.
  *

@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "set/set.h"
+#include "seqc/arena.h"
+#include "seqc/set.h"
 #include "../oom_alloc.h"
 
 /* ---- hash/eq for int keys ---------------------------------------------- */

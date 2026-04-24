@@ -1,4 +1,4 @@
-#include "avl.h"
+#include "seqc/avl.h"
 
 #include <string.h>
 

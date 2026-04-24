@@ -2,7 +2,7 @@
 
 Doubly-linked list. O(1) push and pop at both ends.
 
-**Header:** `src/dlist/dlist.h`  
+**Header:** `include/seqc/dlist.h`  
 **See also:** [`list`](list.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

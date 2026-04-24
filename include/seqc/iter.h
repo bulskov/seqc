@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "arena/arena.h"
-#include "slice/slice.h"
+#include "seqc/arena.h"
+#include "seqc/slice.h"
 
 /* --- Error / status codes ---------------------------------------------- */
 

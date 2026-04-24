@@ -1,8 +1,8 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "hashmap/hashmap.h"
-#include "string/string.h"
+#include "seqc/arena.h"
+#include "seqc/hashmap.h"
+#include "seqc/string.h"
 
 /* --- Construction ------------------------------------------------------- */
 

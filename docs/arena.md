@@ -3,7 +3,7 @@
 Bump allocator backed by `mmap`'d memory blocks. Grows automatically when a
 block is exhausted. A single `arena_free()` releases all memory at once.
 
-**Header:** `src/arena/arena.h`
+**Header:** `include/seqc/arena.h`
 
 ---
 

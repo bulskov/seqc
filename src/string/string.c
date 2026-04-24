@@ -1,5 +1,5 @@
-#include "string.h"
-#include "vec/vec.h"
+#include "seqc/string.h"
+#include "seqc/vec.h"
 
 #include <ctype.h>
 #include <errno.h>

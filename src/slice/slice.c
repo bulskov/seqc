@@ -1,4 +1,4 @@
-#include "slice.h"
+#include "seqc/slice.h"
 
 void *slice_get(Slice s, size_t i)
 {

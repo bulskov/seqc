@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 
 typedef struct Set Set;
 

@@ -1,4 +1,4 @@
-#include "list.h"
+#include "seqc/list.h"
 
 #include <string.h>
 

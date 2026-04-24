@@ -3,7 +3,7 @@
 Ordered map backed by an [AVL tree](avl.md). Keys are kept sorted by the
 supplied comparator. All operations are O(log n).
 
-**Header:** `src/omap/omap.h`  
+**Header:** `include/seqc/omap.h`  
 **See also:** [`avl`](avl.md) · [`hashmap`](hashmap.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

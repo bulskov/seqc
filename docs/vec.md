@@ -2,7 +2,7 @@
 
 Growable array backed by an arena-owned buffer.
 
-**Header:** `src/vec/vec.h`  
+**Header:** `include/seqc/vec.h`  
 **See also:** [`slice`](slice.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

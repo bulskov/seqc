@@ -1,4 +1,4 @@
-#include "queue.h"
+#include "seqc/queue.h"
 
 #include <stdbool.h>
 #include <string.h>

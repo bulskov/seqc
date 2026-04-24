@@ -1,4 +1,4 @@
-#include "dlist.h"
+#include "seqc/dlist.h"
 
 #include <stdbool.h>
 #include <string.h>

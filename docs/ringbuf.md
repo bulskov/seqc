@@ -8,7 +8,7 @@ Because both ends are equally cheap to use, `RingBuf` can serve as a FIFO
 queue (push-back / pop-front), a LIFO stack (push-back / pop-back), a deque,
 or a sliding-window buffer.
 
-**Header:** `src/ringbuf/ringbuf.h`  
+**Header:** `include/seqc/ringbuf.h`  
 **See also:** [`iter`](iter.md) · [`arena`](arena.md) · [`queue`](queue.md)
 
 ---
@@ -177,8 +177,8 @@ this.
 ## Example: sliding window
 
 ```c
-#include "ringbuf/ringbuf.h"
-#include "arena/arena.h"
+#include "seqc/ringbuf.h"
+#include "seqc/arena.h"
 
 Arena   *a = arena_create(4096);
 RingBuf *w = ringbuf_create(sizeof(int), arena_allocator(a));

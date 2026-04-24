@@ -2,8 +2,8 @@
 
 #include <stddef.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 
 /* Queue — FIFO ring buffer */
 typedef struct Queue Queue;

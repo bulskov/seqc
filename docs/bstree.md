@@ -4,7 +4,7 @@ Unbalanced binary search tree. O(log n) average for insert, lookup, and remove;
 O(n) worst case on sorted input. Use [`avl`](avl.md) when balance guarantees
 matter.
 
-**Header:** `src/bstree/bstree.h`  
+**Header:** `include/seqc/bstree.h`  
 **See also:** [`avl`](avl.md) · [`omap`](omap.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

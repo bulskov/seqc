@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "avl/avl.h"
+#include "seqc/arena.h"
+#include "seqc/avl.h"
 
 /* ---- comparator -------------------------------------------------------- */
 

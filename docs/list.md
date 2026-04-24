@@ -3,7 +3,7 @@
 Singly-linked list. Node data is stored inline (no separate allocation per
 node). O(1) push/pop at the front, O(1) push at the back, O(n) pop from back.
 
-**Header:** `src/list/list.h`  
+**Header:** `include/seqc/list.h`  
 **See also:** [`dlist`](dlist.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

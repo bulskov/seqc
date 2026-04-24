@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "ringbuf/ringbuf.h"
+#include "seqc/arena.h"
+#include "seqc/ringbuf.h"
 
 /* ---- basic lifecycle --------------------------------------------------- */
 

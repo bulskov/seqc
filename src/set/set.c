@@ -1,4 +1,4 @@
-#include "set.h"
+#include "seqc/set.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>

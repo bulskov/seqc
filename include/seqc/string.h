@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "arena/arena.h" /* for Allocator, Scratch */
-#include "iter/iter.h"
+#include "seqc/arena.h" /* for Allocator, Scratch */
+#include "seqc/iter.h"
 
 #include <stdarg.h>
 

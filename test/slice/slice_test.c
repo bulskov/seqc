@@ -1,6 +1,6 @@
 #include <criterion/criterion.h>
 
-#include "slice/slice.h"
+#include "seqc/slice.h"
 
 Test(slice, get_first_element)
 {

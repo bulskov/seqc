@@ -1,8 +1,8 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "pqueue/pqueue.h"
-#include "vec/vec.h"
+#include "seqc/arena.h"
+#include "seqc/pqueue.h"
+#include "seqc/vec.h"
 
 static int int_cmp(const void *a, const void *b)
 {

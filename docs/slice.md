@@ -2,7 +2,7 @@
 
 A non-owning view into a contiguous block of typed elements.
 
-**Header:** `src/slice/slice.h`  
+**Header:** `include/seqc/slice.h`  
 **See also:** [`iter`](iter.md) · [`vec`](vec.md) · [`arena`](arena.md)
 
 ---

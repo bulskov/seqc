@@ -1,4 +1,4 @@
-#include "bstree.h"
+#include "seqc/bstree.h"
 
 #include <stdbool.h>
 #include <string.h>

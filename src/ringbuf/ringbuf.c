@@ -1,4 +1,4 @@
-#include "ringbuf.h"
+#include "seqc/ringbuf.h"
 
 #include <assert.h>
 #include <string.h>

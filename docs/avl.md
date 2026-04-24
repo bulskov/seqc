@@ -4,7 +4,7 @@ Self-balancing AVL tree. Guaranteed O(log n) for insert, remove, and lookup.
 The height invariant `|height(L) - height(R)| <= 1` is maintained via LL / RR /
 LR / RL rotations.
 
-**Header:** `src/avl/avl.h`  
+**Header:** `include/seqc/avl.h`  
 **See also:** [`bstree`](bstree.md) · [`omap`](omap.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

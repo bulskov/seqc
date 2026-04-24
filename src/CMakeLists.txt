@@ -17,7 +17,10 @@ add_library(seqc STATIC
     ringbuf/ringbuf.c
 )
 
-target_include_directories(seqc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(seqc PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 target_compile_options(seqc PRIVATE
     $<IF:$<C_COMPILER_ID:MSVC>,

@@ -1,9 +1,9 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "hashmap/hashmap.h"
-#include "iter/iter.h"
-#include "iter/hash.h"
+#include "seqc/arena.h"
+#include "seqc/hashmap.h"
+#include "seqc/iter.h"
+#include "seqc/hash.h"
 #include "../oom_alloc.h"
 
 /* ---- string-keyed helpers ---- */

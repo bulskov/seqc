@@ -1,8 +1,8 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
-#include "vec/vec.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
+#include "seqc/vec.h"
 
 /* ---- helpers ----------------------------------------------------------- */
 

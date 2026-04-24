@@ -2,8 +2,8 @@
 
 #include <stddef.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 
 /* Unbalanced binary search tree.
  * compare_fn is the same type used by iter_sort:

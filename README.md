@@ -46,7 +46,7 @@ Vec / List / BSTree / ...
 
 ## Building
 
-Requires: `clang`, `cmake >= 3.20`, `ninja`.
+Requires: a C11 compiler (GCC or Clang), `cmake >= 3.20`, `ninja`.
 Optional: `criterion` for building the test suite.
 
 ```sh
@@ -59,6 +59,29 @@ If Criterion is not installed, the library still configures and builds, but test
 To silence the warning explicitly, configure with `-DBUILD_TESTING=OFF`.
 
 A `release` preset is also available.
+
+### Using as a dependency
+
+**CMake FetchContent** (recommended):
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(seqc
+    GIT_REPOSITORY https://github.com/bulskov/seqc
+    GIT_TAG        master)
+FetchContent_MakeAvailable(seqc)
+target_link_libraries(myapp PRIVATE seqc)
+```
+
+Then include with:
+
+```c
+#include "seqc/arena.h"
+#include "seqc/vec.h"
+#include "seqc/iter.h"
+```
+
+**Manual vendoring**: copy the `include/seqc/` directory and the `src/` directory into your project, add `include/` to your include path, and compile the `.c` files alongside your own.
 
 ## Modules
 
@@ -84,9 +107,9 @@ A `release` preset is also available.
 ## Quick example
 
 ```c
-#include "arena/arena.h"
-#include "vec/vec.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/vec.h"
+#include "seqc/iter.h"
 
 static int is_even(const void *elem, void *ctx) {
     return *(const int *)elem % 2 == 0;

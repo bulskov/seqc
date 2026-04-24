@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "queue/queue.h"
+#include "seqc/arena.h"
+#include "seqc/queue.h"
 
 /* ---- tests ------------------------------------------------------------- */
 

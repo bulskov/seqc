@@ -2,7 +2,7 @@
 
 LIFO stack backed by a [`Vec`](vec.md).
 
-**Header:** `src/stack/stack.h`  
+**Header:** `include/seqc/stack.h`  
 **See also:** [`vec`](vec.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

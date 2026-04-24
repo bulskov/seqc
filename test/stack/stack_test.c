@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "stack/stack.h"
+#include "seqc/arena.h"
+#include "seqc/stack.h"
 
 /* ---- helpers ----------------------------------------------------------- */
 

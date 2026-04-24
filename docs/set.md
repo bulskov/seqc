@@ -2,7 +2,7 @@
 
 Open-addressing hash set using Robin Hood hashing.
 
-**Header:** `src/set/set.h`  
+**Header:** `include/seqc/set.h`  
 **See also:** [`hashmap`](hashmap.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---
@@ -36,7 +36,7 @@ For integer-sized keys use `hash_fnv1a` / `hash_eq_bytes` from
 use `hash_fnv1a_str` / `hash_eq_str`.
 
 ```c
-#include "iter/hash.h"
+#include "seqc/hash.h"
 
 Arena *a = arena_create(4096);
 Set   *s = set_create(sizeof(int),
@@ -251,7 +251,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 ## Example
 
 ```c
-#include "iter/hash.h"
+#include "seqc/hash.h"
 
 Arena *a = arena_create(4096);
 Set   *s = set_create(sizeof(int), hash_fnv1a, hash_eq_bytes,

@@ -4,7 +4,7 @@ Binary min-heap priority queue. The element with the lowest
 [`compare_fn`](iter.md#function-pointer-types) value is always at the front.
 All push/pop operations are O(log n); peek is O(1).
 
-**Header:** `src/pqueue/pqueue.h`  
+**Header:** `include/seqc/pqueue.h`  
 **See also:** [`vec`](vec.md) · [`iter`](iter.md) · [`arena`](arena.md)
 
 ---

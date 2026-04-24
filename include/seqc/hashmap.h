@@ -1,7 +1,7 @@
 #pragma once
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 #include <stddef.h>
 #include <stdint.h>
 

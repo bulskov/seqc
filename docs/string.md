@@ -3,7 +3,7 @@
 Bounded string type (`ptr + len`, not null-terminated), string builder, and
 iterator sources for character-level and token-level iteration.
 
-**Header:** `src/string/string.h`  
+**Header:** `include/seqc/string.h`  
 **See also:** [`iter`](iter.md) · [`hashmap`](hashmap.md) · [`arena`](arena.md)
 
 ---

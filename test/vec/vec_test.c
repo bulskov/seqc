@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "vec/vec.h"
+#include "seqc/arena.h"
+#include "seqc/vec.h"
 #include "../oom_alloc.h"
 
 Test(vec, create_is_empty)

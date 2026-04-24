@@ -1,8 +1,8 @@
 #include <criterion/criterion.h>
 #include <string.h>
 
-#include "arena/arena.h"
-#include "iter/iter.h"
+#include "seqc/arena.h"
+#include "seqc/iter.h"
 
 Test(arena, create_and_free)
 {

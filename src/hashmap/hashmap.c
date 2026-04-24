@@ -1,5 +1,5 @@
-#include "hashmap.h"
-#include "iter/hash.h"
+#include "seqc/hashmap.h"
+#include "seqc/hash.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>

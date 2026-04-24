@@ -1,8 +1,8 @@
 #include <criterion/criterion.h>
 
-#include "arena/arena.h"
-#include "omap/omap.h"
-#include "string/string.h"
+#include "seqc/arena.h"
+#include "seqc/omap.h"
+#include "seqc/string.h"
 
 /* ---- comparators ------------------------------------------------------- */
 

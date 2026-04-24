@@ -2,7 +2,7 @@
 
 FIFO ring buffer.
 
-**Header:** `src/queue/queue.h`  
+**Header:** `include/seqc/queue.h`  
 **See also:** [`iter`](iter.md) · [`arena`](arena.md)
 
 ---
