@@ -342,3 +342,94 @@ Test(arena, sys_allocator_alloc_realloc_free)
     /* free */
     al.free(al.ctx, p2);
 }
+
+/* ---- arena_set_max_allocation ------------------------------------------ */
+
+Test(arena, max_allocation_default_is_unlimited)
+{
+    /* Without setting a limit, the arena should grow freely */
+    Arena *a = arena_create(64);
+    for (int i = 0; i < 1024; i++)
+    {
+        void *p = arena_alloc(a, sizeof(int), _Alignof(int));
+        cr_assert_not_null(p);
+    }
+    arena_free(a);
+}
+
+Test(arena, max_allocation_blocks_overflow)
+{
+    /* Set the cap just at the initial block size so the first overflow block
+     * is rejected. */
+    Arena *a = arena_create(64);
+    size_t cap = arena_capacity(a);
+    arena_set_max_allocation(a, cap); /* no room for more blocks */
+
+    /* Fill the current block entirely */
+    while (arena_alloc(a, 1, 1))
+        ;
+
+    /* Any allocation that requires a new block must now fail */
+    void *p = arena_alloc(a, 1, 1);
+    cr_assert_null(p);
+    arena_free(a);
+}
+
+Test(arena, max_allocation_within_existing_block_succeeds)
+{
+    /* Allocations that fit in already-committed memory are not affected by the
+     * cap. */
+    Arena *a = arena_create(4096);
+    arena_set_max_allocation(a, arena_capacity(a)); /* no new blocks */
+
+    void *p = arena_alloc(a, sizeof(int), _Alignof(int));
+    cr_assert_not_null(p);
+    arena_free(a);
+}
+
+Test(arena, max_allocation_set_to_zero_removes_limit)
+{
+    Arena *a = arena_create(64);
+    size_t cap = arena_capacity(a);
+    arena_set_max_allocation(a, cap); /* cap first */
+
+    /* Exhaust the block */
+    while (arena_alloc(a, 1, 1))
+        ;
+    cr_assert_null(arena_alloc(a, 1, 1)); /* should fail */
+
+    arena_set_max_allocation(a, 0); /* remove the limit */
+    void *p = arena_alloc(a, 1, 1); /* should succeed now */
+    cr_assert_not_null(p);
+    arena_free(a);
+}
+
+Test(arena, max_allocation_large_single_alloc_rejected)
+{
+    /* A single allocation that would push capacity past the cap is rejected */
+    Arena *a = arena_create(64);
+    size_t cap = arena_capacity(a);
+    arena_set_max_allocation(a, cap);
+
+    void *p = arena_alloc(a, 8192, 1); /* 8 KiB — way over cap */
+    cr_assert_null(p);
+    arena_free(a);
+}
+
+Test(arena, max_allocation_can_be_raised_later)
+{
+    Arena *a = arena_create(64);
+    size_t cap = arena_capacity(a);
+    arena_set_max_allocation(a, cap);
+
+    /* Exhaust and confirm failure */
+    while (arena_alloc(a, 1, 1))
+        ;
+    cr_assert_null(arena_alloc(a, 1, 1));
+
+    /* Raise the limit and confirm growth works again */
+    arena_set_max_allocation(a, cap * 4);
+    void *p = arena_alloc(a, 1, 1);
+    cr_assert_not_null(p);
+    arena_free(a);
+}

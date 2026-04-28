@@ -8,12 +8,13 @@
 /* ---- platform memory: mmap on POSIX, VirtualAlloc on Windows ----------- */
 
 #ifdef _WIN32
-#  define WIN32_LEAN_AND_MEAN
-#  include <windows.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 static void *platform_mem_alloc(size_t size)
 {
-    void *p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    void *p =
+        VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     return p; /* NULL on failure, same sentinel as mmap failure */
 }
 
@@ -24,15 +25,15 @@ static void platform_mem_free(void *ptr, size_t size)
 }
 
 #else /* POSIX */
-#  include <sys/mman.h>
-#  ifndef MAP_ANONYMOUS          /* BSDs expose MAP_ANON, not MAP_ANONYMOUS */
-#    define MAP_ANONYMOUS MAP_ANON
-#  endif
+#include <sys/mman.h>
+#ifndef MAP_ANONYMOUS /* BSDs expose MAP_ANON, not MAP_ANONYMOUS */
+#define MAP_ANONYMOUS MAP_ANON
+#endif
 
 static void *platform_mem_alloc(size_t size)
 {
-    void *p = mmap(NULL, size, PROT_READ | PROT_WRITE,
-                   MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    void *p = mmap(
+        NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     return (p == MAP_FAILED) ? NULL : p;
 }
 
@@ -56,6 +57,7 @@ struct Arena
 {
     MemBlock *mem_head;
     MemBlock *mem_tail;
+    size_t max_allocation; /* 0 = unlimited */
 };
 
 static size_t arena_align_to_block_size(size_t size)
@@ -102,6 +104,13 @@ static void *arena_alloc_mem(Arena *arena, size_t size, size_t align)
     // block is pointing to the last block, so we can just append a new one
 
     size_t block_cap = arena_align_to_block_size(size + sizeof(MemBlock));
+    if (arena->max_allocation > 0)
+    {
+        size_t current_cap = arena_capacity(arena);
+        if (current_cap >= arena->max_allocation
+            || block_cap > arena->max_allocation - current_cap)
+            return NULL;
+    }
     MemBlock *new_block = arena_create_block(block_cap, 0);
     if (!new_block)
     {
@@ -131,6 +140,7 @@ Arena *arena_create(size_t capacity)
     Arena *a = (Arena *)block->buf;
     a->mem_head = block;
     a->mem_tail = block;
+    a->max_allocation = 0; /* unlimited by default */
     return a;
 }
 
@@ -274,6 +284,11 @@ size_t arena_capacity(const Arena *a)
         block = block->next;
     }
     return capacity;
+}
+
+void arena_set_max_allocation(Arena *a, size_t max_bytes)
+{
+    a->max_allocation = max_bytes;
 }
 
 Allocator arena_allocator(Arena *arena)

@@ -37,6 +37,11 @@ void arena_scratch_pop(Scratch *scratch);
 Allocator scratch_allocator(Scratch *scratch);
 
 Arena *arena_create(size_t capacity);
+/* Set the maximum total capacity the arena may grow to.
+ * Pass 0 to remove the limit (the default).
+ * Once the cap is reached, allocations that would require a new block
+ * return NULL instead of growing. */
+void arena_set_max_allocation(Arena *a, size_t max_bytes);
 void *arena_alloc(Arena *a, size_t size, size_t align);
 void *arena_realloc(
     Arena *a, void *ptr, size_t old_size, size_t new_size, size_t align);

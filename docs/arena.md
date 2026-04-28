@@ -24,11 +24,11 @@ Generic allocator interface passed to every container and iterator that needs
 to allocate memory. Every collection stores the `Allocator` it was created
 with, so a single program can freely mix allocators:
 
-| Source | Use when |
-|--------|----------|
-| [`arena_allocator(a)`](#arena_allocator) | bulk lifetime — free everything in one call |
-| [`scratch_allocator(&sc)`](#scratch_allocator) | temporary work inside a loop |
-| [`sys_allocator()`](#sys_allocator) | per-collection lifetime via `_free()`, or when no arena is available |
+| Source                                         | Use when                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| [`arena_allocator(a)`](#arena_allocator)       | bulk lifetime — free everything in one call                          |
+| [`scratch_allocator(&sc)`](#scratch_allocator) | temporary work inside a loop                                         |
+| [`sys_allocator()`](#sys_allocator)            | per-collection lifetime via `_free()`, or when no arena is available |
 
 Obtain one from [`arena_allocator()`](#arena_allocator),
 [`scratch_allocator()`](#scratch_allocator), or
@@ -73,10 +73,38 @@ void *arena_alloc(Arena *a, size_t size, size_t align);
 ```
 
 Bump-allocate `size` bytes aligned to `align`. Triggers a new block if the
-current one is full. Never returns NULL (aborts on OOM).
+current one is full. Returns `NULL` if `size` is zero, if OS allocation fails,
+or if a [max allocation cap](#arena_set_max_allocation) is set and the
+allocation would exceed it.
 
 ```c
 int *buf = arena_alloc(a, 64 * sizeof(int), _Alignof(int));
+```
+
+---
+
+### `arena_set_max_allocation` {#arena_set_max_allocation}
+
+```c
+void arena_set_max_allocation(Arena *a, size_t max_bytes);
+```
+
+Set the maximum total capacity the arena may grow to. Once the cap is reached,
+any allocation that would require a new block returns `NULL` instead of
+growing. Allocations that fit within already-committed blocks are unaffected.
+
+Pass `0` to remove the limit (this is also the default after `arena_create`).
+
+The cap can be changed at any time — raising it allows growth again after a
+previous cap was hit.
+
+```c
+Arena *a = arena_create(4096);
+arena_set_max_allocation(a, 1024 * 1024); // never grow past 1 MiB
+
+void *p = arena_alloc(a, large_size, 8);  // returns NULL if it would exceed 1 MiB
+
+arena_set_max_allocation(a, 0);           // remove the limit
 ```
 
 ---
