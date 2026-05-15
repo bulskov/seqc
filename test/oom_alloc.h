@@ -89,7 +89,7 @@ static void null_free(void *ctx, void *ptr, size_t size)
 static const allocator_vtable_t null_allocator_vtable = {
     null_alloc, null_realloc, null_free};
 
-static allocator_t null_allocator(void)
+[[maybe_unused]] static allocator_t null_allocator(void)
 {
     allocator_t a = {&null_allocator_vtable, NULL};
     return a;
@@ -135,7 +135,7 @@ static const allocator_vtable_t oom_allocator_vtable = {
     oom_alloc, oom_realloc, oom_free};
 
 /* n = number of successful alloc/realloc calls before the first failure */
-static allocator_t oom_after_allocator(size_t n, OomCtx *ctx)
+[[maybe_unused]] static allocator_t oom_after_allocator(size_t n, OomCtx *ctx)
 {
     ctx->remaining = n;
     allocator_t a = {&oom_allocator_vtable, ctx};
