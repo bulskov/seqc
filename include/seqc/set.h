@@ -4,12 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 typedef struct Set Set;
 
-Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator);
+Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator);
 /* SEQC_OK=added, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
 SeqcStatus set_add(Set *s, const void *elem);
 bool set_contains(const Set *s, const void *elem);

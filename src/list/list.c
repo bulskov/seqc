@@ -15,7 +15,7 @@ struct List
     ListNode *tail;
     size_t len;
     size_t elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
 /* Data lives immediately after the node header, padded to max_align_t so any
@@ -36,8 +36,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static ListNode *list_make_node(const List *l, const void *elem)
 {
-    ListNode *node = l->allocator.alloc(
-        l->allocator.ctx, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    ListNode *node = mem_alloc(l->allocator,
+         node_alloc_size(l->elem_size), _Alignof(max_align_t));
     if (!node)
         return NULL;
     node->next = NULL;
@@ -45,9 +45,9 @@ static ListNode *list_make_node(const List *l, const void *elem)
     return node;
 }
 
-List *list_create(size_t elem_size, Allocator allocator)
+List *list_create(size_t elem_size, allocator_t allocator)
 {
-    List *l = allocator.alloc(allocator.ctx, sizeof(List), _Alignof(List));
+    List *l = mem_alloc(allocator, sizeof(List), _Alignof(List));
     if (!l)
         return NULL;
     *l = (List){.head = NULL,
@@ -99,8 +99,7 @@ SeqcStatus list_pop_front(List *l, void *out)
     l->head = node->next;
     if (!l->head)
         l->tail = NULL;
-    if (l->allocator.free)
-        l->allocator.free(l->allocator.ctx, node);
+    mem_free(l->allocator, node, node_alloc_size(l->elem_size));
     l->len--;
     return SEQC_OK;
 }
@@ -117,8 +116,7 @@ SeqcStatus list_pop_back(List *l, void *out)
         prev = prev->next;
     if (out)
         memcpy(out, node_data(l->tail), l->elem_size);
-    if (l->allocator.free)
-        l->allocator.free(l->allocator.ctx, l->tail);
+    mem_free(l->allocator, l->tail, node_alloc_size(l->elem_size));
     prev->next = NULL;
     l->tail = prev;
     l->len--;
@@ -153,8 +151,7 @@ void list_clear(List *l)
     while (cur)
     {
         ListNode *next = cur->next;
-        if (l->allocator.free)
-            l->allocator.free(l->allocator.ctx, cur);
+        mem_free(l->allocator, cur, node_alloc_size(l->elem_size));
         cur = next;
     }
     l->head = l->tail = NULL;
@@ -166,9 +163,8 @@ void list_free(List *l)
     if (!l)
         return;
     list_clear(l);
-    Allocator al = l->allocator;
-    if (al.free)
-        al.free(al.ctx, l);
+    allocator_t al = l->allocator;
+    mem_free(al, l, sizeof(List));
 }
 
 /* ---- iter -------------------------------------------------------------- */
@@ -191,16 +187,15 @@ static bool list_iter_next(Iter *it, void *out)
 
 static void list_iter_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(ListIterState));
 }
 
 Iter list_iter(const List *l)
 {
     if (!l)
         return (Iter){0};
-    ListIterState *s = l->allocator.alloc(
-        l->allocator.ctx, sizeof *s, _Alignof(ListIterState));
+    ListIterState *s = mem_alloc(l->allocator,
+         sizeof *s, _Alignof(ListIterState));
     *s = (ListIterState){l->head, l->elem_size};
     return (Iter){.next = list_iter_next,
                   .drop = list_iter_drop,

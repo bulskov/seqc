@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Self-balancing AVL tree.
@@ -13,7 +13,7 @@
 typedef struct AVLNode AVLNode;
 typedef struct AVLTree AVLTree;
 
-AVLTree *avl_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+AVLTree *avl_create(size_t elem_size, compare_fn cmp, allocator_t allocator);
 /* SEQC_OK=inserted, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
 SeqcStatus avl_insert(AVLTree *t, const void *elem);
 bool avl_contains(const AVLTree *t, const void *elem);

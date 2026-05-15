@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Unbalanced binary search tree.
@@ -12,7 +12,7 @@
 typedef struct BSTreeNode BSTreeNode;
 typedef struct BSTree BSTree;
 
-BSTree *bstree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+BSTree *bstree_create(size_t elem_size, compare_fn cmp, allocator_t allocator);
 /* SEQC_OK=inserted, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
 SeqcStatus bstree_insert(BSTree *t, const void *elem);
 bool bstree_contains(const BSTree *t, const void *elem);

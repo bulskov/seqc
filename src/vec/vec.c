@@ -1,5 +1,5 @@
 #include "seqc/vec.h"
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -13,16 +13,16 @@ struct Vec
     size_t len;
     size_t cap;
     size_t elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
-Vec *vec_create(size_t elem_size, Allocator allocator)
+Vec *vec_create(size_t elem_size, allocator_t allocator)
 {
-    if (elem_size == 0 || !allocator.alloc || !allocator.realloc)
+    if (elem_size == 0 || !allocator.vt)
     {
         return NULL;
     }
-    Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
+    Vec *v = mem_alloc(allocator, sizeof(Vec), _Alignof(Vec));
     if (!v)
         return NULL;
     *v = (Vec){.data = NULL,
@@ -33,25 +33,24 @@ Vec *vec_create(size_t elem_size, Allocator allocator)
     return v;
 }
 
-Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator)
+Vec *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
 {
-    if (elem_size == 0 || capacity == 0 || !allocator.alloc
-        || !allocator.realloc)
+    if (elem_size == 0 || capacity == 0 || !allocator.vt)
     {
         return NULL;
     }
-    Vec *v = allocator.alloc(allocator.ctx, sizeof(Vec), _Alignof(Vec));
+    Vec *v = mem_alloc(allocator, sizeof(Vec), _Alignof(Vec));
     if (!v)
         return NULL;
-    *v = (Vec){.data = allocator.alloc(
-                   allocator.ctx, capacity * elem_size, _Alignof(max_align_t)),
+    *v = (Vec){.data = mem_alloc(allocator,
+                    capacity * elem_size, _Alignof(max_align_t)),
                .len = 0,
                .cap = capacity,
                .elem_size = elem_size,
                .allocator = allocator};
     if (!v->data)
     {
-        allocator.free(allocator.ctx, v);
+        mem_free(allocator, v, sizeof(Vec));
         return NULL;
     }
     return v;
@@ -81,8 +80,8 @@ SeqcStatus vec_push(Vec *v, const void *elem)
         if (v->cap > SIZE_MAX / 2)
             return SEQC_OOM;
         size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
-        void *new_data = v->allocator.realloc(
-            v->allocator.ctx,
+        void *new_data = mem_realloc(v->allocator,
+            
             v->data,
             v->len * v->elem_size,
             new_cap * v->elem_size,
@@ -166,8 +165,8 @@ SeqcStatus vec_reserve(Vec *v, size_t capacity)
         return SEQC_INVALID;
     if (capacity <= v->cap)
         return SEQC_OK;
-    void *new_data = v->allocator.realloc(
-        v->allocator.ctx,
+    void *new_data = mem_realloc(v->allocator,
+        
         v->data,
         v->len * v->elem_size,
         capacity * v->elem_size,
@@ -241,11 +240,10 @@ void vec_free(Vec *v)
 {
     if (!v)
         return;
-    if (v->data && v->allocator.free)
-        v->allocator.free(v->allocator.ctx, v->data);
-    Allocator al = v->allocator;
-    if (al.free)
-        al.free(al.ctx, v);
+    if (v->data)
+        mem_free(v->allocator, v->data, v->cap * v->elem_size);
+    allocator_t al = v->allocator;
+    mem_free(al, v, sizeof(Vec));
 }
 
 void vec_sort(Vec *v, compare_fn cmp)
@@ -262,8 +260,8 @@ SeqcStatus vec_extend(Vec *v, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = v->allocator.alloc(
-        v->allocator.ctx, v->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(v->allocator,
+         v->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);
@@ -277,7 +275,6 @@ SeqcStatus vec_extend(Vec *v, Iter it)
             break;
     }
     iter_drop(&it);
-    if (v->allocator.free)
-        v->allocator.free(v->allocator.ctx, elem);
+    mem_free(v->allocator, elem, v->elem_size);
     return st;
 }

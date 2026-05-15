@@ -1,6 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "seqc/arena.h"
+#include "arena/growing_arena.h"
+#include "arena/scratch.h"
 #include "seqc/hashmap.h"
 #include "seqc/string.h"
 
@@ -14,13 +15,13 @@ Test(string, from_cstr_length)
 
 Test(string, from_cstr_copies_content)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     char buf[] = "hello";
-    String s = string_from_cstr(buf, arena_allocator(a));
+    String s = string_from_cstr(buf, growing_arena_allocator(a));
     cr_assert_eq(s.len, 5);
     buf[0] = 'X'; /* mutate source */
     cr_assert_eq(s.ptr[0], 'h'); /* copy unaffected */
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, from_lit_macro)
@@ -31,23 +32,23 @@ Test(string, from_lit_macro)
 
 Test(string, to_cstr_is_null_terminated)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String s = STRING_LIT("hi");
-    const char *cs = string_to_cstr(s, arena_allocator(a));
+    const char *cs = string_to_cstr(s, growing_arena_allocator(a));
     cr_assert_eq(cs[2], '\0');
     cr_assert_str_eq(cs, "hi");
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, copy_is_independent)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     char buf[] = "mutable";
     String s = string_view_cstr(buf);
-    String c = string_copy(s, arena_allocator(a));
+    String c = string_copy(s, growing_arena_allocator(a));
     buf[0] = 'X';
     cr_assert_eq(c.ptr[0], 'm'); /* copy unaffected */
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- Comparison --------------------------------------------------------- */
@@ -155,42 +156,42 @@ Test(string, trim_no_whitespace)
 
 Test(string, builder_append_str)
 {
-    Arena *a = arena_create(256);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append(sb, STRING_LIT("hello"));
     sb_append_char(sb, ' ');
     sb_append_cstr(sb, "world");
     String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("hello world")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, builder_empty)
 {
-    Arena *a = arena_create(256);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     String result = sb_finish(sb);
     cr_assert_eq(result.len, 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- Iter sources ------------------------------------------------------- */
 
 Test(string, chars_count)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     size_t n =
         iter_count(string_chars(STRING_LIT("hello"), scratch_allocator(&sc)));
     cr_assert_eq(n, 5);
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, chars_rev)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     Iter it = string_chars_rev(STRING_LIT("abc"), scratch_allocator(&sc));
     char c;
     it.next(&it, &c);
@@ -201,14 +202,14 @@ Test(string, chars_rev)
     cr_assert_eq(c, 'a');
     cr_assert_not(it.next(&it, &c));
     iter_drop(&it);
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, split_basic)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     String parts[3];
     size_t i = 0;
     Iter it = string_split(
@@ -220,25 +221,25 @@ Test(string, split_basic)
     cr_assert(string_equals(parts[0], STRING_LIT("a")));
     cr_assert(string_equals(parts[1], STRING_LIT("b")));
     cr_assert(string_equals(parts[2], STRING_LIT("c")));
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, split_trailing_delim)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     size_t n = iter_count(string_split(
         STRING_LIT("a,b,"), STRING_LIT(","), scratch_allocator(&sc)));
     cr_assert_eq(n, 3); /* "a", "b", "" */
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, split_no_delim)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     String token;
     Iter it = string_split(
         STRING_LIT("hello"), STRING_LIT(","), scratch_allocator(&sc));
@@ -246,21 +247,21 @@ Test(string, split_no_delim)
     cr_assert(string_equals(token, STRING_LIT("hello")));
     cr_assert_not(it.next(&it, &token));
     iter_drop(&it);
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 /* --- HashMap with String keys ------------------------------------------- */
 
 Test(string, hashmap_string_keys)
 {
-    Arena *a = arena_create(1024);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     HashMap *map = hashmap_create(
         sizeof(String),
         sizeof(int),
         string_hash,
         string_key_eq,
-        arena_allocator(a));
+        growing_arena_allocator(a));
 
     String k1 = STRING_LIT("foo");
     String k2 = STRING_LIT("bar");
@@ -279,199 +280,199 @@ Test(string, hashmap_string_keys)
     cr_assert_eq(hashmap_get(map, &k1_copy, &g1c), SEQC_OK); cr_assert_eq(g1c, 1);
 
     hashmap_free(map);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- sb_append_int / sb_append_fmt ------------------------------------- */
 
 Test(string, sb_append_int_positive)
 {
-    Arena *a = arena_create(256);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, 42);
     String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("42")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, sb_append_int_negative)
 {
-    Arena *a = arena_create(256);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, -123);
     String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("-123")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, sb_append_int_zero)
 {
-    Arena *a = arena_create(256);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, 0);
     String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("0")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, sb_append_fmt_basic)
 {
-    Arena *a = arena_create(512);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_fmt(sb, "hello %s, you are %d years old", "world", 30);
     String result = sb_finish(sb);
     cr_assert(
         string_equals(result, STRING_LIT("hello world, you are 30 years old")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, sb_append_fmt_compose)
 {
-    Arena *a = arena_create(512);
-    StringBuilder *sb = sb_create(arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_cstr(sb, "x=");
     sb_append_fmt(sb, "%d", 7);
     sb_append_cstr(sb, ", y=");
     sb_append_fmt(sb, "%.2f", 3.14);
     String result = sb_finish(sb);
     cr_assert(string_equals(result, STRING_LIT("x=7, y=3.14")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- string_replace ----------------------------------------------------- */
 
 Test(string, replace_basic)
 {
-    Arena *a = arena_create(512);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
     String r = string_replace(
         STRING_LIT("hello world world"),
         STRING_LIT("world"),
         STRING_LIT("there"),
-        arena_allocator(a));
+        growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("hello there there")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, replace_no_match)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("hello"),
         STRING_LIT("xyz"),
         STRING_LIT("!"),
-        arena_allocator(a));
+        growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("hello")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, replace_empty_needle_returns_copy)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("hello"),
         STRING_LIT(""),
         STRING_LIT("X"),
-        arena_allocator(a));
+        growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("hello")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, replace_whole_string)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("aaa"),
         STRING_LIT("a"),
         STRING_LIT("bb"),
-        arena_allocator(a));
+        growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("bbbbbb")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, replace_with_empty_replacement)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("a,b,c"),
         STRING_LIT(","),
         STRING_LIT(""),
-        arena_allocator(a));
+        growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("abc")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- string_to_uppercase / string_to_lowercase -------------------------- */
 
 Test(string, to_uppercase_basic)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r =
-        string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+        string_to_uppercase(STRING_LIT("Hello World!"), growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("HELLO WORLD!")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, to_lowercase_basic)
 {
-    Arena *a = arena_create(256);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     String r =
-        string_to_lowercase(STRING_LIT("Hello World!"), arena_allocator(a));
+        string_to_lowercase(STRING_LIT("Hello World!"), growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("hello world!")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, to_uppercase_already_upper)
 {
-    Arena *a = arena_create(256);
-    String r = string_to_uppercase(STRING_LIT("ABC"), arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    String r = string_to_uppercase(STRING_LIT("ABC"), growing_arena_allocator(a));
     cr_assert(string_equals(r, STRING_LIT("ABC")));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(string, to_uppercase_empty)
 {
-    Arena *a = arena_create(256);
-    String r = string_to_uppercase((String){NULL, 0}, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    String r = string_to_uppercase((String){NULL, 0}, growing_arena_allocator(a));
     cr_assert_eq(r.len, 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* --- string_join -------------------------------------------------------- */
 
 Test(string, join_basic)
 {
-    Arena *a = arena_create(512);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
-    String result = string_join(it, STRING_LIT("-"), arena_allocator(a));
+    String result = string_join(it, STRING_LIT("-"), growing_arena_allocator(a));
     cr_assert(string_equals(result, STRING_LIT("a-b-c")));
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, join_single_token)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("hello"), STRING_LIT(","), scratch_allocator(&sc));
-    String result = string_join(it, STRING_LIT(","), arena_allocator(a));
+    String result = string_join(it, STRING_LIT(","), growing_arena_allocator(a));
     cr_assert(string_equals(result, STRING_LIT("hello")));
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(string, join_empty_separator)
 {
-    Arena *a = arena_create(256);
-    Scratch sc = arena_scratch_push(a);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
-    String result = string_join(it, STRING_LIT(""), arena_allocator(a));
+    String result = string_join(it, STRING_LIT(""), growing_arena_allocator(a));
     cr_assert(string_equals(result, STRING_LIT("abc")));
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 /* --- string_to_int ------------------------------------------------------ */

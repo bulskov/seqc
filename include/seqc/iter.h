@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/slice.h"
 
 /* --- Error / status codes ---------------------------------------------- */
@@ -36,7 +36,7 @@ struct Iter
     bool (*peek)(Iter *it, void *out); /* NULL if not peekable            */
     void *state;
     size_t elem_size;
-    Allocator allocator; /* used by adaptors that need to allocate state */
+    allocator_t allocator; /* used by adaptors that need to allocate state */
 };
 
 /* Inline drop — call to release resources without a terminal */
@@ -56,20 +56,20 @@ static inline bool iter_peek(Iter *it, void *out)
 
 /* --- Sources ------------------------------------------------------------ */
 
-Iter iter_from_slice(Slice s, Allocator allocator);
-Iter iter_from_slice_rev(Slice s, Allocator allocator);
+Iter iter_from_slice(Slice s, allocator_t allocator);
+Iter iter_from_slice_rev(Slice s, allocator_t allocator);
 
 /* Calls fn(out, ctx) on each call to next; stops when fn returns false.
  * fn writes exactly elem_size bytes into out on each successful call. */
 typedef bool (*generate_fn)(void *out, void *ctx);
 Iter iter_generate(
-    generate_fn fn, void *ctx, size_t elem_size, Allocator allocator);
+    generate_fn fn, void *ctx, size_t elem_size, allocator_t allocator);
 
 /* Yields long long integers from start (inclusive) to end (exclusive) by
  * step.  step=0 yields an empty range.  Yields nothing if the range is empty
  * (e.g. start >= end with positive step). */
 Iter iter_range(
-    long long start, long long end, long long step, Allocator allocator);
+    long long start, long long end, long long step, allocator_t allocator);
 
 /* --- Adaptors (take ownership of source) -------------------------------- */
 
@@ -140,14 +140,14 @@ Iter iter_dedup(Iter source, compare_fn cmp);
 
 /* Materialise the iterator into an arena-owned Slice.
  * `allocator` determines which arena owns the returned memory. */
-Slice iter_collect(Iter it, Allocator allocator);
+Slice iter_collect(Iter it, allocator_t allocator);
 size_t iter_count(Iter it);
 void iter_foreach(Iter it, visitor_fn visit, void *ctx);
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx);
 
 /* Collects into `allocator` and sorts in-place using cmp; returns sorted Slice
  */
-Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator);
+Slice iter_sort(Iter it, compare_fn cmp, allocator_t allocator);
 
 /* Returns 1 and writes first match to *out (may be NULL) if found */
 bool iter_find(Iter it, pred_fn pred, void *ctx, void *out);

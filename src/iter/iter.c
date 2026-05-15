@@ -1,5 +1,5 @@
 #include "seqc/iter.h"
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -10,17 +10,18 @@
 
 /* Returns stack_buf if elem_size fits, otherwise allocates from al. */
 static inline void *scratch_acquire(
-    char *stack_buf, size_t elem_size, Allocator al)
+    char *stack_buf, size_t elem_size, allocator_t al)
 {
     if (elem_size <= SEQC_SCRATCH_MAX)
         return stack_buf;
-    return al.alloc(al.ctx, elem_size, _Alignof(max_align_t));
+    return mem_alloc(al, elem_size, _Alignof(max_align_t));
 }
 
-static inline void scratch_release(char *stack_buf, void *ptr, Allocator al)
+static inline void scratch_release(char *stack_buf, void *ptr, allocator_t al,
+                                   size_t size)
 {
-    if (ptr != stack_buf && al.free)
-        al.free(al.ctx, ptr);
+    if (ptr != stack_buf)
+        mem_free(al, ptr, size);
 }
 
 /* ---- iter_from_slice -------------------------------------------------- */
@@ -50,14 +51,13 @@ static bool slice_next(Iter *it, void *out)
 
 static void slice_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(SliceIterState));
 }
 
-Iter iter_from_slice(Slice s, Allocator allocator)
+Iter iter_from_slice(Slice s, allocator_t allocator)
 {
     SliceIterState *state =
-        allocator.alloc(allocator.ctx, sizeof *state, _Alignof(SliceIterState));
+        mem_alloc(allocator, sizeof *state, _Alignof(SliceIterState));
     if (!state)
         return (Iter){0};
     *state = (SliceIterState){s.ptr, s.len, s.elem_size, 0};
@@ -78,10 +78,10 @@ static bool slice_rev_next(Iter *it, void *out)
     return true;
 }
 
-Iter iter_from_slice_rev(Slice s, Allocator allocator)
+Iter iter_from_slice_rev(Slice s, allocator_t allocator)
 {
     SliceIterState *state =
-        allocator.alloc(allocator.ctx, sizeof *state, _Alignof(SliceIterState));
+        mem_alloc(allocator, sizeof *state, _Alignof(SliceIterState));
     if (!state)
         return (Iter){0};
     *state = (SliceIterState){s.ptr, s.len, s.elem_size, s.len};
@@ -108,15 +108,14 @@ static bool generate_next(Iter *it, void *out)
 
 static void generate_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(GenerateState));
 }
 
 Iter iter_generate(
-    generate_fn fn, void *ctx, size_t elem_size, Allocator allocator)
+    generate_fn fn, void *ctx, size_t elem_size, allocator_t allocator)
 {
     GenerateState *s =
-        allocator.alloc(allocator.ctx, sizeof *s, _Alignof(GenerateState));
+        mem_alloc(allocator, sizeof *s, _Alignof(GenerateState));
     if (!s)
         return (Iter){0};
     *s = (GenerateState){fn, ctx};
@@ -150,18 +149,17 @@ static bool range_next(Iter *it, void *out)
 
 static void range_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(RangeState));
 }
 
 Iter iter_range(
-    long long start, long long end, long long step, Allocator allocator)
+    long long start, long long end, long long step, allocator_t allocator)
 {
     if (step == 0)
     {
         /* step=0 would loop forever; return an immediately-empty range */
         RangeState *s =
-            allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
+            mem_alloc(allocator, sizeof *s, _Alignof(RangeState));
         if (!s)
             return (Iter){0};
         *s = (RangeState){start, start, 1};
@@ -172,7 +170,7 @@ Iter iter_range(
                       .allocator = allocator};
     }
     RangeState *s =
-        allocator.alloc(allocator.ctx, sizeof *s, _Alignof(RangeState));
+        mem_alloc(allocator, sizeof *s, _Alignof(RangeState));
     if (!s)
         return (Iter){0};
     *s = (RangeState){start, end, step};
@@ -211,14 +209,13 @@ static void filter_drop(Iter *it)
         return;
     FilterState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(FilterState));
 }
 
 Iter iter_filter(Iter source, pred_fn pred, void *ctx)
 {
-    FilterState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(FilterState));
+    FilterState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(FilterState));
     if (!s)
         return (Iter){0};
     *s = (FilterState){source, pred, ctx};
@@ -258,25 +255,21 @@ static void map_drop(Iter *it)
         return;
     MapState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->in_buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->in_buf, s->source.elem_size);
+    mem_free(it->allocator, s, sizeof(MapState));
 }
 
 Iter iter_map(Iter source, map_fn map, void *ctx, size_t out_elem_size)
 {
-    MapState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(MapState));
+    MapState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(MapState));
     if (!s)
         return (Iter){0};
-    void *in_buf = source.allocator.alloc(
-        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    void *in_buf = mem_alloc(source.allocator,
+         source.elem_size, _Alignof(max_align_t));
     if (!in_buf)
     {
-        if (source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
+        mem_free(source.allocator, s, sizeof(MapState));
         return (Iter){0};
     }
     *s = (MapState){source, map, ctx, in_buf};
@@ -312,14 +305,13 @@ static void take_drop(Iter *it)
         return;
     TakeState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(TakeState));
 }
 
 Iter iter_take(Iter source, size_t n)
 {
-    TakeState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(TakeState));
+    TakeState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(TakeState));
     if (!s)
         return (Iter){0};
     *s = (TakeState){source, n};
@@ -355,14 +347,13 @@ static void take_while_drop(Iter *it)
         return;
     TakeWhileState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(TakeWhileState));
 }
 
 Iter iter_take_while(Iter source, pred_fn pred, void *ctx)
 {
-    TakeWhileState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(TakeWhileState));
+    TakeWhileState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(TakeWhileState));
     if (!s)
         return (Iter){0};
     *s = (TakeWhileState){source, pred, ctx};
@@ -400,14 +391,13 @@ static void skip_drop(Iter *it)
         return;
     SkipState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(SkipState));
 }
 
 Iter iter_skip(Iter source, size_t n)
 {
-    SkipState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(SkipState));
+    SkipState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(SkipState));
     if (!s)
         return (Iter){0};
     *s = (SkipState){source, n};
@@ -448,14 +438,13 @@ static void skip_while_drop(Iter *it)
         return;
     SkipWhileState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(SkipWhileState));
 }
 
 Iter iter_skip_while(Iter source, pred_fn pred, void *ctx)
 {
-    SkipWhileState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(SkipWhileState));
+    SkipWhileState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(SkipWhileState));
     if (!s)
         return (Iter){0};
     *s = (SkipWhileState){source, pred, ctx, false};
@@ -468,14 +457,14 @@ Iter iter_skip_while(Iter source, pred_fn pred, void *ctx)
 
 /* ---- terminals --------------------------------------------------------- */
 
-Slice iter_collect(Iter it, Allocator allocator)
+Slice iter_collect(Iter it, allocator_t allocator)
 {
     const size_t elem_size = it.elem_size;
     size_t cap = 16;
     size_t len = 0;
 
     char *buf =
-        allocator.alloc(allocator.ctx, cap * elem_size, _Alignof(max_align_t));
+        mem_alloc(allocator, cap * elem_size, _Alignof(max_align_t));
     if (!buf)
     {
         iter_drop(&it);
@@ -487,8 +476,7 @@ Slice iter_collect(Iter it, Allocator allocator)
     if (!tmp)
     {
         iter_drop(&it);
-        if (allocator.free)
-            allocator.free(allocator.ctx, buf);
+        mem_free(allocator, buf, cap * elem_size);
         return (Slice){NULL, 0, elem_size};
     }
 
@@ -497,8 +485,8 @@ Slice iter_collect(Iter it, Allocator allocator)
         if (len == cap)
         {
             size_t new_cap = cap * 2;
-            char *grown = allocator.realloc(
-                allocator.ctx,
+            char *grown = mem_realloc(allocator,
+                
                 buf,
                 cap * elem_size,
                 new_cap * elem_size,
@@ -515,12 +503,11 @@ Slice iter_collect(Iter it, Allocator allocator)
         len++;
     }
     iter_drop(&it);
-    scratch_release(sbuf, tmp, allocator);
+    scratch_release(sbuf, tmp, allocator, elem_size);
 
     if (len == 0)
     {
-        if (allocator.free)
-            allocator.free(allocator.ctx, buf);
+        mem_free(allocator, buf, cap * elem_size);
         return (Slice){NULL, 0, elem_size};
     }
 
@@ -529,8 +516,8 @@ Slice iter_collect(Iter it, Allocator allocator)
      * no-op). sys_allocator: realloc actually shrinks the allocation. */
     if (len < cap)
     {
-        void *tight = allocator.realloc(
-            allocator.ctx,
+        void *tight = mem_realloc(allocator,
+            
             buf,
             cap * elem_size,
             len * elem_size,
@@ -554,7 +541,7 @@ size_t iter_count(Iter it)
     while (it.next(&it, tmp))
         n++;
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
     return n;
 }
 
@@ -570,7 +557,7 @@ void iter_foreach(Iter it, visitor_fn visit, void *ctx)
     while (it.next(&it, tmp))
         visit(tmp, ctx);
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
 }
 
 void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx)
@@ -585,7 +572,7 @@ void iter_reduce(Iter it, void *acc, combine_fn combine, void *ctx)
     while (it.next(&it, tmp))
         combine(acc, tmp, ctx);
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
 }
 
 /* ---- iter_chain -------------------------------------------------------- */
@@ -616,14 +603,13 @@ static void chain_drop(Iter *it)
     ChainState *s = it->state;
     iter_drop(&s->first);
     iter_drop(&s->second);
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, s);
+    mem_free(it->allocator, s, sizeof(ChainState));
 }
 
 Iter iter_chain(Iter a, Iter b)
 {
     ChainState *s =
-        a.allocator.alloc(a.allocator.ctx, sizeof *s, _Alignof(ChainState));
+        mem_alloc(a.allocator, sizeof *s, _Alignof(ChainState));
     if (!s)
     {
         return (Iter){0};
@@ -664,25 +650,22 @@ static void zip_drop(Iter *it)
     ZipState *s = it->state;
     iter_drop(&s->a);
     iter_drop(&s->b);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->buf_a);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->buf_a, s->a_elem_size);
+    mem_free(it->allocator, s, sizeof(ZipState));
 }
 
 Iter iter_zip(Iter a, Iter b)
 {
     ZipState *s =
-        a.allocator.alloc(a.allocator.ctx, sizeof *s, _Alignof(ZipState));
+        mem_alloc(a.allocator, sizeof *s, _Alignof(ZipState));
     void *buf_a =
-        a.allocator.alloc(a.allocator.ctx, a.elem_size, _Alignof(max_align_t));
+        mem_alloc(a.allocator, a.elem_size, _Alignof(max_align_t));
     if (!s || !buf_a)
     {
-        if (s && a.allocator.free)
-            a.allocator.free(a.allocator.ctx, s);
-        if (buf_a && a.allocator.free)
-            a.allocator.free(a.allocator.ctx, buf_a);
+        if (s)
+            mem_free(a.allocator, s, sizeof(ZipState));
+        if (buf_a)
+            mem_free(a.allocator, buf_a, a.elem_size);
         return (Iter){0};
     }
     *s = (ZipState){a, b, a.elem_size, buf_a};
@@ -695,7 +678,7 @@ Iter iter_zip(Iter a, Iter b)
 
 /* ---- iter_sort --------------------------------------------------------- */
 
-Slice iter_sort(Iter it, compare_fn cmp, Allocator allocator)
+Slice iter_sort(Iter it, compare_fn cmp, allocator_t allocator)
 {
     Slice s = iter_collect(it, allocator);
     if (s.len > 1)
@@ -726,7 +709,7 @@ bool iter_find(Iter it, pred_fn pred, void *ctx, void *out)
         }
     }
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
     return found;
 }
 
@@ -746,7 +729,7 @@ bool iter_any(Iter it, pred_fn pred, void *ctx)
         if (pred(tmp, ctx))
             found = true;
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
     return found;
 }
 
@@ -766,7 +749,7 @@ bool iter_all(Iter it, pred_fn pred, void *ctx)
         if (!pred(tmp, ctx))
             all = false;
     iter_drop(&it);
-    scratch_release(sbuf, tmp, it.allocator);
+    scratch_release(sbuf, tmp, it.allocator, it.elem_size);
     return all;
 }
 
@@ -793,25 +776,22 @@ static void enum_drop(Iter *it)
 {
     EnumState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->buf, s->source.elem_size);
+    mem_free(it->allocator, s, sizeof(EnumState));
 }
 
 Iter iter_enumerate(Iter source)
 {
-    EnumState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(EnumState));
-    void *buf = source.allocator.alloc(
-        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    EnumState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(EnumState));
+    void *buf = mem_alloc(source.allocator,
+         source.elem_size, _Alignof(max_align_t));
     if (!s || !buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(EnumState));
+        if (buf)
+            mem_free(source.allocator, buf, source.elem_size);
         return (Iter){0};
     }
     *s = (EnumState){source, 0, buf};
@@ -831,7 +811,7 @@ typedef struct
     size_t n;
     size_t elem_size;
     int primed; /* 1 once the first window is filled    */
-    Allocator allocator;
+    allocator_t allocator;
 } WindowState;
 
 static bool window_next(Iter *it, void *out)
@@ -863,25 +843,22 @@ static void window_drop(Iter *it)
 {
     WindowState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->buf, s->n * s->elem_size);
+    mem_free(it->allocator, s, sizeof(WindowState));
 }
 
 Iter iter_window(Iter source, size_t n)
 {
-    WindowState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(WindowState));
-    char *buf = source.allocator.alloc(
-        source.allocator.ctx, n * source.elem_size, _Alignof(max_align_t));
+    WindowState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(WindowState));
+    char *buf = mem_alloc(source.allocator,
+         n * source.elem_size, _Alignof(max_align_t));
     if (!s || !buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(WindowState));
+        if (buf)
+            mem_free(source.allocator, buf, n * source.elem_size);
         return (Iter){0};
     }
     *s = (WindowState){source, buf, n, source.elem_size, 0, source.allocator};
@@ -901,7 +878,7 @@ typedef struct
     size_t n;
     size_t elem_size;
     int done;
-    Allocator allocator;
+    allocator_t allocator;
 } ChunkState;
 
 static bool chunk_next(Iter *it, void *out)
@@ -926,25 +903,22 @@ static void chunk_drop(Iter *it)
 {
     ChunkState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->buf, s->n * s->elem_size);
+    mem_free(it->allocator, s, sizeof(ChunkState));
 }
 
 Iter iter_chunks(Iter source, size_t n)
 {
-    ChunkState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(ChunkState));
-    char *buf = source.allocator.alloc(
-        source.allocator.ctx, n * source.elem_size, _Alignof(max_align_t));
+    ChunkState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(ChunkState));
+    char *buf = mem_alloc(source.allocator,
+         n * source.elem_size, _Alignof(max_align_t));
     if (!s || !buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(ChunkState));
+        if (buf)
+            mem_free(source.allocator, buf, n * source.elem_size);
         return (Iter){0};
     }
     *s = (ChunkState){source, buf, n, source.elem_size, 0, source.allocator};
@@ -1004,25 +978,22 @@ static void peekable_drop(Iter *it)
         return;
     PeekableState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->buf, it->elem_size);
+    mem_free(it->allocator, s, sizeof(PeekableState));
 }
 
 Iter iter_peekable(Iter source)
 {
-    PeekableState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(PeekableState));
-    void *buf = source.allocator.alloc(
-        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    PeekableState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(PeekableState));
+    void *buf = mem_alloc(source.allocator,
+         source.elem_size, _Alignof(max_align_t));
     if (!s || !buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(PeekableState));
+        if (buf)
+            mem_free(source.allocator, buf, source.elem_size);
         return (Iter){0};
     }
     *s = (PeekableState){source, buf, false, false};
@@ -1065,25 +1036,22 @@ static void dedup_drop(Iter *it)
         return;
     DedupState *s = it->state;
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->last_buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->last_buf, it->elem_size);
+    mem_free(it->allocator, s, sizeof(DedupState));
 }
 
 Iter iter_dedup(Iter source, compare_fn cmp)
 {
-    DedupState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(DedupState));
-    void *last_buf = source.allocator.alloc(
-        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    DedupState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(DedupState));
+    void *last_buf = mem_alloc(source.allocator,
+         source.elem_size, _Alignof(max_align_t));
     if (!s || !last_buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (last_buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, last_buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(DedupState));
+        if (last_buf)
+            mem_free(source.allocator, last_buf, source.elem_size);
         return (Iter){0};
     }
     *s = (DedupState){source, cmp, last_buf, false};
@@ -1105,7 +1073,7 @@ typedef struct
     Iter sub;       /* current sub-iterator (zeroed = none)  */
     int sub_active; /* 1 when sub holds a live iterator      */
     size_t out_elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 } FlatMapState;
 
 static bool flat_map_next(Iter *it, void *out)
@@ -1136,25 +1104,22 @@ static void flat_map_drop(Iter *it)
     if (s->sub_active)
         iter_drop(&s->sub);
     iter_drop(&s->source);
-    if (it->allocator.free)
-    {
-        it->allocator.free(it->allocator.ctx, s->elem_buf);
-        it->allocator.free(it->allocator.ctx, s);
-    }
+    mem_free(it->allocator, s->elem_buf, s->source.elem_size);
+    mem_free(it->allocator, s, sizeof(FlatMapState));
 }
 
 Iter iter_flat_map(Iter source, flat_map_fn fn, void *ctx, size_t out_elem_size)
 {
-    FlatMapState *s = source.allocator.alloc(
-        source.allocator.ctx, sizeof *s, _Alignof(FlatMapState));
-    void *elem_buf = source.allocator.alloc(
-        source.allocator.ctx, source.elem_size, _Alignof(max_align_t));
+    FlatMapState *s = mem_alloc(source.allocator,
+         sizeof *s, _Alignof(FlatMapState));
+    void *elem_buf = mem_alloc(source.allocator,
+         source.elem_size, _Alignof(max_align_t));
     if (!s || !elem_buf)
     {
-        if (s && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, s);
-        if (elem_buf && source.allocator.free)
-            source.allocator.free(source.allocator.ctx, elem_buf);
+        if (s)
+            mem_free(source.allocator, s, sizeof(FlatMapState));
+        if (elem_buf)
+            mem_free(source.allocator, elem_buf, source.elem_size);
         return (Iter){0};
     }
     *s = (FlatMapState){.source = source,
@@ -1184,8 +1149,8 @@ bool iter_min(Iter it, compare_fn cmp, void *out)
     if (!best || !cur)
     {
         iter_drop(&it);
-        scratch_release(sbuf_best, best, it.allocator);
-        scratch_release(sbuf_cur, cur, it.allocator);
+        scratch_release(sbuf_best, best, it.allocator, elem_size);
+        scratch_release(sbuf_cur, cur, it.allocator, elem_size);
         return false;
     }
     bool found = false;
@@ -1198,8 +1163,8 @@ bool iter_min(Iter it, compare_fn cmp, void *out)
     if (found && out)
         memcpy(out, best, elem_size);
     iter_drop(&it);
-    scratch_release(sbuf_best, best, it.allocator);
-    scratch_release(sbuf_cur, cur, it.allocator);
+    scratch_release(sbuf_best, best, it.allocator, elem_size);
+    scratch_release(sbuf_cur, cur, it.allocator, elem_size);
     return found;
 }
 
@@ -1213,8 +1178,8 @@ bool iter_max(Iter it, compare_fn cmp, void *out)
     if (!best || !cur)
     {
         iter_drop(&it);
-        scratch_release(sbuf_best, best, it.allocator);
-        scratch_release(sbuf_cur, cur, it.allocator);
+        scratch_release(sbuf_best, best, it.allocator, elem_size);
+        scratch_release(sbuf_cur, cur, it.allocator, elem_size);
         return false;
     }
     bool found = false;
@@ -1227,7 +1192,7 @@ bool iter_max(Iter it, compare_fn cmp, void *out)
     if (found && out)
         memcpy(out, best, elem_size);
     iter_drop(&it);
-    scratch_release(sbuf_best, best, it.allocator);
-    scratch_release(sbuf_cur, cur, it.allocator);
+    scratch_release(sbuf_best, best, it.allocator, elem_size);
+    scratch_release(sbuf_cur, cur, it.allocator, elem_size);
     return found;
 }

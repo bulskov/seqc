@@ -1,6 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "seqc/arena.h"
+#include "arena/growing_arena.h"
+#include "arena/scratch.h"
 #include "seqc/set.h"
 #include "../oom_alloc.h"
 
@@ -23,16 +24,16 @@ static bool int_eq(const void *a, const void *b, size_t key_size)
 
 Test(set, is_empty_on_create)
 {
-    Arena *a = arena_create(256);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     cr_assert_eq(set_len(s), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, add_contains)
 {
-    Arena *a = arena_create(1024);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int v1 = 1, v2 = 2, v3 = 42;
     cr_assert_eq(set_add(s, &v1), SEQC_OK);
     cr_assert_eq(set_add(s, &v2), SEQC_OK);
@@ -41,97 +42,97 @@ Test(set, add_contains)
     cr_assert(set_contains(s, &v2));
     cr_assert(set_contains(s, &v3));
     cr_assert_eq(set_len(s), 3);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, add_duplicate_returns_0)
 {
-    Arena *a = arena_create(512);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int v = 7;
     cr_assert_eq(set_add(s, &v), SEQC_OK);
     cr_assert_neq(set_add(s, &v), SEQC_OK); /* already present */
     cr_assert_eq(set_len(s), 1);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, remove_existing)
 {
-    Arena *a = arena_create(512);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int v = 5;
     set_add(s, &v);
     cr_assert_eq(set_remove(s, &v), SEQC_OK);
     cr_assert_not(set_contains(s, &v));
     cr_assert_eq(set_len(s), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, remove_nonexistent_returns_0)
 {
-    Arena *a = arena_create(256);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int v = 99;
     cr_assert_neq(set_remove(s, &v), SEQC_OK);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, does_not_contain_absent_key)
 {
-    Arena *a = arena_create(512);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int present = 1, absent = 2;
     set_add(s, &present);
     cr_assert_not(set_contains(s, &absent));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, iter_yields_all_elements)
 {
-    Arena *a = arena_create(1024);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     int vals[] = {10, 20, 30, 40};
     for (int i = 0; i < 4; i++)
         set_add(s, &vals[i]);
-    Scratch sc = arena_scratch_push(a);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
     size_t count = iter_count(set_iter(s));
     cr_assert_eq(count, 4);
-    arena_scratch_pop(&sc);
-    arena_free(a);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
 }
 
 Test(set, grow_beyond_initial_cap)
 {
     /* Add 20 elements to force a resize (load factor 0.75 of initial cap 16) */
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 20; i++)
         set_add(s, &i);
     cr_assert_eq(set_len(s), 20);
     for (int i = 0; i < 20; i++)
         cr_assert(set_contains(s, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- set_clear --------------------------------------------------------- */
 
 Test(set, clear_empties_set)
 {
-    Arena *a = arena_create(1024);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
         set_add(s, &i);
     set_clear(s);
     cr_assert_eq(set_len(s), 0);
     for (int i = 0; i < 5; i++)
         cr_assert(!set_contains(s, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, clear_allows_reuse)
 {
-    Arena *a = arena_create(1024);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         set_add(s, &i);
     set_clear(s);
@@ -139,15 +140,15 @@ Test(set, clear_allows_reuse)
     cr_assert_eq(set_add(s, &x), SEQC_OK);
     cr_assert_eq(set_len(s), 1);
     cr_assert(set_contains(s, &x));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- set_iter_rev ------------------------------------------------------- */
 
 Test(set, iter_rev_yields_all_elements)
 {
-    Arena *a = arena_create(1024);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
         set_add(s, &i);
     Iter it = set_iter_rev(s);
@@ -157,18 +158,18 @@ Test(set, iter_rev_yields_all_elements)
         n++;
     iter_drop(&it);
     cr_assert_eq(n, 5);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, iter_rev_empty_set)
 {
-    Arena *a = arena_create(256);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     Iter it = set_iter_rev(s);
     int v;
     cr_assert(!it.next(&it, &v));
     iter_drop(&it);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- collision / probe-chain tests ------------------------------------- */
@@ -210,15 +211,15 @@ static size_t robin_hood_set_hash(const void *key, size_t key_size)
  */
 Test(set, collision_probe_insert_and_contains)
 {
-    Arena *a = arena_create(4096);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
     Set *s = set_create(
-        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+        sizeof(int), always_zero_set_hash, int_eq, growing_arena_allocator(a));
     for (int i = 1; i <= 4; i++)
         cr_assert_eq(set_add(s, &i), SEQC_OK);
     cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
         cr_assert(set_contains(s, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /*
@@ -228,15 +229,15 @@ Test(set, collision_probe_insert_and_contains)
  */
 Test(set, collision_robin_hood_displacement)
 {
-    Arena *a = arena_create(4096);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
     Set *s = set_create(
-        sizeof(int), robin_hood_set_hash, int_eq, arena_allocator(a));
+        sizeof(int), robin_hood_set_hash, int_eq, growing_arena_allocator(a));
     for (int i = 1; i <= 4; i++)
         cr_assert_eq(set_add(s, &i), SEQC_OK);
     cr_assert_eq(set_len(s), 4);
     for (int i = 1; i <= 4; i++)
         cr_assert(set_contains(s, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /*
@@ -246,9 +247,9 @@ Test(set, collision_robin_hood_displacement)
  */
 Test(set, collision_remove_probe_and_backward_shift)
 {
-    Arena *a = arena_create(4096);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
     Set *s = set_create(
-        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+        sizeof(int), always_zero_set_hash, int_eq, growing_arena_allocator(a));
     for (int i = 1; i <= 4; i++)
         set_add(s, &i);
     /* elem 3 sits at slot 2 (home=0): remove requires probing slots 0,1 first,
@@ -263,7 +264,7 @@ Test(set, collision_remove_probe_and_backward_shift)
         cr_assert(set_contains(s, &i));
     }
     cr_assert_eq(set_len(s), 3);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /*
@@ -272,9 +273,9 @@ Test(set, collision_remove_probe_and_backward_shift)
  */
 Test(set, remove_absent_hits_empty_slot)
 {
-    Arena *a = arena_create(4096);
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
     Set *s = set_create(
-        sizeof(int), always_zero_set_hash, int_eq, arena_allocator(a));
+        sizeof(int), always_zero_set_hash, int_eq, growing_arena_allocator(a));
     int present = 1;
     set_add(s, &present);
     /* key 99 also hashes to slot 0 but is not in the set; after probing past
@@ -282,14 +283,14 @@ Test(set, remove_absent_hits_empty_slot)
     int absent = 99;
     cr_assert_neq(set_remove(s, &absent), SEQC_OK);
     cr_assert_eq(set_len(s), 1);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- sys_allocator: exercises all allocator.free branches -------------- */
 
 Test(set, sys_alloc_free_releases_memory)
 {
-    Allocator al = sys_allocator();
+    allocator_t al = sys_allocator();
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     for (int i = 0; i < 5; i++)
         set_add(s, &i);
@@ -300,7 +301,7 @@ Test(set, sys_alloc_free_releases_memory)
 
 Test(set, sys_alloc_clear_frees_keys)
 {
-    Allocator al = sys_allocator();
+    allocator_t al = sys_allocator();
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     for (int i = 0; i < 4; i++)
         set_add(s, &i);
@@ -315,7 +316,7 @@ Test(set, sys_alloc_clear_frees_keys)
 
 Test(set, sys_alloc_remove_frees_key)
 {
-    Allocator al = sys_allocator();
+    allocator_t al = sys_allocator();
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     int v = 7;
     set_add(s, &v);
@@ -326,18 +327,18 @@ Test(set, sys_alloc_remove_frees_key)
 
 Test(set, is_healthy_normal_load)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 50; i++)
         set_add(s, &i);
     cr_assert(set_is_healthy(s));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, audit_normal_load)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 50; i++)
         set_add(s, &i);
     SetStats st = set_audit(s);
@@ -347,32 +348,32 @@ Test(set, audit_normal_load)
     cr_assert(st.max_psl >= 1);
     cr_assert(st.mean_psl >= 1.0);
     cr_assert(st.is_healthy);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- set algebra ------------------------------------------------------- */
 
 Test(set, union_disjoint)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s1, &i);
     for (int i = 5; i < 10; i++) set_add(s2, &i);
     cr_assert_eq(set_union(dst, s1, s2), SEQC_OK);
     cr_assert_eq(set_len(dst), 10);
     for (int i = 0; i < 10; i++)
         cr_assert(set_contains(dst, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, union_overlapping)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     /* s1 = {1,2,3}, s2 = {2,3,4} => union = {1,2,3,4} */
     int v[] = {1, 2, 3};
     for (int i = 0; i < 3; i++) set_add(s1, &v[i]);
@@ -382,15 +383,15 @@ Test(set, union_overlapping)
     cr_assert_eq(set_len(dst), 4);
     for (int i = 1; i <= 4; i++)
         cr_assert(set_contains(dst, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, intersection_basic)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     /* s1 = {1,2,3,4}, s2 = {3,4,5,6} => intersection = {3,4} */
     for (int i = 1; i <= 4; i++) set_add(s1, &i);
     for (int i = 3; i <= 6; i++) set_add(s2, &i);
@@ -401,28 +402,28 @@ Test(set, intersection_basic)
     cr_assert(set_contains(dst, &four));
     cr_assert_not(set_contains(dst, &one));
     cr_assert_not(set_contains(dst, &five));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, intersection_empty_result)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s1, &i);
     for (int i = 10; i < 15; i++) set_add(s2, &i);
     cr_assert_eq(set_intersection(dst, s1, s2), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, difference_basic)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     /* s1 = {1,2,3,4}, s2 = {3,4,5} => difference = {1,2} */
     for (int i = 1; i <= 4; i++) set_add(s1, &i);
     for (int i = 3; i <= 5; i++) set_add(s2, &i);
@@ -432,101 +433,101 @@ Test(set, difference_basic)
     cr_assert(set_contains(dst, &one));
     cr_assert(set_contains(dst, &two));
     cr_assert_not(set_contains(dst, &three));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, difference_empty_when_subset)
 {
-    Arena *a = arena_create(4096);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     /* s1 ⊆ s2 => difference is empty */
     for (int i = 0; i < 3; i++) set_add(s1, &i);
     for (int i = 0; i < 10; i++) set_add(s2, &i);
     cr_assert_eq(set_difference(dst, s1, s2), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- set algebra edge cases -------------------------------------------- */
 
 Test(set, union_with_empty)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s, &i);
     cr_assert_eq(set_union(dst, s, empty), SEQC_OK);
     cr_assert_eq(set_len(dst), 5);
     for (int i = 0; i < 5; i++)
         cr_assert(set_contains(dst, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, intersection_with_empty)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s, &i);
     cr_assert_eq(set_intersection(dst, s, empty), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, difference_with_empty)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *empty = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *empty = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s, &i);
     /* s \ {} == s */
     cr_assert_eq(set_difference(dst, s, empty), SEQC_OK);
     cr_assert_eq(set_len(dst), 5);
     for (int i = 0; i < 5; i++)
         cr_assert(set_contains(dst, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, difference_self_is_empty)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s, &i);
     /* s \ s == {} */
     cr_assert_eq(set_difference(dst, s, s), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, intersection_self_equals_self)
 {
-    Arena *a = arena_create(4096);
-    Set *s = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    Set *s = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     for (int i = 0; i < 5; i++) set_add(s, &i);
     /* s ∩ s == s */
     cr_assert_eq(set_intersection(dst, s, s), SEQC_OK);
     cr_assert_eq(set_len(dst), 5);
     for (int i = 0; i < 5; i++)
         cr_assert(set_contains(dst, &i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 Test(set, union_both_empty)
 {
-    Arena *a = arena_create(256);
-    Set *s1 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *s2 = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
-    Set *dst = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Set *s1 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *s2 = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
+    Set *dst = set_create(sizeof(int), int_hash, int_eq, growing_arena_allocator(a));
     cr_assert_eq(set_union(dst, s1, s2), SEQC_OK);
     cr_assert_eq(set_len(dst), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
 
 /* ---- OOM paths --------------------------------------------------------- */
@@ -541,7 +542,7 @@ Test(set, add_returns_oom_when_bucket_alloc_fails)
 {
     /* alloc #1 (Set struct) ok; alloc #2 (bucket array on first add) fails */
     OomCtx ctx;
-    Allocator al = oom_after_allocator(1, &ctx);
+    allocator_t al = oom_after_allocator(1, &ctx);
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     cr_assert_not_null(s);
     int v = 1;
@@ -554,7 +555,7 @@ Test(set, add_returns_oom_when_key_alloc_fails)
 {
     /* alloc #1: Set struct; alloc #2: bucket array; alloc #3: key copy fails */
     OomCtx ctx;
-    Allocator al = oom_after_allocator(2, &ctx);
+    allocator_t al = oom_after_allocator(2, &ctx);
     Set *s = set_create(sizeof(int), int_hash, int_eq, al);
     cr_assert_not_null(s);
     int v = 1;

@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 #include "seqc/vec.h"
 
@@ -15,13 +15,13 @@
 
 typedef struct PQueue PQueue;
 
-PQueue *pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+PQueue *pqueue_create(size_t elem_size, compare_fn cmp, allocator_t allocator);
 
 /* Build a heap from a copy of v's elements in O(n) using Floyd's algorithm.
  * The Vec's element size must match elem_size; behaviour is undefined
  * otherwise. The returned PQueue owns its own allocation independent of v. */
 PQueue *pqueue_build_from_vec(
-    const Vec *v, compare_fn cmp, Allocator allocator);
+    const Vec *v, compare_fn cmp, allocator_t allocator);
 
 /* Push a copy of elem and restore the heap property. */
 SeqcStatus pqueue_push(PQueue *q, const void *elem);
@@ -46,4 +46,4 @@ void pqueue_free(PQueue *q);
 
 /* Pop all elements in priority order into an allocator-owned Slice.
  * The queue is empty after this call; the PQueue itself is not freed. */
-Slice pqueue_drain(PQueue *q, Allocator allocator);
+Slice pqueue_drain(PQueue *q, allocator_t allocator);

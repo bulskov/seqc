@@ -6,13 +6,13 @@ struct PQueue
 {
     Vec *data;
     compare_fn cmp;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
-PQueue *pqueue_create(size_t elem_size, compare_fn cmp, Allocator allocator)
+PQueue *pqueue_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
 {
     PQueue *q =
-        allocator.alloc(allocator.ctx, sizeof(PQueue), _Alignof(PQueue));
+        mem_alloc(allocator, sizeof(PQueue), _Alignof(PQueue));
     if (!q)
         return NULL;
     q->data = vec_create(elem_size, allocator);
@@ -80,7 +80,7 @@ static void sift_down(PQueue *q, size_t i)
 
 /* ---- public API -------------------------------------------------------- */
 
-PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, Allocator allocator)
+PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, allocator_t allocator)
 {
     Slice s = vec_as_slice(v);
     PQueue *q = pqueue_create(s.elem_size, cmp, allocator);
@@ -159,9 +159,8 @@ void pqueue_free(PQueue *q)
     if (!q)
         return;
     vec_free(q->data);
-    Allocator al = q->allocator;
-    if (al.free)
-        al.free(al.ctx, q);
+    allocator_t al = q->allocator;
+    mem_free(al, q, sizeof(PQueue));
 }
 
 Iter pqueue_iter(const PQueue *q)
@@ -178,14 +177,14 @@ Iter pqueue_iter_rev(const PQueue *q)
     return vec_iter_rev(q->data);
 }
 
-Slice pqueue_drain(PQueue *q, Allocator allocator)
+Slice pqueue_drain(PQueue *q, allocator_t allocator)
 {
     size_t n = pqueue_len(q);
     size_t elem_size = vec_elem_size(q->data);
     if (n == 0)
         return (Slice){NULL, 0, elem_size};
     char *buf =
-        allocator.alloc(allocator.ctx, n * elem_size, _Alignof(max_align_t));
+        mem_alloc(allocator, n * elem_size, _Alignof(max_align_t));
     if (!buf)
     {
         pqueue_clear(q);

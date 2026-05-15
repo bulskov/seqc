@@ -2,13 +2,13 @@
 
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Queue — FIFO ring buffer */
 typedef struct Queue Queue;
 
-Queue *queue_create(size_t elem_size, Allocator allocator);
+Queue *queue_create(size_t elem_size, allocator_t allocator);
 SeqcStatus queue_push(Queue *q, const void *elem); /* enqueue at back */
 SeqcStatus queue_pop(
     Queue *q, void *out); /* dequeue from front; SEQC_NOT_FOUND if empty */

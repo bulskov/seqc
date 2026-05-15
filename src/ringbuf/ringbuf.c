@@ -12,7 +12,7 @@ struct RingBuf
     size_t len;
     size_t head; /* index of first element */
     size_t elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
 /* ---- internal helpers -------------------------------------------------- */
@@ -31,8 +31,8 @@ static inline void *rb_ptr(const RingBuf *r, size_t slot)
 static SeqcStatus rb_grow(RingBuf *r)
 {
     size_t new_cap = r->cap == 0 ? RINGBUF_INITIAL_CAP : r->cap * 2;
-    void *nd = r->allocator.alloc(
-        r->allocator.ctx, new_cap * r->elem_size, _Alignof(max_align_t));
+    void *nd = mem_alloc(r->allocator,
+         new_cap * r->elem_size, _Alignof(max_align_t));
     if (!nd)
         return SEQC_OOM;
 
@@ -57,8 +57,8 @@ static SeqcStatus rb_grow(RingBuf *r)
         }
     }
 
-    if (r->allocator.free && r->data)
-        r->allocator.free(r->allocator.ctx, r->data);
+    if (r->data)
+        mem_free(r->allocator, r->data, r->cap * r->elem_size);
     r->data = nd;
     r->cap = new_cap;
     r->head = 0;
@@ -67,10 +67,10 @@ static SeqcStatus rb_grow(RingBuf *r)
 
 /* ---- public API -------------------------------------------------------- */
 
-RingBuf *ringbuf_create(size_t elem_size, Allocator allocator)
+RingBuf *ringbuf_create(size_t elem_size, allocator_t allocator)
 {
     RingBuf *r =
-        allocator.alloc(allocator.ctx, sizeof(RingBuf), _Alignof(RingBuf));
+        mem_alloc(allocator, sizeof(RingBuf), _Alignof(RingBuf));
     if (!r)
         return NULL;
     *r = (RingBuf){
@@ -175,11 +175,10 @@ void ringbuf_free(RingBuf *r)
 {
     if (!r)
         return;
-    if (r->data && r->allocator.free)
-        r->allocator.free(r->allocator.ctx, r->data);
-    Allocator al = r->allocator;
-    if (al.free)
-        al.free(al.ctx, r);
+    if (r->data)
+        mem_free(r->allocator, r->data, r->cap * r->elem_size);
+    allocator_t al = r->allocator;
+    mem_free(al, r, sizeof(RingBuf));
 }
 
 /* ---- iter -------------------------------------------------------------- */
@@ -212,16 +211,15 @@ static bool ringbuf_iter_rev_next(Iter *it, void *out)
 
 static void ringbuf_iter_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(RingBufIterState));
 }
 
 Iter ringbuf_iter(const RingBuf *r)
 {
     if (!r)
         return (Iter){0};
-    RingBufIterState *st = r->allocator.alloc(
-        r->allocator.ctx, sizeof *st, _Alignof(RingBufIterState));
+    RingBufIterState *st = mem_alloc(r->allocator,
+         sizeof *st, _Alignof(RingBufIterState));
     if (!st)
         return (Iter){0};
     *st = (RingBufIterState){r, 0};
@@ -238,8 +236,8 @@ Iter ringbuf_iter_rev(const RingBuf *r)
 {
     if (!r)
         return (Iter){0};
-    RingBufIterState *st = r->allocator.alloc(
-        r->allocator.ctx, sizeof *st, _Alignof(RingBufIterState));
+    RingBufIterState *st = mem_alloc(r->allocator,
+         sizeof *st, _Alignof(RingBufIterState));
     if (!st)
         return (Iter){0};
     *st = (RingBufIterState){r, r->len}; /* starts past the last element */

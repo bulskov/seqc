@@ -1,38 +1,35 @@
 #include <criterion/criterion.h>
-
-#include "seqc/arena.h"
+#include "oom_alloc.h"
+#include "arena/growing_arena.h"
+#include "arena/scratch.h"
 #include "seqc/pqueue.h"
 #include "seqc/vec.h"
-
 static int int_cmp(const void *a, const void *b)
 {
     int x = *(const int *)a, y = *(const int *)b;
     return (x > y) - (x < y);
 }
-
 /* negated comparator → max-heap */
 static int int_cmp_rev(const void *a, const void *b)
 {
     int x = *(const int *)a, y = *(const int *)b;
     return (y > x) - (y < x);
 }
-
 Test(pqueue, empty_on_create)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 0);
     cr_assert(pqueue_is_empty(q));
     cr_assert_neq(pqueue_peek(q, NULL), SEQC_OK);
     int out;
     cr_assert_neq(pqueue_pop(q, &out), SEQC_OK);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, push_and_peek)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
@@ -40,13 +37,12 @@ Test(pqueue, push_and_peek)
     int peeked;
     cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 1); /* min always at front */
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, pop_yields_ascending_order)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {9, 3, 7, 1, 5, 2, 8, 4, 6};
     for (int i = 0; i < 9; i++)
         pqueue_push(q, &vals[i]);
@@ -60,13 +56,12 @@ Test(pqueue, pop_yields_ascending_order)
         prev = cur;
     }
     cr_assert(pqueue_is_empty(q));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, max_heap_via_reverse_cmp)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp_rev, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp_rev, growing_arena_allocator(a));
     int vals[] = {3, 1, 9, 5, 7};
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
@@ -80,13 +75,12 @@ Test(pqueue, max_heap_via_reverse_cmp)
         cr_assert_geq(prev, cur);
         prev = cur;
     }
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, pop_discard_null_out)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {3, 1, 2};
     for (int i = 0; i < 3; i++)
         pqueue_push(q, &vals[i]);
@@ -95,13 +89,12 @@ Test(pqueue, pop_discard_null_out)
     int peeked;
     cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 2);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, push_duplicates)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 5;
     pqueue_push(q, &v);
     pqueue_push(q, &v);
@@ -115,13 +108,12 @@ Test(pqueue, push_duplicates)
     pqueue_pop(q, &out);
     cr_assert_eq(out, 5);
     cr_assert(pqueue_is_empty(q));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, interleaved_push_pop)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v, out;
     v = 5;
     pqueue_push(q, &v);
@@ -140,27 +132,24 @@ Test(pqueue, interleaved_push_pop)
     cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 5);
     cr_assert(pqueue_is_empty(q));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 /* ---- pqueue_clear ------------------------------------------------------ */
-
 Test(pqueue, clear_empties_queue)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 5; i >= 1; i--)
         pqueue_push(q, &i);
     pqueue_clear(q);
     cr_assert(pqueue_is_empty(q));
     cr_assert_eq(pqueue_len(q), 0);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, clear_allows_reuse)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7};
     for (int i = 0; i < 3; i++)
         pqueue_push(q, &vals[i]);
@@ -171,15 +160,13 @@ Test(pqueue, clear_allows_reuse)
     cr_assert_eq(pqueue_pop(q, &out), SEQC_OK);
     cr_assert_eq(out, 42);
     cr_assert(pqueue_is_empty(q));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 /* ---- pqueue_iter ------------------------------------------------------- */
-
 Test(pqueue, iter_visits_all_elements)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 1, 3, 2, 4};
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
@@ -204,26 +191,23 @@ Test(pqueue, iter_visits_all_elements)
         cr_assert(found[i]);
     /* queue is unchanged */
     cr_assert_eq(pqueue_len(q), 5);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, iter_empty)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     Iter it = pqueue_iter(q);
     int v;
     cr_assert(!it.next(&it, &v));
     iter_drop(&it);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 /* ---- pqueue_iter_rev --------------------------------------------------- */
-
 Test(pqueue, iter_rev_visits_all_elements)
 {
-    Arena *a = arena_create(512);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 1, 3, 2, 4};
     for (int i = 0; i < 5; i++)
         pqueue_push(q, &vals[i]);
@@ -242,30 +226,27 @@ Test(pqueue, iter_rev_visits_all_elements)
     /* rev must be exactly the reverse of fwd */
     for (size_t i = 0; i < 5; i++)
         cr_assert_eq(seen_rev[i], seen_fwd[4 - i]);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, iter_rev_empty)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     Iter it = pqueue_iter_rev(q);
     int v;
     cr_assert(!it.next(&it, &v));
     iter_drop(&it);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 /* ---- pqueue_build_from_vec --------------------------------------------- */
-
 Test(pqueue, build_from_vec_pop_yields_ascending)
 {
-    Arena *a = arena_create(1024);
-    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {9, 3, 7, 1, 5, 2, 8, 4, 6, 0};
     for (int i = 0; i < 10; i++)
         vec_push(v, &vals[i]);
-    PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
+    PQueue *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 10);
     int peeked;
     cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
@@ -278,55 +259,50 @@ Test(pqueue, build_from_vec_pop_yields_ascending)
         prev = cur;
     }
     cr_assert(pqueue_is_empty(q));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, build_from_vec_does_not_modify_source)
 {
-    Arena *a = arena_create(512);
-    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {3, 1, 2};
     for (int i = 0; i < 3; i++)
         vec_push(v, &vals[i]);
-    PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
+    PQueue *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
     /* Original vec must be unchanged */
     cr_assert_eq(vec_len(v), 3);
     cr_assert_eq(*(int *)vec_get(v, 0), 3);
     cr_assert_eq(*(int *)vec_get(v, 1), 1);
     cr_assert_eq(*(int *)vec_get(v, 2), 2);
     (void)q;
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, build_from_vec_empty)
 {
-    Arena *a = arena_create(256);
-    Vec *v = vec_create(sizeof(int), arena_allocator(a));
-    PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
+    PQueue *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
     cr_assert(pqueue_is_empty(q));
     cr_assert_neq(pqueue_peek(q, NULL), SEQC_OK);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, build_from_vec_single)
 {
-    Arena *a = arena_create(256);
-    Vec *v = vec_create(sizeof(int), arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
-    PQueue *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
+    PQueue *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
     cr_assert_eq(pqueue_len(q), 1);
     int peeked;
     cr_assert_eq(pqueue_peek(q, &peeked), SEQC_OK);
     cr_assert_eq(peeked, 42);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 /* ---- sys_allocator: exercises pqueue_free ------------------------------ */
-
 Test(pqueue, sys_alloc_free_releases_memory)
 {
-    Allocator al = sys_allocator();
+    allocator_t al = sys_allocator();
     PQueue *q = pqueue_create(sizeof(int), int_cmp, al);
     for (int i = 5; i >= 1; i--)
         pqueue_push(q, &i);
@@ -337,44 +313,40 @@ Test(pqueue, sys_alloc_free_releases_memory)
     pqueue_free(q);
     /* memory released — verified by sys_allocator not leaking */
 }
-
 /* ---- pqueue_drain ------------------------------------------------------ */
-
 Test(pqueue, drain_yields_sorted_slice)
 {
-    Arena *a = arena_create(1024);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {9, 3, 7, 1, 5, 2, 8, 4, 6};
     for (int i = 0; i < 9; i++)
         pqueue_push(q, &vals[i]);
-    Slice s = pqueue_drain(q, arena_allocator(a));
+    Slice s = pqueue_drain(q, growing_arena_allocator(a));
     cr_assert_eq(s.len, 9);
     cr_assert(pqueue_is_empty(q));
     for (size_t i = 1; i < s.len; i++)
         cr_assert_leq(*(int *)slice_get(s, i - 1), *(int *)slice_get(s, i));
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, drain_empty_returns_empty_slice)
 {
-    Arena *a = arena_create(256);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
-    Slice s = pqueue_drain(q, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    Slice s = pqueue_drain(q, growing_arena_allocator(a));
     cr_assert_eq(s.len, 0);
     cr_assert_null(s.ptr);
-    arena_free(a);
+    growing_arena_destroy(a);
 }
-
 Test(pqueue, drain_queue_is_reusable)
 {
-    Arena *a = arena_create(1024);
-    PQueue *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    PQueue *q = pqueue_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int x = 7;
     pqueue_push(q, &x);
-    pqueue_drain(q, arena_allocator(a));
+    pqueue_drain(q, growing_arena_allocator(a));
     cr_assert(pqueue_is_empty(q));
     x = 3;
     pqueue_push(q, &x);
     cr_assert_eq(pqueue_len(q), 1);
-    arena_free(a);
+    growing_arena_destroy(a);
 }

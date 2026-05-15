@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Singly-linked list.  Element data is stored inline immediately after each
@@ -11,7 +11,7 @@
 
 typedef struct List List;
 
-List *list_create(size_t elem_size, Allocator allocator);
+List *list_create(size_t elem_size, allocator_t allocator);
 SeqcStatus list_push_front(List *l, const void *elem);
 SeqcStatus list_push_back(List *l, const void *elem);
 SeqcStatus list_pop_front(

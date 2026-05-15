@@ -12,12 +12,12 @@ struct Queue
     size_t len;
     size_t head; /* index of front element */
     size_t elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
-Queue *queue_create(size_t elem_size, Allocator allocator)
+Queue *queue_create(size_t elem_size, allocator_t allocator)
 {
-    Queue *q = allocator.alloc(allocator.ctx, sizeof(Queue), _Alignof(Queue));
+    Queue *q = mem_alloc(allocator, sizeof(Queue), _Alignof(Queue));
     if (!q)
         return NULL;
     *q = (Queue){.buf = NULL,
@@ -32,8 +32,8 @@ Queue *queue_create(size_t elem_size, Allocator allocator)
 static SeqcStatus queue_grow(Queue *q)
 {
     size_t new_cap = q->cap == 0 ? INITIAL_CAP : q->cap * 2;
-    char *new_buf = q->allocator.alloc(
-        q->allocator.ctx, new_cap * q->elem_size, _Alignof(max_align_t));
+    char *new_buf = mem_alloc(q->allocator,
+         new_cap * q->elem_size, _Alignof(max_align_t));
     if (!new_buf)
         return SEQC_OOM;
     /* copy elements from head to tail in logical order */
@@ -45,8 +45,8 @@ static SeqcStatus queue_grow(Queue *q)
             q->buf + src * q->elem_size,
             q->elem_size);
     }
-    if (q->allocator.free && q->buf)
-        q->allocator.free(q->allocator.ctx, q->buf);
+    if (q->buf)
+        mem_free(q->allocator, q->buf, q->cap * q->elem_size);
     q->buf = new_buf;
     q->cap = new_cap;
     q->head = 0;
@@ -118,11 +118,10 @@ void queue_free(Queue *q)
 {
     if (!q)
         return;
-    if (q->buf && q->allocator.free)
-        q->allocator.free(q->allocator.ctx, q->buf);
-    Allocator al = q->allocator;
-    if (al.free)
-        al.free(al.ctx, q);
+    if (q->buf)
+        mem_free(q->allocator, q->buf, q->cap * q->elem_size);
+    allocator_t al = q->allocator;
+    mem_free(al, q, sizeof(Queue));
 }
 
 /* ---- iter -------------------------------------------------------------- */
@@ -149,16 +148,15 @@ static bool queue_iter_next(Iter *it, void *out)
 
 static void queue_iter_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(QueueIterState));
 }
 
 Iter queue_iter(const Queue *q)
 {
     if (!q)
         return (Iter){0};
-    QueueIterState *s = q->allocator.alloc(
-        q->allocator.ctx, sizeof *s, _Alignof(QueueIterState));
+    QueueIterState *s = mem_alloc(q->allocator,
+         sizeof *s, _Alignof(QueueIterState));
     *s = (QueueIterState){q->buf, q->head, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_next,
                   .drop = queue_iter_drop,
@@ -191,16 +189,15 @@ static bool queue_iter_rev_next(Iter *it, void *out)
 
 static void queue_iter_rev_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(QueueIterRevState));
 }
 
 Iter queue_iter_rev(const Queue *q)
 {
     if (!q)
         return (Iter){0};
-    QueueIterRevState *s = q->allocator.alloc(
-        q->allocator.ctx, sizeof *s, _Alignof(QueueIterRevState));
+    QueueIterRevState *s = mem_alloc(q->allocator,
+         sizeof *s, _Alignof(QueueIterRevState));
     size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
     *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_rev_next,

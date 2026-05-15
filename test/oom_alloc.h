@@ -8,14 +8,43 @@
  *
  * Usage:
  *   OomCtx ctx = {0};
- *   Allocator al = oom_after_allocator(2, &ctx);
+ *   allocator_t al = oom_after_allocator(2, &ctx);
  *   // first 2 alloc calls succeed (via malloc), 3rd returns NULL
  */
 
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
+
+/* ---- sys_allocator (malloc/realloc/free) -------------------------------- */
+
+static void *sys_alloc_fn(void *ctx, size_t size, size_t align)
+{
+    (void)ctx; (void)align;
+    return malloc(size);
+}
+
+static void *sys_realloc_fn(void *ctx, void *ptr, size_t old_size,
+                            size_t new_size, size_t align)
+{
+    (void)ctx; (void)old_size; (void)align;
+    return realloc(ptr, new_size);
+}
+
+static void sys_free_fn(void *ctx, void *ptr, size_t size)
+{
+    (void)ctx; (void)size;
+    free(ptr);
+}
+
+static const allocator_vtable_t sys_vtable_g = {
+    sys_alloc_fn, sys_realloc_fn, sys_free_fn};
+
+static inline allocator_t sys_allocator(void)
+{
+    return (allocator_t){.vt = &sys_vtable_g, .ctx = NULL};
+}
 
 /* ---- null allocator (always fails) ------------------------------------- */
 
@@ -32,14 +61,20 @@ static void *null_realloc(void *ctx, void *ptr, size_t old_size,
     return NULL;
 }
 
-static Allocator null_allocator(void)
+static void null_free(void *ctx, void *ptr, size_t size)
 {
-    return (Allocator){
-        .alloc   = null_alloc,
-        .realloc = null_realloc,
-        .free    = NULL,
-        .ctx     = NULL,
-    };
+    (void)ctx; (void)ptr; (void)size;
+}
+
+static const allocator_vtable_t null_allocator_vtable = {
+    .alloc   = null_alloc,
+    .realloc = null_realloc,
+    .free    = null_free,
+};
+
+static allocator_t null_allocator(void)
+{
+    return (allocator_t){ .vt = &null_allocator_vtable, .ctx = NULL };
 }
 
 /* ---- counting allocator (fails after n successes) ---------------------- */
@@ -70,20 +105,21 @@ static void *oom_realloc(void *ctx, void *ptr, size_t old_size,
     return realloc(ptr, new_size);
 }
 
-static void oom_free(void *ctx, void *ptr)
+static void oom_free(void *ctx, void *ptr, size_t size)
 {
-    (void)ctx;
+    (void)ctx; (void)size;
     free(ptr);
 }
 
+static const allocator_vtable_t oom_allocator_vtable = {
+    .alloc   = oom_alloc,
+    .realloc = oom_realloc,
+    .free    = oom_free,
+};
+
 /* n = number of successful alloc/realloc calls before the first failure */
-static Allocator oom_after_allocator(size_t n, OomCtx *ctx)
+static allocator_t oom_after_allocator(size_t n, OomCtx *ctx)
 {
     ctx->remaining = n;
-    return (Allocator){
-        .alloc   = oom_alloc,
-        .realloc = oom_realloc,
-        .free    = oom_free,
-        .ctx     = ctx,
-    };
+    return (allocator_t){ .vt = &oom_allocator_vtable, .ctx = ctx };
 }

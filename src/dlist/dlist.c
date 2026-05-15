@@ -16,7 +16,7 @@ struct DList
     DListNode *tail;
     size_t len;
     size_t elem_size;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
 /* Data lives immediately after the node header, padded to max_align_t. */
@@ -36,8 +36,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static DListNode *make_node(const DList *l, const void *elem)
 {
-    DListNode *node = l->allocator.alloc(
-        l->allocator.ctx, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    DListNode *node = mem_alloc(l->allocator,
+         node_alloc_size(l->elem_size), _Alignof(max_align_t));
     if (!node)
         return NULL;
     node->prev = NULL;
@@ -56,14 +56,13 @@ static void unlink_and_free(DList *l, DListNode *node)
         node->next->prev = node->prev;
     else
         l->tail = node->prev;
-    if (l->allocator.free)
-        l->allocator.free(l->allocator.ctx, node);
+    mem_free(l->allocator, node, node_alloc_size(l->elem_size));
     l->len--;
 }
 
-DList *dlist_create(size_t elem_size, Allocator allocator)
+DList *dlist_create(size_t elem_size, allocator_t allocator)
 {
-    DList *l = allocator.alloc(allocator.ctx, sizeof(DList), _Alignof(DList));
+    DList *l = mem_alloc(allocator, sizeof(DList), _Alignof(DList));
     if (!l)
         return NULL;
     *l = (DList){.head = NULL,
@@ -156,8 +155,7 @@ void dlist_clear(DList *l)
     while (cur)
     {
         DListNode *next = cur->next;
-        if (l->allocator.free)
-            l->allocator.free(l->allocator.ctx, cur);
+        mem_free(l->allocator, cur, node_alloc_size(l->elem_size));
         cur = next;
     }
     l->head = l->tail = NULL;
@@ -169,9 +167,8 @@ void dlist_free(DList *l)
     if (!l)
         return;
     dlist_clear(l);
-    Allocator al = l->allocator;
-    if (al.free)
-        al.free(al.ctx, l);
+    allocator_t al = l->allocator;
+    mem_free(al, l, sizeof(DList));
 }
 
 /* ---- iter (forward) ---------------------------------------------------- */
@@ -204,16 +201,15 @@ static bool dlist_iter_next_rev(Iter *it, void *out)
 
 static void dlist_iter_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(DListIterState));
 }
 
 Iter dlist_iter(const DList *l)
 {
     if (!l)
         return (Iter){0};
-    DListIterState *s = l->allocator.alloc(
-        l->allocator.ctx, sizeof *s, _Alignof(DListIterState));
+    DListIterState *s = mem_alloc(l->allocator,
+         sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->head, l->elem_size};
     return (Iter){.next = dlist_iter_next_fwd,
                   .drop = dlist_iter_drop,
@@ -226,8 +222,8 @@ Iter dlist_iter_rev(const DList *l)
 {
     if (!l)
         return (Iter){0};
-    DListIterState *s = l->allocator.alloc(
-        l->allocator.ctx, sizeof *s, _Alignof(DListIterState));
+    DListIterState *s = mem_alloc(l->allocator,
+         sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->tail, l->elem_size};
     return (Iter){.next = dlist_iter_next_rev,
                   .drop = dlist_iter_drop,

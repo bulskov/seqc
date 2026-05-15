@@ -6,19 +6,18 @@
 struct Stack
 {
     Vec *vec;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
-Stack *stack_create(size_t elem_size, Allocator allocator)
+Stack *stack_create(size_t elem_size, allocator_t allocator)
 {
-    Stack *s = allocator.alloc(allocator.ctx, sizeof(Stack), _Alignof(Stack));
+    Stack *s = mem_alloc(allocator, sizeof(Stack), _Alignof(Stack));
     if (!s)
         return NULL;
     s->vec = vec_create(elem_size, allocator);
     if (!s->vec)
     {
-        if (allocator.free)
-            allocator.free(allocator.ctx, s);
+        mem_free(allocator, s, sizeof(Stack));
         return NULL;
     }
     s->allocator = allocator;
@@ -81,7 +80,6 @@ void stack_free(Stack *s)
     if (!s)
         return;
     vec_free(s->vec);
-    Allocator al = s->allocator;
-    if (al.free)
-        al.free(al.ctx, s);
+    allocator_t al = s->allocator;
+    mem_free(al, s, sizeof(Stack));
 }

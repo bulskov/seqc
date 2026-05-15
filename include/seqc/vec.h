@@ -3,13 +3,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 typedef struct Vec Vec;
 
-Vec *vec_create(size_t elem_size, Allocator allocator);
-Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator);
+Vec *vec_create(size_t elem_size, allocator_t allocator);
+Vec *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator);
 size_t vec_len(const Vec *v);
 size_t vec_elem_size(const Vec *v);
 size_t vec_cap(const Vec *v);

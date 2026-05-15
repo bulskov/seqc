@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Doubly-linked list.  Element data is stored inline immediately after each
@@ -12,7 +12,7 @@ typedef struct DListNode DListNode;
 
 typedef struct DList DList;
 
-DList *dlist_create(size_t elem_size, Allocator allocator);
+DList *dlist_create(size_t elem_size, allocator_t allocator);
 SeqcStatus dlist_push_front(DList *l, const void *elem);
 SeqcStatus dlist_push_back(DList *l, const void *elem);
 SeqcStatus dlist_pop_front(DList *l, void *out); /* out may be NULL */

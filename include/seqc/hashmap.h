@@ -1,6 +1,6 @@
 #pragma once
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -16,7 +16,7 @@ HashMap *hashmap_create(
     size_t val_size,
     hash_fn hash,
     eq_fn eq,
-    Allocator allocator);
+    allocator_t allocator);
 void hashmap_free(HashMap *map);
 void hashmap_clear(HashMap *map);
 size_t hashmap_len(const HashMap *map);

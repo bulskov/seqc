@@ -17,32 +17,32 @@ String string_view_cstr(const char *s)
     return (String){s, strlen(s)};
 }
 
-String string_from_cstr(const char *s, Allocator allocator)
+String string_from_cstr(const char *s, allocator_t allocator)
 {
     if (!s)
         return (String){NULL, 0};
     size_t len = strlen(s);
     if (len == 0)
         return (String){NULL, 0};
-    char *buf = allocator.alloc(allocator.ctx, len, 1);
+    char *buf = mem_alloc(allocator, len, 1);
     if (!buf)
         return (String){NULL, 0};
     memcpy(buf, s, len);
     return (String){buf, len};
 }
 
-String string_copy(String s, Allocator allocator)
+String string_copy(String s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
         return (String){NULL, 0};
-    char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+    char *buf = mem_alloc(allocator, s.len, 1);
     memcpy(buf, s.ptr, s.len);
     return (String){buf, s.len};
 }
 
-const char *string_to_cstr(String s, Allocator allocator)
+const char *string_to_cstr(String s, allocator_t allocator)
 {
-    char *buf = allocator.alloc(allocator.ctx, s.len + 1, 1);
+    char *buf = mem_alloc(allocator, s.len + 1, 1);
     if (!buf)
         return NULL;
     if (s.ptr && s.len > 0)
@@ -138,7 +138,7 @@ String string_trim(String s)
 /* --- Transformation ----------------------------------------------------- */
 
 String string_replace(
-    String s, String needle, String replacement, Allocator allocator)
+    String s, String needle, String replacement, allocator_t allocator)
 {
     StringBuilder *sb = sb_create(allocator);
     if (needle.len == 0)
@@ -166,21 +166,21 @@ String string_replace(
 
 /* --- Transformation (case / join) --------------------------------------- */
 
-String string_to_uppercase(String s, Allocator allocator)
+String string_to_uppercase(String s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
         return (String){NULL, 0};
-    char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+    char *buf = mem_alloc(allocator, s.len, 1);
     for (size_t i = 0; i < s.len; i++)
         buf[i] = (char)toupper((unsigned char)s.ptr[i]);
     return (String){buf, s.len};
 }
 
-String string_to_lowercase(String s, Allocator allocator)
+String string_to_lowercase(String s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
         return (String){NULL, 0};
-    char *buf = allocator.alloc(allocator.ctx, s.len, 1);
+    char *buf = mem_alloc(allocator, s.len, 1);
     for (size_t i = 0; i < s.len; i++)
         buf[i] = (char)tolower((unsigned char)s.ptr[i]);
     return (String){buf, s.len};
@@ -191,13 +191,13 @@ String string_to_lowercase(String s, Allocator allocator)
 struct StringBuilder
 {
     Vec *chars;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
-StringBuilder *sb_create(Allocator allocator)
+StringBuilder *sb_create(allocator_t allocator)
 {
-    StringBuilder *sb = allocator.alloc(
-        allocator.ctx, sizeof(StringBuilder), _Alignof(StringBuilder));
+    StringBuilder *sb = mem_alloc(allocator,
+         sizeof(StringBuilder), _Alignof(StringBuilder));
     if (!sb)
         return NULL;
     sb->chars = vec_create(sizeof(char), allocator);
@@ -254,8 +254,8 @@ SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
     char stack_buf[256];
     char *buf = (size_t)n + 1 <= sizeof stack_buf
                     ? stack_buf
-                    : sb->allocator.alloc(
-                          sb->allocator.ctx, (size_t)n + 1, _Alignof(char));
+                    : mem_alloc(sb->allocator,
+                           (size_t)n + 1, _Alignof(char));
     if (!buf)
         return SEQC_OOM;
     va_start(ap, fmt);
@@ -268,13 +268,13 @@ SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
         if (st != SEQC_OK)
             break;
     }
-    if (buf != stack_buf && sb->allocator.free)
-        sb->allocator.free(sb->allocator.ctx, buf);
+    if (buf != stack_buf)
+        mem_free(sb->allocator, buf, (size_t)n + 1);
     return st;
 }
 
 /* string_join is defined after the builder because it uses StringBuilder. */
-String string_join(Iter it, String sep, Allocator allocator)
+String string_join(Iter it, String sep, allocator_t allocator)
 {
     StringBuilder *sb = sb_create(allocator);
     String token;
@@ -330,13 +330,13 @@ bool string_to_double(String s, double *out)
 
 /* --- Iter sources ------------------------------------------------------- */
 
-Iter string_chars(String s, Allocator allocator)
+Iter string_chars(String s, allocator_t allocator)
 {
     Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
     return iter_from_slice(sl, allocator);
 }
 
-Iter string_chars_rev(String s, Allocator allocator)
+Iter string_chars_rev(String s, allocator_t allocator)
 {
     Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
     return iter_from_slice_rev(sl, allocator);
@@ -378,11 +378,10 @@ static bool split_next(Iter *it, void *out)
 
 static void split_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(SplitState));
 }
 
-Iter string_split(String s, String delim, Allocator allocator)
+Iter string_split(String s, String delim, allocator_t allocator)
 {
     if (s.ptr == NULL)
     {
@@ -397,8 +396,8 @@ Iter string_split(String s, String delim, Allocator allocator)
         return string_chars(s, allocator);
     }
 
-    SplitState *state = allocator.alloc(
-        allocator.ctx, sizeof(SplitState), _Alignof(SplitState));
+    SplitState *state = mem_alloc(allocator,
+         sizeof(SplitState), _Alignof(SplitState));
     *state = (SplitState){s, delim, 0};
     return (Iter){.next = split_next,
                   .drop = split_drop,

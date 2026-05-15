@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* Ordered map backed by an AVL tree.
@@ -18,7 +18,7 @@ typedef struct OMap OMap;
 typedef MapEntry OMapEntry;
 
 OMap *omap_create(
-    size_t key_size, size_t val_size, compare_fn cmp, Allocator allocator);
+    size_t key_size, size_t val_size, compare_fn cmp, allocator_t allocator);
 
 /* Insert or update.  Returns SEQC_OK on success, SEQC_OOM on alloc failure. */
 SeqcStatus omap_set(OMap *m, const void *key, const void *value);

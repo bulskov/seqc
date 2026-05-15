@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "seqc/arena.h"
+#include "arena/allocator.h"
 #include "seqc/iter.h"
 
 /* RingBuf — double-ended circular buffer
@@ -16,7 +16,7 @@
  */
 typedef struct RingBuf RingBuf;
 
-RingBuf *ringbuf_create(size_t elem_size, Allocator allocator);
+RingBuf *ringbuf_create(size_t elem_size, allocator_t allocator);
 
 /* Push to back (tail) */
 SeqcStatus ringbuf_push_back(RingBuf *r, const void *elem);

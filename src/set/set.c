@@ -21,7 +21,7 @@ struct Set
         max_psl; /* highest PSL of any stored bucket; updated on every insert */
     hash_fn hash;
     eq_fn eq;
-    Allocator allocator;
+    allocator_t allocator;
 };
 
 /* ---- internal helpers -------------------------------------------------- */
@@ -50,8 +50,7 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
         }
         if (s->eq(cur->key, incoming.key, s->elem_size))
         {
-            if (s->allocator.free)
-                s->allocator.free(s->allocator.ctx, incoming.key);
+            mem_free(s->allocator, incoming.key, s->elem_size);
             return false; /* duplicate */
         }
         /* Robin Hood: steal the slot from the "rich" (low psl) bucket */
@@ -73,8 +72,8 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
 static SeqcStatus set_resize(Set *s)
 {
     size_t new_cap = s->cap * 2;
-    SetBucket *nb = s->allocator.alloc(
-        s->allocator.ctx, new_cap * sizeof(SetBucket), _Alignof(SetBucket));
+    SetBucket *nb = mem_alloc(s->allocator,
+         new_cap * sizeof(SetBucket), _Alignof(SetBucket));
     if (!nb)
         return SEQC_OOM;
     memset(nb, 0, new_cap * sizeof(SetBucket));
@@ -89,16 +88,15 @@ static SeqcStatus set_resize(Set *s)
         if (old[i].psl > 0)
             set_insert_raw(s, (SetBucket){old[i].key, 0});
 
-    if (s->allocator.free)
-        s->allocator.free(s->allocator.ctx, old);
+    mem_free(s->allocator, old, old_cap * sizeof(SetBucket));
     return SEQC_OK;
 }
 
 /* ---- public API -------------------------------------------------------- */
 
-Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, Allocator allocator)
+Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator)
 {
-    Set *s = allocator.alloc(allocator.ctx, sizeof(Set), _Alignof(Set));
+    Set *s = mem_alloc(allocator, sizeof(Set), _Alignof(Set));
     if (!s)
         return NULL;
     *s = (Set){.buckets = NULL,
@@ -135,8 +133,8 @@ SeqcStatus set_add(Set *s, const void *elem)
         return SEQC_INVALID;
     if (s->cap == 0)
     {
-        s->buckets = s->allocator.alloc(
-            s->allocator.ctx,
+        s->buckets = mem_alloc(s->allocator,
+            
             SET_INITIAL_CAP * sizeof(SetBucket),
             _Alignof(SetBucket));
         if (!s->buckets)
@@ -150,8 +148,8 @@ SeqcStatus set_add(Set *s, const void *elem)
         if (rs != SEQC_OK)
             return rs;
     }
-    void *key = s->allocator.alloc(
-        s->allocator.ctx, s->elem_size, _Alignof(max_align_t));
+    void *key = mem_alloc(s->allocator,
+         s->elem_size, _Alignof(max_align_t));
     if (!key)
         return SEQC_OOM;
     memcpy(key, elem, s->elem_size);
@@ -174,8 +172,7 @@ SeqcStatus set_remove(Set *s, const void *elem)
             return SEQC_NOT_FOUND;
         if (s->eq(b->key, elem, s->elem_size))
         {
-            if (s->allocator.free)
-                s->allocator.free(s->allocator.ctx, b->key);
+            mem_free(s->allocator, b->key, s->elem_size);
             /* backward shift to restore Robin Hood invariant */
             for (;;)
             {
@@ -212,28 +209,21 @@ void set_free(Set *s)
 {
     if (!s || !s->buckets)
         return;
-    if (s->allocator.free)
-    {
-        for (size_t i = 0; i < s->cap; i++)
-            if (s->buckets[i].psl > 0)
-                s->allocator.free(s->allocator.ctx, s->buckets[i].key);
-        s->allocator.free(s->allocator.ctx, s->buckets);
-    }
-    Allocator al = s->allocator;
-    if (al.free)
-        al.free(al.ctx, s);
+    for (size_t i = 0; i < s->cap; i++)
+        if (s->buckets[i].psl > 0)
+            mem_free(s->allocator, s->buckets[i].key, s->elem_size);
+    mem_free(s->allocator, s->buckets, s->cap * sizeof(SetBucket));
+    allocator_t al = s->allocator;
+    mem_free(al, s, sizeof(Set));
 }
 
 void set_clear(Set *s)
 {
     if (!s || !s->buckets)
         return;
-    if (s->allocator.free)
-    {
-        for (size_t i = 0; i < s->cap; i++)
-            if (s->buckets[i].psl > 0)
-                s->allocator.free(s->allocator.ctx, s->buckets[i].key);
-    }
+    for (size_t i = 0; i < s->cap; i++)
+        if (s->buckets[i].psl > 0)
+            mem_free(s->allocator, s->buckets[i].key, s->elem_size);
     memset(s->buckets, 0, s->cap * sizeof(SetBucket));
     s->len = 0;
     s->max_psl = 0;
@@ -301,16 +291,15 @@ static bool set_iter_next(Iter *it, void *out)
 
 static void set_iter_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(SetIterState));
 }
 
 Iter set_iter(const Set *s)
 {
     if (!s)
         return (Iter){0};
-    SetIterState *state = s->allocator.alloc(
-        s->allocator.ctx, sizeof *state, _Alignof(SetIterState));
+    SetIterState *state = mem_alloc(s->allocator,
+         sizeof *state, _Alignof(SetIterState));
     if (!state)
         return (Iter){0};
     *state = (SetIterState){s->buckets, s->cap, 0, s->elem_size};
@@ -346,16 +335,15 @@ static bool set_iter_rev_next(Iter *it, void *out)
 
 static void set_iter_rev_drop(Iter *it)
 {
-    if (it->allocator.free)
-        it->allocator.free(it->allocator.ctx, it->state);
+    mem_free(it->allocator, it->state, sizeof(SetIterRevState));
 }
 
 Iter set_iter_rev(const Set *s)
 {
     if (!s)
         return (Iter){0};
-    SetIterRevState *state = s->allocator.alloc(
-        s->allocator.ctx, sizeof *state, _Alignof(SetIterRevState));
+    SetIterRevState *state = mem_alloc(s->allocator,
+         sizeof *state, _Alignof(SetIterRevState));
     if (!state)
         return (Iter){0};
     *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
@@ -437,8 +425,8 @@ SeqcStatus set_add_all(Set *s, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = s->allocator.alloc(
-        s->allocator.ctx, s->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(s->allocator,
+         s->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);
@@ -453,7 +441,6 @@ SeqcStatus set_add_all(Set *s, Iter it)
         st = SEQC_OK;
     }
     iter_drop(&it);
-    if (s->allocator.free)
-        s->allocator.free(s->allocator.ctx, elem);
+    mem_free(s->allocator, elem, s->elem_size);
     return st;
 }
