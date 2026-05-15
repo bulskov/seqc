@@ -4,6 +4,8 @@
 `libs/arena_allocator/`) for all memory management. The library is not part of
 `seqc` itself — it can be used independently of any `seqc` collection.
 
+See also: [arena_allocator README](../libs/arena_allocator/README.md)
+
 **Headers:**
 
 ```c
@@ -29,10 +31,10 @@ Generic allocator interface passed to every container and iterator that needs
 to allocate memory. Every collection stores the `allocator_t` it was created
 with, so a single program can freely mix allocators.
 
-| Source                                   | Use when                                           |
-| ---------------------------------------- | -------------------------------------------------- |
-| `growing_arena_allocator(&a)`            | bulk lifetime — destroy everything in one call     |
-| `scratch_allocator(&sc)`                 | temporary work inside a loop                       |
+| Source                                   | Use when                                            |
+| ---------------------------------------- | --------------------------------------------------- |
+| `growing_arena_allocator(&a)`            | bulk lifetime — destroy everything in one call      |
+| `scratch_allocator(&sc)`                 | temporary work inside a loop                        |
 | custom vtable (e.g. malloc/free wrapper) | per-collection lifetime, or when no arena is needed |
 
 ---
