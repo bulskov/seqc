@@ -4,7 +4,8 @@
 # Output: <output-name>.zip  (default: seqc)
 set -e
 
-NAME=${1:-seqc}
+VERSION=$(cat "$(dirname "$0")/VERSION")
+NAME=${1:-"seqc-${VERSION}"}
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 
