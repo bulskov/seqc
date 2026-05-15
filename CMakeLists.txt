@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(seqc LANGUAGES C)
+project(seqc VERSION 1.0.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -20,3 +20,15 @@ include(CTest)
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
+
+set(CPACK_PACKAGE_NAME "seqc")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "seqc-${PROJECT_VERSION}")
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_SOURCE_GENERATOR "ZIP")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "seqc-${PROJECT_VERSION}")
+set(CPACK_SOURCE_IGNORE_FILES
+    "/.git/"
+    "/build/"
+)
+include(CPack)
