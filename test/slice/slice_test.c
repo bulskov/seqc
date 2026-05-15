@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-extern "C" {
+extern "C"
+{
 #include "seqc/slice.h"
 }
 

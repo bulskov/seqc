@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
 
-extern "C" {
+extern "C"
+{
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
+#include "seqc/hash.h"
 #include "seqc/hashmap.h"
 #include "seqc/iter.h"
-#include "seqc/hash.h"
 }
 #include "../oom_alloc.h"
 
@@ -22,7 +23,9 @@ static HashMap *make_str_map(growing_arena_t *a)
 
 TEST(hashmap, str_set_and_get)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = make_str_map(a);
     const char *k = "hello";
     int v = 123;
@@ -36,7 +39,9 @@ TEST(hashmap, str_set_and_get)
 
 TEST(hashmap, str_distinct_keys)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = make_str_map(a);
     const char *k1 = "foo";
     const char *k2 = "bar";
@@ -54,7 +59,9 @@ TEST(hashmap, str_distinct_keys)
 
 TEST(hashmap, str_update_existing)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = make_str_map(a);
     const char *k = "key";
     int v1 = 10, v2 = 99;
@@ -70,7 +77,9 @@ TEST(hashmap, str_update_existing)
 
 TEST(hashmap, str_delete)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = make_str_map(a);
     const char *k = "gone";
     int v = 7;
@@ -83,7 +92,9 @@ TEST(hashmap, str_delete)
 
 TEST(hashmap, str_equal_content_different_pointer)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = make_str_map(a);
     /* Two different pointers to the same content must match */
     char buf1[] = "same";
@@ -101,7 +112,9 @@ TEST(hashmap, str_equal_content_different_pointer)
 
 TEST(hashmap, create_is_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -115,7 +128,9 @@ TEST(hashmap, create_is_empty)
 
 TEST(hashmap, set_and_get)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -133,7 +148,9 @@ TEST(hashmap, set_and_get)
 
 TEST(hashmap, get_missing_returns_null)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -148,7 +165,9 @@ TEST(hashmap, get_missing_returns_null)
 
 TEST(hashmap, set_updates_existing_key)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -168,7 +187,9 @@ TEST(hashmap, set_updates_existing_key)
 
 TEST(hashmap, delete_existing)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -186,7 +207,9 @@ TEST(hashmap, delete_existing)
 
 TEST(hashmap, delete_missing)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -201,7 +224,9 @@ TEST(hashmap, delete_missing)
 
 TEST(hashmap, delete_and_reinsert)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -221,7 +246,9 @@ TEST(hashmap, delete_and_reinsert)
 
 TEST(hashmap, many_entries_triggers_resize)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -254,7 +281,9 @@ static void sum_values(const void *elem, void *ctx)
 
 TEST(hashmap, iter_foreach_sums_values)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -282,7 +311,9 @@ static bool value_gt_20(const void *elem, void *ctx)
 
 TEST(hashmap, iter_filter_entries)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -302,7 +333,9 @@ TEST(hashmap, iter_filter_entries)
 
 TEST(hashmap, delete_middle_of_cluster)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -335,7 +368,9 @@ TEST(hashmap, delete_middle_of_cluster)
 
 TEST(hashmap, clear_empties_map)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -356,7 +391,9 @@ TEST(hashmap, clear_empties_map)
 
 TEST(hashmap, clear_allows_reuse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -382,7 +419,9 @@ TEST(hashmap, clear_allows_reuse)
 
 TEST(hashmap, iter_rev_visits_same_entries_in_reverse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -418,7 +457,9 @@ TEST(hashmap, iter_rev_visits_same_entries_in_reverse)
 
 TEST(hashmap, iter_rev_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -437,7 +478,9 @@ TEST(hashmap, iter_rev_empty)
 
 TEST(hashmap, contains_returns_true_for_existing_key)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -453,7 +496,9 @@ TEST(hashmap, contains_returns_true_for_existing_key)
 
 TEST(hashmap, contains_returns_false_for_missing_key)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -506,7 +551,9 @@ static size_t robin_hood_hash(const void *key, size_t key_size)
  */
 TEST(hashmap, collision_probe_set_and_get)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -536,7 +583,9 @@ TEST(hashmap, collision_probe_set_and_get)
  */
 TEST(hashmap, robin_hood_displacement)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -566,7 +615,9 @@ TEST(hashmap, robin_hood_displacement)
  */
 TEST(hashmap, collision_delete_probe_and_backward_shift)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     HashMap *m = hashmap_create(
         sizeof(int),
         sizeof(int),
@@ -617,7 +668,9 @@ TEST(hashmap, eq_bytes_edge_cases)
 /* hashmap_create returns a zero-initialised map when args are invalid. */
 TEST(hashmap, create_invalid_args_returns_zero_map)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     /* key_size == 0 */
     HashMap *m = hashmap_create(
         0, sizeof(int), hash_fnv1a, hash_eq_bytes, growing_arena_allocator(a));
@@ -634,8 +687,8 @@ TEST(hashmap, create_invalid_args_returns_zero_map)
 TEST(hashmap, sys_alloc_free_releases_memory)
 {
     allocator_t al = sys_allocator();
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     for (int i = 0; i < 5; i++)
     {
         int v = i * 10;
@@ -649,8 +702,8 @@ TEST(hashmap, sys_alloc_free_releases_memory)
 TEST(hashmap, sys_alloc_clear_frees_entries)
 {
     allocator_t al = sys_allocator();
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     for (int i = 0; i < 4; i++)
     {
         int v = i;
@@ -673,8 +726,8 @@ TEST(hashmap, sys_alloc_resize_frees_old_buckets)
      * hashmap_resize_and_rehash frees the old bucket array and individual
      * keys/values through the sys allocator. */
     allocator_t al = sys_allocator();
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     /* Initial cap is 16; resize triggers when len > 12. */
     for (int i = 0; i < 14; i++)
     {
@@ -693,9 +746,14 @@ TEST(hashmap, sys_alloc_resize_frees_old_buckets)
 
 TEST(hashmap, is_healthy_normal_load)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 8192);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 8192);
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes,
+        sizeof(int),
+        sizeof(int),
+        hash_fnv1a,
+        hash_eq_bytes,
         growing_arena_allocator(a));
     for (int i = 0; i < 50; i++)
     {
@@ -708,9 +766,14 @@ TEST(hashmap, is_healthy_normal_load)
 
 TEST(hashmap, audit_normal_load)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 8192);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 8192);
     HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes,
+        sizeof(int),
+        sizeof(int),
+        hash_fnv1a,
+        hash_eq_bytes,
         growing_arena_allocator(a));
     for (int i = 0; i < 50; i++)
     {
@@ -741,8 +804,8 @@ TEST(hashmap, create_returns_null_when_bucket_alloc_fails)
     /* alloc #1 (HashMap struct) succeeds, alloc #2 (bucket array) fails */
     OomCtx ctx;
     allocator_t al = oom_after_allocator(1, &ctx);
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     EXPECT_EQ(m, nullptr);
     /* no leak: struct was freed by hashmap_create on bucket failure */
 }
@@ -752,8 +815,8 @@ TEST(hashmap, set_returns_oom_when_key_alloc_fails)
     /* allocs 1-2: create (struct + buckets); alloc 3 (key copy) fails */
     OomCtx ctx;
     allocator_t al = oom_after_allocator(2, &ctx);
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     EXPECT_NE(m, nullptr);
     int k = 1, v = 1;
     EXPECT_EQ(hashmap_set(m, &k, &v), SEQC_OOM);
@@ -766,8 +829,8 @@ TEST(hashmap, set_returns_oom_when_val_alloc_fails)
     /* allocs 1-2: create; alloc 3 (key copy) ok; alloc 4 (val copy) fails */
     OomCtx ctx;
     allocator_t al = oom_after_allocator(3, &ctx);
-    HashMap *m = hashmap_create(
-        sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     EXPECT_NE(m, nullptr);
     int k = 1, v = 1;
     EXPECT_EQ(hashmap_set(m, &k, &v), SEQC_OOM);

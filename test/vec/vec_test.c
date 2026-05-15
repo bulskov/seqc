@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-extern "C" {
+extern "C"
+{
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
 #include "seqc/vec.h"
@@ -9,7 +10,9 @@ extern "C" {
 
 TEST(vec, create_is_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     EXPECT_EQ(vec_len(v), 0);
 
@@ -19,7 +22,9 @@ TEST(vec, create_is_empty)
 
 TEST(vec, push_increments_len)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
@@ -30,7 +35,9 @@ TEST(vec, push_increments_len)
 
 TEST(vec, get_returns_pushed_value)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 99;
     vec_push(v, &x);
@@ -41,7 +48,9 @@ TEST(vec, get_returns_pushed_value)
 
 TEST(vec, push_many_preserves_values)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 100; i++)
         vec_push(v, &i);
@@ -54,7 +63,9 @@ TEST(vec, push_many_preserves_values)
 
 TEST(vec, as_slice_reflects_contents)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 7, y = 8, z = 9;
     vec_push(v, &x);
@@ -70,7 +81,9 @@ TEST(vec, as_slice_reflects_contents)
 
 TEST(vec, iter_counts_all_elements)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
         vec_push(v, &i);
@@ -82,7 +95,9 @@ TEST(vec, iter_counts_all_elements)
 
 TEST(vec, iter_collect_round_trip)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 4; i++)
         vec_push(v, &i);
@@ -99,7 +114,9 @@ TEST(vec, iter_collect_round_trip)
 
 TEST(vec, iter_rev)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
         vec_push(v, &i);
@@ -119,7 +136,9 @@ TEST(vec, iter_rev)
 
 TEST(vec, pop_returns_last_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -132,7 +151,9 @@ TEST(vec, pop_returns_last_element)
 
 TEST(vec, pop_empty_returns_false)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 64);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 64);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     EXPECT_NE(vec_pop(v, NULL), SEQC_OK);
     growing_arena_destroy(a);
@@ -140,7 +161,9 @@ TEST(vec, pop_empty_returns_false)
 
 TEST(vec, pop_discard_with_null_out)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 7;
     vec_push(v, &x);
@@ -153,7 +176,9 @@ TEST(vec, pop_discard_with_null_out)
 
 TEST(vec, set_overwrites_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -169,7 +194,9 @@ TEST(vec, set_overwrites_element)
 
 TEST(vec, reserve_grows_capacity)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     vec_reserve(v, 64);
     EXPECT_GE(vec_cap(v), 64);
@@ -178,7 +205,9 @@ TEST(vec, reserve_grows_capacity)
 
 TEST(vec, reserve_does_not_shrink)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     vec_reserve(v, 64);
     size_t cap = vec_cap(v);
@@ -191,7 +220,9 @@ TEST(vec, reserve_does_not_shrink)
 
 TEST(vec, insert_at_beginning)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 1; i <= 3; i++)
         vec_push(v, &i);
@@ -206,7 +237,9 @@ TEST(vec, insert_at_beginning)
 
 TEST(vec, insert_in_middle)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 3};
     vec_push(v, &vals[0]);
@@ -222,7 +255,9 @@ TEST(vec, insert_in_middle)
 
 TEST(vec, insert_at_end_equals_push)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -237,7 +272,9 @@ TEST(vec, insert_at_end_equals_push)
 
 TEST(vec, remove_first_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -250,7 +287,9 @@ TEST(vec, remove_first_element)
 
 TEST(vec, remove_middle_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 4; i++)
         vec_push(v, &i);
@@ -264,7 +303,9 @@ TEST(vec, remove_middle_element)
 
 TEST(vec, remove_last_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -278,7 +319,9 @@ TEST(vec, remove_last_element)
 
 TEST(vec, clear_resets_len)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
         vec_push(v, &i);
@@ -291,7 +334,9 @@ TEST(vec, clear_resets_len)
 
 TEST(vec, clear_allows_reuse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         vec_push(v, &i);
@@ -313,7 +358,9 @@ static bool int_gt_three(const void *elem, void *ctx)
 
 TEST(vec, find_returns_first_match)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 4, 3, 5};
     for (int i = 0; i < 5; i++)
@@ -326,7 +373,9 @@ TEST(vec, find_returns_first_match)
 
 TEST(vec, find_returns_null_when_no_match)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
@@ -337,7 +386,9 @@ TEST(vec, find_returns_null_when_no_match)
 
 TEST(vec, contains_returns_true_when_match_exists)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 5};
     for (int i = 0; i < 3; i++)
@@ -348,7 +399,9 @@ TEST(vec, contains_returns_true_when_match_exists)
 
 TEST(vec, contains_returns_false_when_no_match)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
@@ -360,7 +413,9 @@ TEST(vec, contains_returns_false_when_no_match)
 /* vec_get with an out-of-bounds index must return NULL. */
 TEST(vec, get_out_of_bounds_returns_null)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
@@ -372,7 +427,9 @@ TEST(vec, get_out_of_bounds_returns_null)
 /* vec_insert into a full vec must trigger an internal grow. */
 TEST(vec, insert_when_full_triggers_grow)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     /* Fill exactly to capacity (INITIAL_CAP = 16). */
     for (int i = 0; i < 16; i++)
@@ -417,7 +474,9 @@ static int int_cmp(const void *a, const void *b)
 
 TEST(vec, sort_orders_elements)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {5, 2, 8, 1, 9, 3};
     for (int i = 0; i < 6; i++)
@@ -430,7 +489,9 @@ TEST(vec, sort_orders_elements)
 
 TEST(vec, sort_empty_is_noop)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     vec_sort(v, int_cmp); /* must not crash */
     EXPECT_EQ(vec_len(v), 0);
@@ -439,7 +500,9 @@ TEST(vec, sort_empty_is_noop)
 
 TEST(vec, sort_single_element_is_noop)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     Vec *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
