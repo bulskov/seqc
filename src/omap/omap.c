@@ -59,8 +59,9 @@ static void *node_val(const OMNode *n, size_t key_size)
 
 static OMNode *make_node(const OMap *m, const void *key, const void *value)
 {
-    OMNode *n = mem_alloc(m->allocator,
-        
+    OMNode *n = mem_alloc(
+        m->allocator,
+
         node_sz(m->key_size, m->val_size),
         _Alignof(max_align_t));
     if (!n)
@@ -421,8 +422,9 @@ static bool omap_iter_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(OMNode *),
                 new_cap * sizeof(OMNode *),
@@ -454,8 +456,8 @@ Iter omap_iter(const OMap *m)
 {
     if (!m)
         return (Iter){0};
-    OMapIterState *s = mem_alloc(m->allocator,
-         sizeof *s, _Alignof(OMapIterState));
+    OMapIterState *s =
+        mem_alloc(m->allocator, sizeof *s, _Alignof(OMapIterState));
     *s = (OMapIterState){.stack = NULL,
                          .stack_len = 0,
                          .stack_cap = 0,
@@ -478,8 +480,9 @@ static bool omap_iter_rev_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(OMNode *),
                 new_cap * sizeof(OMNode *),
@@ -502,8 +505,8 @@ Iter omap_iter_rev(const OMap *m)
 {
     if (!m)
         return (Iter){0};
-    OMapIterState *s = mem_alloc(m->allocator,
-         sizeof *s, _Alignof(OMapIterState));
+    OMapIterState *s =
+        mem_alloc(m->allocator, sizeof *s, _Alignof(OMapIterState));
     *s = (OMapIterState){.stack = NULL,
                          .stack_len = 0,
                          .stack_cap = 0,
@@ -540,8 +543,9 @@ static bool omap_range_iter_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(OMNode *),
                 new_cap * sizeof(OMNode *),
@@ -592,8 +596,9 @@ static void omap_push_lo(
             {
                 size_t new_cap = s->stack_cap == 0 ? OMAP_ITER_STACK_INIT_CAP
                                                    : s->stack_cap * 2;
-                s->stack = mem_realloc(s->allocator,
-                    
+                s->stack = mem_realloc(
+                    s->allocator,
+
                     s->stack,
                     s->stack_cap * sizeof(OMNode *),
                     new_cap * sizeof(OMNode *),
@@ -610,13 +615,12 @@ Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key)
 {
     if (!m)
         return (Iter){0};
-    OMapRangeIterState *s = mem_alloc(m->allocator,
-         sizeof *s, _Alignof(OMapRangeIterState));
+    OMapRangeIterState *s =
+        mem_alloc(m->allocator, sizeof *s, _Alignof(OMapRangeIterState));
     void *hi_copy = NULL;
     if (hi_key)
     {
-        hi_copy = mem_alloc(m->allocator,
-             m->key_size, _Alignof(max_align_t));
+        hi_copy = mem_alloc(m->allocator, m->key_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi_key, m->key_size);
     }
     *s = (OMapRangeIterState){.stack = NULL,

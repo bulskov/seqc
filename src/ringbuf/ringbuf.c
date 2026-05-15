@@ -31,8 +31,8 @@ static inline void *rb_ptr(const RingBuf *r, size_t slot)
 static SeqcStatus rb_grow(RingBuf *r)
 {
     size_t new_cap = r->cap == 0 ? RINGBUF_INITIAL_CAP : r->cap * 2;
-    void *nd = mem_alloc(r->allocator,
-         new_cap * r->elem_size, _Alignof(max_align_t));
+    void *nd =
+        mem_alloc(r->allocator, new_cap * r->elem_size, _Alignof(max_align_t));
     if (!nd)
         return SEQC_OOM;
 
@@ -69,8 +69,7 @@ static SeqcStatus rb_grow(RingBuf *r)
 
 RingBuf *ringbuf_create(size_t elem_size, allocator_t allocator)
 {
-    RingBuf *r =
-        mem_alloc(allocator, sizeof(RingBuf), _Alignof(RingBuf));
+    RingBuf *r = mem_alloc(allocator, sizeof(RingBuf), _Alignof(RingBuf));
     if (!r)
         return NULL;
     *r = (RingBuf){
@@ -218,8 +217,8 @@ Iter ringbuf_iter(const RingBuf *r)
 {
     if (!r)
         return (Iter){0};
-    RingBufIterState *st = mem_alloc(r->allocator,
-         sizeof *st, _Alignof(RingBufIterState));
+    RingBufIterState *st =
+        mem_alloc(r->allocator, sizeof *st, _Alignof(RingBufIterState));
     if (!st)
         return (Iter){0};
     *st = (RingBufIterState){r, 0};
@@ -236,8 +235,8 @@ Iter ringbuf_iter_rev(const RingBuf *r)
 {
     if (!r)
         return (Iter){0};
-    RingBufIterState *st = mem_alloc(r->allocator,
-         sizeof *st, _Alignof(RingBufIterState));
+    RingBufIterState *st =
+        mem_alloc(r->allocator, sizeof *st, _Alignof(RingBufIterState));
     if (!st)
         return (Iter){0};
     *st = (RingBufIterState){r, r->len}; /* starts past the last element */

@@ -72,8 +72,8 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
 static SeqcStatus set_resize(Set *s)
 {
     size_t new_cap = s->cap * 2;
-    SetBucket *nb = mem_alloc(s->allocator,
-         new_cap * sizeof(SetBucket), _Alignof(SetBucket));
+    SetBucket *nb = mem_alloc(
+        s->allocator, new_cap * sizeof(SetBucket), _Alignof(SetBucket));
     if (!nb)
         return SEQC_OOM;
     memset(nb, 0, new_cap * sizeof(SetBucket));
@@ -133,8 +133,9 @@ SeqcStatus set_add(Set *s, const void *elem)
         return SEQC_INVALID;
     if (s->cap == 0)
     {
-        s->buckets = mem_alloc(s->allocator,
-            
+        s->buckets = mem_alloc(
+            s->allocator,
+
             SET_INITIAL_CAP * sizeof(SetBucket),
             _Alignof(SetBucket));
         if (!s->buckets)
@@ -148,8 +149,7 @@ SeqcStatus set_add(Set *s, const void *elem)
         if (rs != SEQC_OK)
             return rs;
     }
-    void *key = mem_alloc(s->allocator,
-         s->elem_size, _Alignof(max_align_t));
+    void *key = mem_alloc(s->allocator, s->elem_size, _Alignof(max_align_t));
     if (!key)
         return SEQC_OOM;
     memcpy(key, elem, s->elem_size);
@@ -298,8 +298,8 @@ Iter set_iter(const Set *s)
 {
     if (!s)
         return (Iter){0};
-    SetIterState *state = mem_alloc(s->allocator,
-         sizeof *state, _Alignof(SetIterState));
+    SetIterState *state =
+        mem_alloc(s->allocator, sizeof *state, _Alignof(SetIterState));
     if (!state)
         return (Iter){0};
     *state = (SetIterState){s->buckets, s->cap, 0, s->elem_size};
@@ -342,8 +342,8 @@ Iter set_iter_rev(const Set *s)
 {
     if (!s)
         return (Iter){0};
-    SetIterRevState *state = mem_alloc(s->allocator,
-         sizeof *state, _Alignof(SetIterRevState));
+    SetIterRevState *state =
+        mem_alloc(s->allocator, sizeof *state, _Alignof(SetIterRevState));
     if (!state)
         return (Iter){0};
     *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
@@ -425,8 +425,7 @@ SeqcStatus set_add_all(Set *s, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = mem_alloc(s->allocator,
-         s->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(s->allocator, s->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);

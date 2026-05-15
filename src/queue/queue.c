@@ -32,8 +32,8 @@ Queue *queue_create(size_t elem_size, allocator_t allocator)
 static SeqcStatus queue_grow(Queue *q)
 {
     size_t new_cap = q->cap == 0 ? INITIAL_CAP : q->cap * 2;
-    char *new_buf = mem_alloc(q->allocator,
-         new_cap * q->elem_size, _Alignof(max_align_t));
+    char *new_buf =
+        mem_alloc(q->allocator, new_cap * q->elem_size, _Alignof(max_align_t));
     if (!new_buf)
         return SEQC_OOM;
     /* copy elements from head to tail in logical order */
@@ -155,8 +155,8 @@ Iter queue_iter(const Queue *q)
 {
     if (!q)
         return (Iter){0};
-    QueueIterState *s = mem_alloc(q->allocator,
-         sizeof *s, _Alignof(QueueIterState));
+    QueueIterState *s =
+        mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterState));
     *s = (QueueIterState){q->buf, q->head, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_next,
                   .drop = queue_iter_drop,
@@ -196,8 +196,8 @@ Iter queue_iter_rev(const Queue *q)
 {
     if (!q)
         return (Iter){0};
-    QueueIterRevState *s = mem_alloc(q->allocator,
-         sizeof *s, _Alignof(QueueIterRevState));
+    QueueIterRevState *s =
+        mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterRevState));
     size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
     *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_rev_next,

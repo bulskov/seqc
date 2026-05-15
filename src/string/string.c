@@ -196,8 +196,8 @@ struct StringBuilder
 
 StringBuilder *sb_create(allocator_t allocator)
 {
-    StringBuilder *sb = mem_alloc(allocator,
-         sizeof(StringBuilder), _Alignof(StringBuilder));
+    StringBuilder *sb =
+        mem_alloc(allocator, sizeof(StringBuilder), _Alignof(StringBuilder));
     if (!sb)
         return NULL;
     sb->chars = vec_create(sizeof(char), allocator);
@@ -254,8 +254,7 @@ SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
     char stack_buf[256];
     char *buf = (size_t)n + 1 <= sizeof stack_buf
                     ? stack_buf
-                    : mem_alloc(sb->allocator,
-                           (size_t)n + 1, _Alignof(char));
+                    : mem_alloc(sb->allocator, (size_t)n + 1, _Alignof(char));
     if (!buf)
         return SEQC_OOM;
     va_start(ap, fmt);
@@ -396,8 +395,8 @@ Iter string_split(String s, String delim, allocator_t allocator)
         return string_chars(s, allocator);
     }
 
-    SplitState *state = mem_alloc(allocator,
-         sizeof(SplitState), _Alignof(SplitState));
+    SplitState *state =
+        mem_alloc(allocator, sizeof(SplitState), _Alignof(SplitState));
     *state = (SplitState){s, delim, 0};
     return (Iter){.next = split_next,
                   .drop = split_drop,

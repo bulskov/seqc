@@ -107,7 +107,7 @@ static void hashmap_insert_raw(HashMap *map, Bucket incoming)
             void *old_val = cur->value;
             cur->value = incoming.value;
             mem_free(map->allocator, incoming.key, map->key_size);
-                mem_free(map->allocator, old_val, map->val_size);
+            mem_free(map->allocator, old_val, map->val_size);
             return;
         }
         if (cur->psl < incoming.psl)
@@ -129,8 +129,8 @@ static SeqcStatus hashmap_resize_and_rehash(HashMap *map, size_t new_cap)
     Bucket *old_buckets = map->buckets;
     size_t old_cap = map->cap;
 
-    Bucket *new_buckets = mem_alloc(map->allocator,
-         new_cap * sizeof(Bucket), _Alignof(Bucket));
+    Bucket *new_buckets =
+        mem_alloc(map->allocator, new_cap * sizeof(Bucket), _Alignof(Bucket));
     if (!new_buckets)
         return SEQC_OOM;
     memset(new_buckets, 0, new_cap * sizeof(Bucket));
@@ -161,12 +161,12 @@ SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value)
     }
 
     // Allocate copies once — this is the only allocation point
-    void *key_copy = mem_alloc(map->allocator,
-         map->key_size, _Alignof(max_align_t));
+    void *key_copy =
+        mem_alloc(map->allocator, map->key_size, _Alignof(max_align_t));
     if (!key_copy)
         return SEQC_OOM;
-    void *val_copy = mem_alloc(map->allocator,
-         map->val_size, _Alignof(max_align_t));
+    void *val_copy =
+        mem_alloc(map->allocator, map->val_size, _Alignof(max_align_t));
     if (!val_copy)
     {
         mem_free(map->allocator, key_copy, map->key_size);
@@ -192,8 +192,7 @@ HashMap *hashmap_create(
         return NULL;
     }
 
-    HashMap *m =
-        mem_alloc(allocator, sizeof(HashMap), _Alignof(HashMap));
+    HashMap *m = mem_alloc(allocator, sizeof(HashMap), _Alignof(HashMap));
     if (!m)
         return NULL;
 
@@ -340,7 +339,7 @@ SeqcStatus hashmap_delete(HashMap *map, const void *key)
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
             mem_free(map->allocator, map->buckets[slot].key, map->key_size);
-                mem_free(map->allocator, map->buckets[slot].value, map->val_size);
+            mem_free(map->allocator, map->buckets[slot].value, map->val_size);
             map->buckets[slot].psl = 0;
             map->len--;
 
@@ -420,8 +419,9 @@ Iter hashmap_iter(const HashMap *map)
     {
         return (Iter){0}; /* invalid map */
     }
-    HashMapIterState *s = mem_alloc(map->allocator,
-        
+    HashMapIterState *s = mem_alloc(
+        map->allocator,
+
         sizeof(HashMapIterState),
         _Alignof(HashMapIterState));
     if (s)
@@ -439,8 +439,9 @@ Iter hashmap_iter_rev(const HashMap *map)
     {
         return (Iter){0};
     }
-    HashMapIterState *s = mem_alloc(map->allocator,
-        
+    HashMapIterState *s = mem_alloc(
+        map->allocator,
+
         sizeof(HashMapIterState),
         _Alignof(HashMapIterState));
     if (s)

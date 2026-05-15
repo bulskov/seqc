@@ -38,8 +38,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static BSTreeNode *make_node(const BSTree *t, const void *elem)
 {
-    BSTreeNode *node = mem_alloc(t->allocator,
-         node_alloc_size(t->elem_size), _Alignof(max_align_t));
+    BSTreeNode *node = mem_alloc(
+        t->allocator, node_alloc_size(t->elem_size), _Alignof(max_align_t));
     if (!node)
         return NULL;
     node->left = node->right = NULL;
@@ -51,8 +51,7 @@ static BSTreeNode *make_node(const BSTree *t, const void *elem)
 
 BSTree *bstree_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
 {
-    BSTree *t =
-        mem_alloc(allocator, sizeof(BSTree), _Alignof(BSTree));
+    BSTree *t = mem_alloc(allocator, sizeof(BSTree), _Alignof(BSTree));
     if (!t)
         return NULL;
     *t = (BSTree){.root = NULL,
@@ -249,8 +248,9 @@ static bool bstree_iter_next(Iter *it, void *out)
         {
             size_t new_cap = s->stack_cap == 0 ? BTREE_ITER_STACK_INIT_CAP
                                                : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(BSTreeNode *),
                 new_cap * sizeof(BSTreeNode *),
@@ -280,8 +280,8 @@ Iter bstree_iter(const BSTree *t)
 {
     if (!t)
         return (Iter){0};
-    BSTreeIterState *s = mem_alloc(t->allocator,
-         sizeof *s, _Alignof(BSTreeIterState));
+    BSTreeIterState *s =
+        mem_alloc(t->allocator, sizeof *s, _Alignof(BSTreeIterState));
     *s = (BSTreeIterState){.stack = NULL,
                            .stack_len = 0,
                            .stack_cap = 0,
@@ -304,8 +304,9 @@ static bool bstree_iter_rev_next(Iter *it, void *out)
         {
             size_t new_cap = s->stack_cap == 0 ? BTREE_ITER_STACK_INIT_CAP
                                                : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(BSTreeNode *),
                 new_cap * sizeof(BSTreeNode *),
@@ -327,8 +328,8 @@ Iter bstree_iter_rev(const BSTree *t)
 {
     if (!t)
         return (Iter){0};
-    BSTreeIterState *s = mem_alloc(t->allocator,
-         sizeof *s, _Alignof(BSTreeIterState));
+    BSTreeIterState *s =
+        mem_alloc(t->allocator, sizeof *s, _Alignof(BSTreeIterState));
     *s = (BSTreeIterState){.stack = NULL,
                            .stack_len = 0,
                            .stack_cap = 0,
@@ -365,8 +366,9 @@ static bool bstree_range_iter_next(Iter *it, void *out)
         {
             size_t new_cap = s->stack_cap == 0 ? BTREE_ITER_STACK_INIT_CAP
                                                : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(BSTreeNode *),
                 new_cap * sizeof(BSTreeNode *),
@@ -416,8 +418,9 @@ static void bstree_push_lo(
             {
                 size_t new_cap = s->stack_cap == 0 ? BTREE_ITER_STACK_INIT_CAP
                                                    : s->stack_cap * 2;
-                s->stack = mem_realloc(s->allocator,
-                    
+                s->stack = mem_realloc(
+                    s->allocator,
+
                     s->stack,
                     s->stack_cap * sizeof(BSTreeNode *),
                     new_cap * sizeof(BSTreeNode *),
@@ -434,13 +437,12 @@ Iter bstree_iter_range(const BSTree *t, const void *lo, const void *hi)
 {
     if (!t)
         return (Iter){0};
-    BSTreeRangeIterState *s = mem_alloc(t->allocator,
-         sizeof *s, _Alignof(BSTreeRangeIterState));
+    BSTreeRangeIterState *s =
+        mem_alloc(t->allocator, sizeof *s, _Alignof(BSTreeRangeIterState));
     void *hi_copy = NULL;
     if (hi)
     {
-        hi_copy = mem_alloc(t->allocator,
-             t->elem_size, _Alignof(max_align_t));
+        hi_copy = mem_alloc(t->allocator, t->elem_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi, t->elem_size);
     }
     *s = (BSTreeRangeIterState){.stack = NULL,

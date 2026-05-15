@@ -11,8 +11,7 @@ struct PQueue
 
 PQueue *pqueue_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
 {
-    PQueue *q =
-        mem_alloc(allocator, sizeof(PQueue), _Alignof(PQueue));
+    PQueue *q = mem_alloc(allocator, sizeof(PQueue), _Alignof(PQueue));
     if (!q)
         return NULL;
     q->data = vec_create(elem_size, allocator);
@@ -80,7 +79,8 @@ static void sift_down(PQueue *q, size_t i)
 
 /* ---- public API -------------------------------------------------------- */
 
-PQueue *pqueue_build_from_vec(const Vec *v, compare_fn cmp, allocator_t allocator)
+PQueue *pqueue_build_from_vec(
+    const Vec *v, compare_fn cmp, allocator_t allocator)
 {
     Slice s = vec_as_slice(v);
     PQueue *q = pqueue_create(s.elem_size, cmp, allocator);
@@ -183,8 +183,7 @@ Slice pqueue_drain(PQueue *q, allocator_t allocator)
     size_t elem_size = vec_elem_size(q->data);
     if (n == 0)
         return (Slice){NULL, 0, elem_size};
-    char *buf =
-        mem_alloc(allocator, n * elem_size, _Alignof(max_align_t));
+    char *buf = mem_alloc(allocator, n * elem_size, _Alignof(max_align_t));
     if (!buf)
     {
         pqueue_clear(q);

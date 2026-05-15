@@ -38,8 +38,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static AVLNode *make_node(const AVLTree *t, const void *elem)
 {
-    AVLNode *n = mem_alloc(t->allocator,
-         node_alloc_size(t->elem_size), _Alignof(max_align_t));
+    AVLNode *n = mem_alloc(
+        t->allocator, node_alloc_size(t->elem_size), _Alignof(max_align_t));
     if (!n)
         return NULL;
     n->left = n->right = NULL;
@@ -138,8 +138,7 @@ static AVLNode *rebalance(AVLNode *n)
 
 AVLTree *avl_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
 {
-    AVLTree *t =
-        mem_alloc(allocator, sizeof(AVLTree), _Alignof(AVLTree));
+    AVLTree *t = mem_alloc(allocator, sizeof(AVLTree), _Alignof(AVLTree));
     if (!t)
         return NULL;
     *t = (AVLTree){.root = NULL,
@@ -370,8 +369,9 @@ static bool avl_iter_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(AVLNode *),
                 new_cap * sizeof(AVLNode *),
@@ -425,8 +425,9 @@ static bool avl_iter_rev_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(AVLNode *),
                 new_cap * sizeof(AVLNode *),
@@ -486,8 +487,9 @@ static bool avl_range_iter_next(Iter *it, void *out)
         {
             size_t new_cap =
                 s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP : s->stack_cap * 2;
-            s->stack = mem_realloc(s->allocator,
-                
+            s->stack = mem_realloc(
+                s->allocator,
+
                 s->stack,
                 s->stack_cap * sizeof(AVLNode *),
                 new_cap * sizeof(AVLNode *),
@@ -536,8 +538,9 @@ static void avl_push_lo(AVLRangeIterState *s, AVLNode *node, const void *lo)
             {
                 size_t new_cap = s->stack_cap == 0 ? AVL_ITER_STACK_INIT_CAP
                                                    : s->stack_cap * 2;
-                s->stack = mem_realloc(s->allocator,
-                    
+                s->stack = mem_realloc(
+                    s->allocator,
+
                     s->stack,
                     s->stack_cap * sizeof(AVLNode *),
                     new_cap * sizeof(AVLNode *),
@@ -554,13 +557,12 @@ Iter avl_iter_range(const AVLTree *t, const void *lo, const void *hi)
 {
     if (!t)
         return (Iter){0};
-    AVLRangeIterState *s = mem_alloc(t->allocator,
-         sizeof *s, _Alignof(AVLRangeIterState));
+    AVLRangeIterState *s =
+        mem_alloc(t->allocator, sizeof *s, _Alignof(AVLRangeIterState));
     void *hi_copy = NULL;
     if (hi)
     {
-        hi_copy = mem_alloc(t->allocator,
-             t->elem_size, _Alignof(max_align_t));
+        hi_copy = mem_alloc(t->allocator, t->elem_size, _Alignof(max_align_t));
         memcpy(hi_copy, hi, t->elem_size);
     }
     *s = (AVLRangeIterState){.stack = NULL,

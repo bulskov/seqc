@@ -36,8 +36,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static ListNode *list_make_node(const List *l, const void *elem)
 {
-    ListNode *node = mem_alloc(l->allocator,
-         node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    ListNode *node = mem_alloc(
+        l->allocator, node_alloc_size(l->elem_size), _Alignof(max_align_t));
     if (!node)
         return NULL;
     node->next = NULL;
@@ -194,8 +194,8 @@ Iter list_iter(const List *l)
 {
     if (!l)
         return (Iter){0};
-    ListIterState *s = mem_alloc(l->allocator,
-         sizeof *s, _Alignof(ListIterState));
+    ListIterState *s =
+        mem_alloc(l->allocator, sizeof *s, _Alignof(ListIterState));
     *s = (ListIterState){l->head, l->elem_size};
     return (Iter){.next = list_iter_next,
                   .drop = list_iter_drop,

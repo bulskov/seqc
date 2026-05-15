@@ -42,8 +42,8 @@ Vec *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
     Vec *v = mem_alloc(allocator, sizeof(Vec), _Alignof(Vec));
     if (!v)
         return NULL;
-    *v = (Vec){.data = mem_alloc(allocator,
-                    capacity * elem_size, _Alignof(max_align_t)),
+    *v = (Vec){.data = mem_alloc(
+                   allocator, capacity * elem_size, _Alignof(max_align_t)),
                .len = 0,
                .cap = capacity,
                .elem_size = elem_size,
@@ -80,8 +80,9 @@ SeqcStatus vec_push(Vec *v, const void *elem)
         if (v->cap > SIZE_MAX / 2)
             return SEQC_OOM;
         size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
-        void *new_data = mem_realloc(v->allocator,
-            
+        void *new_data = mem_realloc(
+            v->allocator,
+
             v->data,
             v->len * v->elem_size,
             new_cap * v->elem_size,
@@ -165,8 +166,9 @@ SeqcStatus vec_reserve(Vec *v, size_t capacity)
         return SEQC_INVALID;
     if (capacity <= v->cap)
         return SEQC_OK;
-    void *new_data = mem_realloc(v->allocator,
-        
+    void *new_data = mem_realloc(
+        v->allocator,
+
         v->data,
         v->len * v->elem_size,
         capacity * v->elem_size,
@@ -260,8 +262,7 @@ SeqcStatus vec_extend(Vec *v, Iter it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = mem_alloc(v->allocator,
-         v->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(v->allocator, v->elem_size, _Alignof(max_align_t));
     if (!elem)
     {
         iter_drop(&it);

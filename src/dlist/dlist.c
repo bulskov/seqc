@@ -36,8 +36,8 @@ static size_t node_alloc_size(size_t elem_size)
 
 static DListNode *make_node(const DList *l, const void *elem)
 {
-    DListNode *node = mem_alloc(l->allocator,
-         node_alloc_size(l->elem_size), _Alignof(max_align_t));
+    DListNode *node = mem_alloc(
+        l->allocator, node_alloc_size(l->elem_size), _Alignof(max_align_t));
     if (!node)
         return NULL;
     node->prev = NULL;
@@ -208,8 +208,8 @@ Iter dlist_iter(const DList *l)
 {
     if (!l)
         return (Iter){0};
-    DListIterState *s = mem_alloc(l->allocator,
-         sizeof *s, _Alignof(DListIterState));
+    DListIterState *s =
+        mem_alloc(l->allocator, sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->head, l->elem_size};
     return (Iter){.next = dlist_iter_next_fwd,
                   .drop = dlist_iter_drop,
@@ -222,8 +222,8 @@ Iter dlist_iter_rev(const DList *l)
 {
     if (!l)
         return (Iter){0};
-    DListIterState *s = mem_alloc(l->allocator,
-         sizeof *s, _Alignof(DListIterState));
+    DListIterState *s =
+        mem_alloc(l->allocator, sizeof *s, _Alignof(DListIterState));
     *s = (DListIterState){l->tail, l->elem_size};
     return (Iter){.next = dlist_iter_next_rev,
                   .drop = dlist_iter_drop,
