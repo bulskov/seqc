@@ -3,7 +3,6 @@
 extern "C"
 {
 #include "arena/growing_arena.h"
-#include "arena/scratch.h"
 #include "seqc/vec.h"
 }
 #include "../oom_alloc.h"

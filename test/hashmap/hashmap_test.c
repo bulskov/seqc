@@ -3,7 +3,6 @@
 extern "C"
 {
 #include "arena/growing_arena.h"
-#include "arena/scratch.h"
 #include "seqc/hash.h"
 #include "seqc/hashmap.h"
 #include "seqc/iter.h"
