@@ -11,10 +11,11 @@ reducing across different data structures.
 
 `seqc` solves this with a small set of orthogonal abstractions:
 
-- **[Arena](docs/arena.md)** — a bump allocator. Pass `arena_allocator(a)` to any
-  collection for bulk lifetime management; a single `arena_free()` releases everything
-  at once. Use `scratch_allocator(&sc)` for temporary work inside a loop, or
-  `sys_allocator()` when you need per-collection `malloc`/`free` lifetime control.
+- **[Arena](docs/arena.md)** — a bump allocator from the companion `arena_allocator`
+  library. Pass `growing_arena_allocator(&a)` to any collection for bulk lifetime
+  management; a single `growing_arena_destroy(&a)` releases everything at once.
+  Use `scratch_allocator(&sc)` for temporary work inside a loop, or a plain
+  malloc/free allocator when you need per-collection lifetime control.
 - **[Slice](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
   materialising an iterator. Also the input to operations that need random access.
 - **[Iter](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
@@ -46,19 +47,42 @@ Vec / List / BSTree / ...
 
 ## Building
 
-Requires: a C11 compiler (GCC or Clang), `cmake >= 3.20`, `ninja`.
-Optional: `criterion` for building the test suite.
+Requires: a C11/C++ compiler (GCC or Clang), `cmake >= 3.20`, `ninja`.
+
+```sh
+./build.sh          # configure + build (debug)
+./build.sh clean    # clean rebuild
+./build.sh release  # release build
+```
+
+Or manually:
 
 ```sh
 cmake --preset debug
 cmake --build --preset debug
+```
+
+A `release` preset is also available.
+
+## Testing
+
+Tests use [Google Test](https://github.com/google/googletest), which is automatically
+fetched by CMake the first time tests are built — no manual installation needed.
+
+```sh
+./test.sh                    # build + run all tests
 ctest --test-dir build/debug --output-on-failure
 ```
 
-If Criterion is not installed, the library still configures and builds, but test targets are skipped.
-To silence the warning explicitly, configure with `-DBUILD_TESTING=OFF`.
+To skip building tests: `cmake --preset debug -DBUILD_TESTING=OFF`.
 
-A `release` preset is also available.
+## Scripts
+
+| Script | Description |
+| --- | --- |
+| `build.sh [clean] [preset]` | Configure and build. Pass `clean` to wipe the preset's build directory first. Preset defaults to `debug`. |
+| `test.sh` | Build (debug) and run the full test suite via `ctest`. |
+| `publish.sh` | Build a release, then produce `dist/seqc-<version>/` (headers, lib, docs) and `seqc-<version>.zip`. |
 
 ### Using as a dependency
 
@@ -76,18 +100,31 @@ target_link_libraries(myapp PRIVATE seqc)
 Then include with:
 
 ```c
-#include "seqc/arena.h"
+#include "arena/growing_arena.h"
+#include "arena/scratch.h"
 #include "seqc/vec.h"
 #include "seqc/iter.h"
 ```
 
-**Manual vendoring**: copy the `include/seqc/` directory and the `src/` directory into your project, add `include/` to your include path, and compile the `.c` files alongside your own.
+`seqc` depends on the [`arena_allocator`](libs/arena_allocator) library, which is
+bundled under `libs/`. When using FetchContent, link against both targets:
+
+```cmake
+target_link_libraries(myapp PRIVATE seqc)
+```
+
+(`arena` is a public dependency of `seqc` and is transitively available.)
+
+**Manual vendoring**: copy `include/seqc/`, `src/`, and `libs/arena_allocator/` into
+your project, add both `include/` and `libs/arena_allocator/include/` to your include
+path, compile the `.c` files alongside your own, and link against
+`libs/arena_allocator/lib/libarena.a`.
 
 ## Modules
 
 | Module    | Description                                           | Docs                               |
 | --------- | ----------------------------------------------------- | ---------------------------------- |
-| `arena`   | Bump allocator with scratch checkpoints               | [docs/arena.md](docs/arena.md)     |
+| `arena`   | Bump allocator (external `arena_allocator` lib)       | [docs/arena.md](docs/arena.md)     |
 | `slice`   | Non-owning contiguous view                            | [docs/slice.md](docs/slice.md)     |
 | `iter`    | Lazy iterator pipeline — sources, adaptors, terminals | [docs/iter.md](docs/iter.md)       |
 | `vec`     | Growable array                                        | [docs/vec.md](docs/vec.md)         |
@@ -107,7 +144,8 @@ Then include with:
 ## Quick example
 
 ```c
-#include "seqc/arena.h"
+#include "arena/growing_arena.h"
+#include "arena/scratch.h"
 #include "seqc/vec.h"
 #include "seqc/iter.h"
 
@@ -125,8 +163,11 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 int main(void) {
-    Arena *a = arena_create(4096);
-    Vec   *v = vec_create(sizeof(int), arena_allocator(a));
+    growing_arena_t arena;
+    growing_arena_init(&arena, 4096);
+    allocator_t al = growing_arena_allocator(&arena);
+
+    Vec *v = vec_create(sizeof(int), al);
 
     for (int i = 0; i < 10; i++)
         vec_push(v, &i);
@@ -136,13 +177,13 @@ int main(void) {
                        iter_map(
                            iter_filter(vec_iter(v), is_even, NULL),
                            double_it, NULL, sizeof(int)),
-                       int_cmp, arena_allocator(a));
+                       int_cmp, al);
 
     // result == {0, 4, 8, 12, 16}
     for (size_t i = 0; i < result.len; i++)
         printf("%d\n", *(int *)slice_get(result, i));
 
-    arena_free(a);
+    growing_arena_destroy(&arena);
 }
 ```
 
@@ -207,11 +248,10 @@ int main(void) {
 ## Test coverage
 
 Measured with `llvm-cov` (clang 18, instrumented build).
-The test suite uses [Criterion](https://github.com/Snaipe/Criterion).
+The test suite uses [Google Test](https://github.com/google/googletest).
 
 | Module    |   Lines | Functions | Branches |
 | --------- | ------: | --------: | -------: |
-| `arena`   |     91% |      100% |      78% |
 | `slice`   |     95% |      100% |      69% |
 | `iter`    |     90% |      100% |      79% |
 | `vec`     |     88% |      100% |      65% |

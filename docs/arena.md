@@ -1,328 +1,206 @@
 # arena
 
-Bump allocator backed by `mmap`'d memory blocks. Grows automatically when a
-block is exhausted. A single `arena_free()` releases all memory at once.
+`seqc` uses the companion **`arena_allocator`** library (bundled under
+`libs/arena_allocator/`) for all memory management. The library is not part of
+`seqc` itself — it can be used independently of any `seqc` collection.
 
-**Header:** `include/seqc/arena.h`
+**Headers:**
+
+```c
+#include "arena/allocator.h"      /* allocator_t, allocator_vtable_t */
+#include "arena/growing_arena.h"  /* growing_arena_t */
+#include "arena/scratch.h"        /* scratch_t */
+```
 
 ---
 
 ## Types
 
-### `Allocator`
-
-```c
-typedef struct Allocator {
-  alloc_fn   alloc;
-  realloc_fn realloc;
-  free_fn    free;   /* NULL for arena allocators */
-  void      *ctx;
-} Allocator;
-```
-
-Generic allocator interface passed to every container and iterator that needs
-to allocate memory. Every collection stores the `Allocator` it was created
-with, so a single program can freely mix allocators:
-
-| Source                                         | Use when                                                             |
-| ---------------------------------------------- | -------------------------------------------------------------------- |
-| [`arena_allocator(a)`](#arena_allocator)       | bulk lifetime — free everything in one call                          |
-| [`scratch_allocator(&sc)`](#scratch_allocator) | temporary work inside a loop                                         |
-| [`sys_allocator()`](#sys_allocator)            | per-collection lifetime via `_free()`, or when no arena is available |
-
-Obtain one from [`arena_allocator()`](#arena_allocator),
-[`scratch_allocator()`](#scratch_allocator), or
-[`sys_allocator()`](#sys_allocator).
-
-### `Scratch`
+### `allocator_t`
 
 ```c
 typedef struct {
-  Arena *arena;
-  void  *saved_tail;
-  size_t saved_pos;
-} Scratch;
+    const allocator_vtable_t *vt;
+    void                     *ctx;
+} allocator_t;
 ```
 
-A checkpoint into an arena. Push to save the current position; pop to release
-everything allocated since the push. Useful for short-lived temporary
-allocations inside a loop.
+Generic allocator interface passed to every container and iterator that needs
+to allocate memory. Every collection stores the `allocator_t` it was created
+with, so a single program can freely mix allocators.
+
+| Source                                   | Use when                                           |
+| ---------------------------------------- | -------------------------------------------------- |
+| `growing_arena_allocator(&a)`            | bulk lifetime — destroy everything in one call     |
+| `scratch_allocator(&sc)`                 | temporary work inside a loop                       |
+| custom vtable (e.g. malloc/free wrapper) | per-collection lifetime, or when no arena is needed |
+
+---
+
+### `growing_arena_t`
+
+```c
+typedef struct {
+    /* opaque */
+} growing_arena_t;
+```
+
+A bump allocator that grows by allocating new blocks from the OS as needed.
+Declare on the stack and initialise with `growing_arena_init`.
+
+---
+
+### `scratch_t`
+
+```c
+typedef struct {
+    /* opaque */
+} scratch_t;
+```
+
+A checkpoint into a `growing_arena_t`. Begin to save the current position;
+end to release everything allocated since the begin. Useful for short-lived
+temporary allocations inside a loop.
 
 ---
 
 ## Functions
 
-### `arena_create`
+### `growing_arena_init`
 
 ```c
-Arena *arena_create(size_t capacity);
+void growing_arena_init(growing_arena_t *a, size_t block_size);
 ```
 
-Create a new arena with an initial block of at least `capacity` bytes.
+Initialise an arena. `block_size` is the minimum size of each internal block;
+the implementation rounds up to a page-aligned size.
 
 ```c
-Arena *a = arena_create(4096);
-```
-
----
-
-### `arena_alloc`
-
-```c
-void *arena_alloc(Arena *a, size_t size, size_t align);
-```
-
-Bump-allocate `size` bytes aligned to `align`. Triggers a new block if the
-current one is full. Returns `NULL` if `size` is zero, if OS allocation fails,
-or if a [max allocation cap](#arena_set_max_allocation) is set and the
-allocation would exceed it.
-
-```c
-int *buf = arena_alloc(a, 64 * sizeof(int), _Alignof(int));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
 ```
 
 ---
 
-### `arena_set_max_allocation` {#arena_set_max_allocation}
+### `growing_arena_destroy`
 
 ```c
-void arena_set_max_allocation(Arena *a, size_t max_bytes);
-```
-
-Set the maximum total capacity the arena may grow to. Once the cap is reached,
-any allocation that would require a new block returns `NULL` instead of
-growing. Allocations that fit within already-committed blocks are unaffected.
-
-Pass `0` to remove the limit (this is also the default after `arena_create`).
-
-The cap can be changed at any time — raising it allows growth again after a
-previous cap was hit.
-
-```c
-Arena *a = arena_create(4096);
-arena_set_max_allocation(a, 1024 * 1024); // never grow past 1 MiB
-
-void *p = arena_alloc(a, large_size, 8);  // returns NULL if it would exceed 1 MiB
-
-arena_set_max_allocation(a, 0);           // remove the limit
-```
-
----
-
-### `arena_realloc`
-
-```c
-void *arena_realloc(Arena *a, void *ptr, size_t old_size,
-                    size_t new_size, size_t align);
-```
-
-Grow or shrink an existing arena allocation. If `ptr` is the most recent bump
-in the current block the in-place fast path is taken; otherwise a new
-allocation is made and the contents are copied.
-
----
-
-### `arena_reset`
-
-```c
-void arena_reset(Arena *a);
-```
-
-Reset the bump position to zero, reusing all previously allocated blocks. Does
-not release memory back to the OS. All overflow blocks (if the arena grew
-beyond its initial capacity) are retained.
-
----
-
-### `arena_reset_hard`
-
-```c
-void arena_reset_hard(Arena *a);
-```
-
-Like `arena_reset`, but also `munmap`s every overflow block, keeping only
-the original first block. Use this after a temporary allocation burst when
-you want to return pages to the OS rather than retain them.
-
-```c
-// process a large batch that temporarily inflates the arena
-arena_alloc(a, 4 * 1024 * 1024, 1);
-// ...
-arena_reset_hard(a); // shrinks back to the initial block
-```
-
----
-
-### `arena_free`
-
-```c
-void arena_free(Arena *a);
+void growing_arena_destroy(growing_arena_t *a);
 ```
 
 Release all memory owned by the arena back to the OS.
 
----
-
-### `arena_allocator` {#arena_allocator}
-
 ```c
-Allocator arena_allocator(Arena *arena);
-```
-
-Return an [`Allocator`](#allocator) that allocates from `arena`. Pass this to
-any container or iterator that accepts an `Allocator`.
-
-```c
-Arena    *a   = arena_create(4096);
-Allocator al  = arena_allocator(a);
-Vec       v   = vec_create(sizeof(int), al);
+growing_arena_destroy(&arena);
 ```
 
 ---
 
-### `arena_scratch_push`
+### `growing_arena_reset`
 
 ```c
-Scratch arena_scratch_push(Arena *arena);
+void growing_arena_reset(growing_arena_t *a);
 ```
 
-Save the current bump position and return a [`Scratch`](#scratch) checkpoint.
+Reset the bump position to zero, reusing all committed blocks. Does not
+release memory back to the OS — useful for reset-between-requests patterns.
 
 ---
 
-### `arena_scratch_pop`
+### `growing_arena_allocator`
 
 ```c
-void arena_scratch_pop(Scratch *scratch);
+allocator_t growing_arena_allocator(growing_arena_t *a);
 ```
 
-Restore the arena to the position saved in `scratch`, freeing all allocations
-made after the push.
+Return an `allocator_t` backed by the arena. Pass this to any collection or
+iterator that accepts an `allocator_t`.
 
 ```c
-Scratch sc = arena_scratch_push(a);
-// ... temporary work ...
-arena_scratch_pop(&sc);
-// everything allocated above is gone
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t al = growing_arena_allocator(&arena);
+
+Vec *v = vec_create(sizeof(int), al);
 ```
 
 ---
 
-### `scratch_allocator` {#scratch_allocator}
+### `growing_arena_scratch_begin`
 
 ```c
-Allocator scratch_allocator(Scratch *scratch);
+void growing_arena_scratch_begin(scratch_t *s, growing_arena_t *a);
 ```
 
-Return an [`Allocator`](#allocator) backed by a `Scratch`. Useful when you want
-to pass an allocator to a helper but have the allocations tied to a scratch
-lifetime rather than the whole arena.
+Save the current bump position into `*s`.
 
 ---
 
-### `sys_allocator` {#sys_allocator}
+### `scratch_end`
 
 ```c
-Allocator sys_allocator(void);
+void scratch_end(scratch_t *s);
 ```
 
-Return an [`Allocator`](#allocator) backed by `malloc` / `realloc` / `free`.
-Every allocation is independent and must be released by calling the
-corresponding collection's `_free()` function.
+Restore the arena to the position saved by `growing_arena_scratch_begin`,
+releasing all allocations made since then.
 
-Use `sys_allocator()` when:
+---
 
-- you want per-collection lifetime control rather than bulk-free via an arena
-- you want to integrate with tooling that tracks `malloc`/`free` pairs (e.g.
-  Valgrind, AddressSanitizer `malloc` interceptors)
-- you are writing a short-lived utility or test where setting up an arena is
-  unnecessary overhead
+### `scratch_allocator`
 
 ```c
-// per-collection lifetime: caller is responsible for hashmap_free()
+allocator_t scratch_allocator(scratch_t *s);
+```
+
+Return an `allocator_t` backed by the scratch region.
+
+---
+
+## Usage patterns
+
+### Bulk lifetime
+
+```c
+growing_arena_t arena;
+growing_arena_init(&arena, 1 << 20);
+allocator_t al = growing_arena_allocator(&arena);
+
+Vec    *v = vec_create(sizeof(int), al);
 HashMap *m = hashmap_create(sizeof(int), sizeof(int),
-                             hash_fnv1a, hash_eq_bytes,
-                             sys_allocator());
-hashmap_set(m, &k, &v);
-// ...
-hashmap_free(m); // releases all bucket/key/value memory
+                            hash_fnv1a_int, hash_eq_int, al);
+// all collections share the arena lifetime
+growing_arena_destroy(&arena); // frees everything at once
 ```
 
-Mixing allocators is explicitly supported — different collections in the same
-program can use different allocators:
+### Scratch for temporary allocations
 
 ```c
-Arena *request_arena = arena_create(64 * 1024);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
 
-// results live for the whole request (freed with the arena)
-Vec *results = vec_create(sizeof(Result), arena_allocator(request_arena));
+scratch_t sc;
+growing_arena_scratch_begin(&sc, &arena);
+allocator_t tmp = scratch_allocator(&sc);
 
-// lookup table has its own lifetime, freed independently
-HashMap *cache = hashmap_create(sizeof(int), sizeof(CacheEntry),
-                                hash_fnv1a, hash_eq_bytes,
-                                sys_allocator());
+// sort needs temporary space
+Slice sorted = iter_sort(vec_iter(v), int_cmp, tmp);
+use(sorted);
 
-// ... handle request ...
-
-arena_free(request_arena); // frees results
-hashmap_free(cache);       // frees cache independently
+scratch_end(&sc); // scratch memory released; sorted is now invalid
+growing_arena_destroy(&arena);
 ```
 
----
-
-### Query functions
+### Reset between requests
 
 ```c
-size_t arena_total_allocated(const Arena *a);
-size_t arena_block_count(const Arena *a);
-size_t arena_capacity(const Arena *a);
-```
+growing_arena_t arena;
+growing_arena_init(&arena, 64 * 1024);
+allocator_t al = growing_arena_allocator(&arena);
 
-Introspection helpers for debugging and sizing decisions.
-
----
-
-## Patterns
-
-### Scratch for temporaries
-
-```c
-Arena  *a  = arena_create(1024 * 1024);
-Scratch sc = arena_scratch_push(a);
-
-// sort needs scratch space — freed at pop
-Slice sorted = iter_sort(vec_iter(v), int_cmp, scratch_allocator(&sc));
-
-arena_scratch_pop(&sc);
-// sorted is now invalid; use it before popping
-```
-
-### Multiple arenas for different lifetimes
-
-```c
-Arena *long_lived  = arena_create(1 << 20);
-Arena *per_request = arena_create(64 * 1024);
-
-// process request using per_request allocator
-arena_reset(per_request);  // reset between requests
-```
-
-### Mixing arenas and sys_allocator
-
-```c
-Arena *a = arena_create(4096);
-
-// iterator chain: scratch-backed, freed at pop
-Scratch sc = arena_scratch_push(a);
-Slice sorted = iter_sort(vec_iter(v), int_cmp, scratch_allocator(&sc));
-process(sorted);
-arena_scratch_pop(&sc); // sorted memory released
-
-// persistent lookup table: freed explicitly when the table is done
-HashMap *index = hashmap_create(sizeof(char *), sizeof(int),
-                                hash_fnv1a_str, hash_eq_str,
-                                sys_allocator());
-build_index(index, data);
-// ... use index across multiple requests ...
-hashmap_free(index);
+while (has_request()) {
+    process_request(al);
+    growing_arena_reset(&arena); // reclaim memory without OS roundtrip
+}
+growing_arena_destroy(&arena);
 ```
