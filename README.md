@@ -78,11 +78,11 @@ To skip building tests: `cmake --preset debug -DBUILD_TESTING=OFF`.
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
+| Script                      | Description                                                                                               |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `build.sh [clean] [preset]` | Configure and build. Pass `clean` to wipe the preset's build directory first. Preset defaults to `debug`. |
-| `test.sh` | Build (debug) and run the full test suite via `ctest`. |
-| `publish.sh` | Build a release, then produce `dist/seqc-<version>/` (headers, lib, docs) and `seqc-<version>.zip`. |
+| `test.sh`                   | Build (debug) and run the full test suite via `ctest`.                                                    |
+| `publish.sh`                | Build a release, then produce `dist/seqc-<version>/` (headers, lib, docs) and `seqc-<version>.zip`.       |
 
 ### Using as a dependency
 
@@ -213,22 +213,22 @@ int main(void) {
 
 ### Adaptors (lazy)
 
-| Function                               | Description                                     | Docs                 |
-| -------------------------------------- | ----------------------------------------------- | -------------------- |
-| `iter_filter(it, pred, ctx)`           | Keep matching elements                          | [iter](docs/iter.md) |
-| `iter_map(it, fn, ctx, out_size)`      | Transform each element                          | [iter](docs/iter.md) |
-| `iter_take(it, n)`                     | Yield at most n elements                        | [iter](docs/iter.md) |
-| `iter_take_while(it, pred, ctx)`       | Yield while pred holds, stop at first miss      | [iter](docs/iter.md) |
-| `iter_skip(it, n)`                     | Skip first n elements                           | [iter](docs/iter.md) |
-| `iter_skip_while(it, pred, ctx)`       | Skip while pred holds, yield the rest           | [iter](docs/iter.md) |
-| `iter_chain(a, b)`                     | Concatenate two iterators                       | [iter](docs/iter.md) |
-| `iter_zip(a, b)`                       | Interleave element pairs                        | [iter](docs/iter.md) |
-| `iter_enumerate(it)`                   | Pair each element with its index                | [iter](docs/iter.md) |
-| `iter_window(it, n)`                   | Sliding window of size n (yields Slice)         | [iter](docs/iter.md) |
-| `iter_chunks(it, n)`                   | Non-overlapping chunks of size n (yields Slice) | [iter](docs/iter.md) |
-| `iter_flat_map(it, fn, ctx, out_size)` | Expand each element into a sub-iterator         | [iter](docs/iter.md) |
+| Function                               | Description                                         | Docs                 |
+| -------------------------------------- | --------------------------------------------------- | -------------------- |
+| `iter_filter(it, pred, ctx)`           | Keep matching elements                              | [iter](docs/iter.md) |
+| `iter_map(it, fn, ctx, out_size)`      | Transform each element                              | [iter](docs/iter.md) |
+| `iter_take(it, n)`                     | Yield at most n elements                            | [iter](docs/iter.md) |
+| `iter_take_while(it, pred, ctx)`       | Yield while pred holds, stop at first miss          | [iter](docs/iter.md) |
+| `iter_skip(it, n)`                     | Skip first n elements                               | [iter](docs/iter.md) |
+| `iter_skip_while(it, pred, ctx)`       | Skip while pred holds, yield the rest               | [iter](docs/iter.md) |
+| `iter_chain(a, b)`                     | Concatenate two iterators                           | [iter](docs/iter.md) |
+| `iter_zip(a, b)`                       | Interleave element pairs                            | [iter](docs/iter.md) |
+| `iter_enumerate(it)`                   | Pair each element with its index                    | [iter](docs/iter.md) |
+| `iter_window(it, n)`                   | Sliding window of size n (yields Slice)             | [iter](docs/iter.md) |
+| `iter_chunks(it, n)`                   | Non-overlapping chunks of size n (yields Slice)     | [iter](docs/iter.md) |
+| `iter_flat_map(it, fn, ctx, out_size)` | Expand each element into a sub-iterator             | [iter](docs/iter.md) |
 | `iter_peekable(it)`                    | Wrap so `iter_peek()` can inspect without consuming | [iter](docs/iter.md) |
-| `iter_dedup(it, cmp)`                  | Skip consecutive equal elements                 | [iter](docs/iter.md) |
+| `iter_dedup(it, cmp)`                  | Skip consecutive equal elements                     | [iter](docs/iter.md) |
 
 ### Terminals (consume)
 
