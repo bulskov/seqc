@@ -20,6 +20,13 @@ cp -r docs   "$STAGE/$NAME/"
 cp -r libs/arena_allocator/include/. "$STAGE/$NAME/include/"
 cp -r libs/arena_allocator/lib/.     "$STAGE/$NAME/lib/"
 
+# bundle arena_allocator docs and fix the cross-reference link for the dist
+mkdir -p "$STAGE/$NAME/docs/arena_allocator"
+cp  libs/arena_allocator/README.md   "$STAGE/$NAME/docs/arena_allocator/"
+cp -r libs/arena_allocator/docs/.    "$STAGE/$NAME/docs/arena_allocator/"
+sed -i 's|\.\./libs/arena_allocator/README\.md|arena_allocator/README.md|' \
+    "$STAGE/$NAME/docs/arena.md"
+
 # dist/ directory
 rm -rf "dist/$NAME"
 mkdir -p dist
