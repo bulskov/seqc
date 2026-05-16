@@ -16,6 +16,10 @@ cmake --install build/release --prefix "$STAGE/$NAME"
 cp README.md "$STAGE/$NAME/"
 cp -r docs   "$STAGE/$NAME/"
 
+# bundle arena_allocator dependency (merge into the same include/ and lib/)
+cp -r libs/arena_allocator/include/. "$STAGE/$NAME/include/"
+cp -r libs/arena_allocator/lib/.     "$STAGE/$NAME/lib/"
+
 # dist/ directory
 rm -rf "dist/$NAME"
 mkdir -p dist
