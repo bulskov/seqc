@@ -21,13 +21,8 @@ target_include_directories(seqc PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_include_directories(seqc PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/arena_allocator/include>
-)
-
-target_link_libraries(seqc PUBLIC
-    ${CMAKE_SOURCE_DIR}/libs/arena_allocator/lib/libarena.a
-)
+# arena propagates its own PUBLIC include dirs (headers + generated version.h).
+target_link_libraries(seqc PUBLIC arena)
 
 target_compile_options(seqc PRIVATE
     $<IF:$<C_COMPILER_ID:MSVC>,

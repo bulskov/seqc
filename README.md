@@ -106,19 +106,30 @@ Then include with:
 #include "seqc/iter.h"
 ```
 
-`seqc` depends on the [`arena_allocator`](libs/arena_allocator) library, which is
-bundled under `libs/`. When using FetchContent, link against both targets:
+`seqc` depends on the
+[`arena_allocator`](https://github.com/bulskov/arena_allocation) library. seqc's
+own CMake fetches it from source via `FetchContent`, so a FetchContent consumer
+gets it transitively — `arena` is a public dependency of `seqc` and linking
+`seqc` is enough:
 
 ```cmake
 target_link_libraries(myapp PRIVATE seqc)
 ```
 
-(`arena` is a public dependency of `seqc` and is transitively available.)
+To pin a specific arena version or build offline, override the cache variables
+seqc exposes:
 
-**Manual vendoring**: copy `include/seqc/`, `src/`, and `libs/arena_allocator/` into
-your project, add both `include/` and `libs/arena_allocator/include/` to your include
-path, compile the `.c` files alongside your own, and link against
-`libs/arena_allocator/lib/libarena.a`.
+```sh
+cmake --preset debug \
+    -DSEQC_ARENA_GIT_TAG=v1.1.1 \
+    -DFETCHCONTENT_SOURCE_DIR_ARENA=/path/to/local/arena_allocation
+```
+
+**Manual vendoring**: copy `include/seqc/` and `src/` into your project, and
+separately vendor [`arena_allocator`](https://github.com/bulskov/arena_allocation)
+(its `include/` and `src/`). Add both include paths, compile all the `.c` files
+alongside your own. The release archive produced by `publish.sh` bundles a
+prebuilt `lib/libarena.a` and merged `include/` for this purpose.
 
 ## Modules
 

@@ -14,6 +14,24 @@ if(SEQC_SANITIZERS)
     add_link_options(-fsanitize=address,undefined)
 endif()
 
+# --- Dependency: arena_allocator -----------------------------------------
+# Fetched from source so it is built with the same compiler and flags
+# (including sanitizers) as seqc.  Override SEQC_ARENA_GIT_TAG to pin a
+# different version, or pass -DFETCHCONTENT_SOURCE_DIR_ARENA=/path to build
+# against a local checkout with no network access.
+include(FetchContent)
+
+set(SEQC_ARENA_GIT_REPOSITORY "https://github.com/bulskov/arena_allocation.git"
+    CACHE STRING "Clone URL for the arena_allocator dependency")
+set(SEQC_ARENA_GIT_TAG "v1.1.1"
+    CACHE STRING "Tag or commit of the arena_allocator dependency")
+
+FetchContent_Declare(arena
+    GIT_REPOSITORY ${SEQC_ARENA_GIT_REPOSITORY}
+    GIT_TAG        ${SEQC_ARENA_GIT_TAG}
+    GIT_SHALLOW    TRUE)
+FetchContent_MakeAvailable(arena)
+
 add_subdirectory(src)
 
 include(CTest)

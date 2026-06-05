@@ -1,10 +1,10 @@
 # arena
 
-`seqc` uses the companion **`arena_allocator`** library (bundled under
-`libs/arena_allocator/`) for all memory management. The library is not part of
+`seqc` uses the companion **`arena_allocator`** library (fetched from source by
+CMake via `FetchContent`) for all memory management. The library is not part of
 `seqc` itself — it can be used independently of any `seqc` collection.
 
-See also: [arena_allocator README](../libs/arena_allocator/README.md)
+See also: [arena_allocator README](https://github.com/bulskov/arena_allocation)
 
 **Headers:**
 
