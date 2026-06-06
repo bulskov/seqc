@@ -18,7 +18,7 @@ add_library(seqc STATIC
 )
 
 target_include_directories(seqc PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
@@ -32,4 +32,4 @@ target_compile_options(seqc PRIVATE
 )
 
 install(TARGETS seqc ARCHIVE DESTINATION lib)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/seqc DESTINATION include)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/seqc DESTINATION include)
