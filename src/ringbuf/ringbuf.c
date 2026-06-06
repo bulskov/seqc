@@ -1,6 +1,7 @@
 #include "seqc/ringbuf.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #define RINGBUF_INITIAL_CAP 8
@@ -30,6 +31,8 @@ static inline void *rb_ptr(const RingBuf *r, size_t slot)
 /* Grow to at least new_cap (rounded up to next power of 2). */
 static SeqcStatus rb_grow(RingBuf *r)
 {
+    if (r->cap > SIZE_MAX / 2)
+        return SEQC_OOM;
     size_t new_cap = r->cap == 0 ? RINGBUF_INITIAL_CAP : r->cap * 2;
     void *nd =
         mem_alloc(r->allocator, new_cap * r->elem_size, _Alignof(max_align_t));

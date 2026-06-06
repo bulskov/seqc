@@ -1,6 +1,7 @@
 #include "seqc/queue.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define INITIAL_CAP 16
@@ -31,6 +32,8 @@ Queue *queue_create(size_t elem_size, allocator_t allocator)
 
 static SeqcStatus queue_grow(Queue *q)
 {
+    if (q->cap > SIZE_MAX / 2)
+        return SEQC_OOM;
     size_t new_cap = q->cap == 0 ? INITIAL_CAP : q->cap * 2;
     char *new_buf =
         mem_alloc(q->allocator, new_cap * q->elem_size, _Alignof(max_align_t));
