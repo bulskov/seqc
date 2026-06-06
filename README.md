@@ -81,7 +81,7 @@ To skip building tests: `cmake --preset debug -DBUILD_TESTING=OFF`.
 | Script                      | Description                                                                                               |
 | --------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `build.sh [clean] [preset]` | Configure and build. Pass `clean` to wipe the preset's build directory first. Preset defaults to `debug`. |
-| `test.sh`                   | Build (debug) and run the full test suite via `ctest`.                                                    |
+| `test.sh [debug\|asan]`     | Build and run the full test suite via `ctest`. `asan` builds with AddressSanitizer/UBSan/LeakSanitizer.   |
 | `publish.sh`                | Build a release, then produce `dist/seqc-<version>/` (headers, lib, docs) and `seqc-<version>.zip`.       |
 
 ### Using as a dependency
