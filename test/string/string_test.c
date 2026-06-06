@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
-extern "C" {
+extern "C"
+{
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
 #include "seqc/hashmap.h"
 #include "seqc/string.h"
 }
+
+#include "../oom_alloc.h"
 
 /* --- Construction ------------------------------------------------------- */
 
@@ -17,11 +20,13 @@ TEST(string, from_cstr_length)
 
 TEST(string, from_cstr_copies_content)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     char buf[] = "hello";
     String s = string_from_cstr(buf, growing_arena_allocator(a));
     EXPECT_EQ(s.len, 5);
-    buf[0] = 'X'; /* mutate source */
+    buf[0] = 'X';             /* mutate source */
     EXPECT_EQ(s.ptr[0], 'h'); /* copy unaffected */
     growing_arena_destroy(a);
 }
@@ -34,7 +39,9 @@ TEST(string, from_lit_macro)
 
 TEST(string, to_cstr_is_null_terminated)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     String s = STRING_LIT("hi");
     const char *cs = string_to_cstr(s, growing_arena_allocator(a));
     EXPECT_EQ(cs[2], '\0');
@@ -44,7 +51,9 @@ TEST(string, to_cstr_is_null_terminated)
 
 TEST(string, copy_is_independent)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     char buf[] = "mutable";
     String s = string_view_cstr(buf);
     String c = string_copy(s, growing_arena_allocator(a));
@@ -101,7 +110,8 @@ TEST(string, ends_with_false)
 
 TEST(string, contains_true)
 {
-    EXPECT_TRUE(string_contains(STRING_LIT("hello world"), STRING_LIT("world")));
+    EXPECT_TRUE(
+        string_contains(STRING_LIT("hello world"), STRING_LIT("world")));
 }
 
 TEST(string, contains_false)
@@ -134,7 +144,10 @@ TEST(string, slice_zero_copy)
 TEST(string, trim_removes_whitespace)
 {
     EXPECT_TRUE(string_equals(
-        string_trim(STRING_LIT("  hello  ")), STRING_LIT("hello")));
+        string_trim(STRING_LIT("  hello\n  ")), STRING_LIT("hello")));
+    String s = STRING_LIT("  a \t\n  ");
+    s = string_trim(s);
+    EXPECT_EQ(s.len, 1);
 }
 
 TEST(string, trim_left_only)
@@ -151,14 +164,17 @@ TEST(string, trim_right_only)
 
 TEST(string, trim_no_whitespace)
 {
-    EXPECT_TRUE(string_equals(string_trim(STRING_LIT("abc")), STRING_LIT("abc")));
+    EXPECT_TRUE(
+        string_equals(string_trim(STRING_LIT("abc")), STRING_LIT("abc")));
 }
 
 /* --- Builder ------------------------------------------------------------ */
 
 TEST(string, builder_append_str)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append(sb, STRING_LIT("hello"));
     sb_append_char(sb, ' ');
@@ -170,7 +186,9 @@ TEST(string, builder_append_str)
 
 TEST(string, builder_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     String result = sb_finish(sb);
     EXPECT_EQ(result.len, 0);
@@ -181,8 +199,11 @@ TEST(string, builder_empty)
 
 TEST(string, chars_count)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     size_t n =
         iter_count(string_chars(STRING_LIT("hello"), scratch_allocator(&sc)));
     EXPECT_EQ(n, 5);
@@ -192,8 +213,11 @@ TEST(string, chars_count)
 
 TEST(string, chars_rev)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     Iter it = string_chars_rev(STRING_LIT("abc"), scratch_allocator(&sc));
     char c;
     it.next(&it, &c);
@@ -210,8 +234,11 @@ TEST(string, chars_rev)
 
 TEST(string, split_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     String parts[3];
     size_t i = 0;
     Iter it = string_split(
@@ -229,8 +256,11 @@ TEST(string, split_basic)
 
 TEST(string, split_trailing_delim)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     size_t n = iter_count(string_split(
         STRING_LIT("a,b,"), STRING_LIT(","), scratch_allocator(&sc)));
     EXPECT_EQ(n, 3); /* "a", "b", "" */
@@ -240,8 +270,11 @@ TEST(string, split_trailing_delim)
 
 TEST(string, split_no_delim)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     String token;
     Iter it = string_split(
         STRING_LIT("hello"), STRING_LIT(","), scratch_allocator(&sc));
@@ -255,8 +288,11 @@ TEST(string, split_no_delim)
 
 TEST(string, split_null_string_yields_one_empty_token)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     String null_str = {NULL, 0};
     /* The iterator is consumed after string_split returns, so its yielded
      * token must not point into string_split's own stack frame. */
@@ -274,7 +310,9 @@ TEST(string, split_null_string_yields_one_empty_token)
 
 TEST(string, hashmap_string_keys)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     HashMap *map = hashmap_create(
         sizeof(String),
         sizeof(int),
@@ -289,14 +327,17 @@ TEST(string, hashmap_string_keys)
     hashmap_set(map, &k2, &v2);
 
     int g1, g2;
-    EXPECT_EQ(hashmap_get(map, &k1, &g1), SEQC_OK); EXPECT_EQ(g1, 1);
-    EXPECT_EQ(hashmap_get(map, &k2, &g2), SEQC_OK); EXPECT_EQ(g2, 2);
+    EXPECT_EQ(hashmap_get(map, &k1, &g1), SEQC_OK);
+    EXPECT_EQ(g1, 1);
+    EXPECT_EQ(hashmap_get(map, &k2, &g2), SEQC_OK);
+    EXPECT_EQ(g2, 2);
 
     /* Key from different pointer but same content must still hit */
     char buf[] = "foo";
     String k1_copy = string_view_cstr(buf);
     int g1c;
-    EXPECT_EQ(hashmap_get(map, &k1_copy, &g1c), SEQC_OK); EXPECT_EQ(g1c, 1);
+    EXPECT_EQ(hashmap_get(map, &k1_copy, &g1c), SEQC_OK);
+    EXPECT_EQ(g1c, 1);
 
     hashmap_free(map);
     growing_arena_destroy(a);
@@ -306,7 +347,9 @@ TEST(string, hashmap_string_keys)
 
 TEST(string, sb_append_int_positive)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, 42);
     String result = sb_finish(sb);
@@ -316,7 +359,9 @@ TEST(string, sb_append_int_positive)
 
 TEST(string, sb_append_int_negative)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, -123);
     String result = sb_finish(sb);
@@ -326,7 +371,9 @@ TEST(string, sb_append_int_negative)
 
 TEST(string, sb_append_int_zero)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_int(sb, 0);
     String result = sb_finish(sb);
@@ -336,7 +383,9 @@ TEST(string, sb_append_int_zero)
 
 TEST(string, sb_append_fmt_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_fmt(sb, "hello %s, you are %d years old", "world", 30);
     String result = sb_finish(sb);
@@ -347,7 +396,9 @@ TEST(string, sb_append_fmt_basic)
 
 TEST(string, sb_append_fmt_compose)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     StringBuilder *sb = sb_create(growing_arena_allocator(a));
     sb_append_cstr(sb, "x=");
     sb_append_fmt(sb, "%d", 7);
@@ -362,7 +413,9 @@ TEST(string, sb_append_fmt_compose)
 
 TEST(string, replace_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     String r = string_replace(
         STRING_LIT("hello world world"),
         STRING_LIT("world"),
@@ -374,7 +427,9 @@ TEST(string, replace_basic)
 
 TEST(string, replace_no_match)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("hello"),
         STRING_LIT("xyz"),
@@ -386,7 +441,9 @@ TEST(string, replace_no_match)
 
 TEST(string, replace_empty_needle_returns_copy)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("hello"),
         STRING_LIT(""),
@@ -398,7 +455,9 @@ TEST(string, replace_empty_needle_returns_copy)
 
 TEST(string, replace_whole_string)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("aaa"),
         STRING_LIT("a"),
@@ -410,7 +469,9 @@ TEST(string, replace_whole_string)
 
 TEST(string, replace_with_empty_replacement)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     String r = string_replace(
         STRING_LIT("a,b,c"),
         STRING_LIT(","),
@@ -424,34 +485,44 @@ TEST(string, replace_with_empty_replacement)
 
 TEST(string, to_uppercase_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    String r =
-        string_to_uppercase(STRING_LIT("Hello World!"), growing_arena_allocator(a));
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    String r = string_to_uppercase(
+        STRING_LIT("Hello World!"), growing_arena_allocator(a));
     EXPECT_TRUE(string_equals(r, STRING_LIT("HELLO WORLD!")));
     growing_arena_destroy(a);
 }
 
 TEST(string, to_lowercase_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    String r =
-        string_to_lowercase(STRING_LIT("Hello World!"), growing_arena_allocator(a));
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    String r = string_to_lowercase(
+        STRING_LIT("Hello World!"), growing_arena_allocator(a));
     EXPECT_TRUE(string_equals(r, STRING_LIT("hello world!")));
     growing_arena_destroy(a);
 }
 
 TEST(string, to_uppercase_already_upper)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    String r = string_to_uppercase(STRING_LIT("ABC"), growing_arena_allocator(a));
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    String r =
+        string_to_uppercase(STRING_LIT("ABC"), growing_arena_allocator(a));
     EXPECT_TRUE(string_equals(r, STRING_LIT("ABC")));
     growing_arena_destroy(a);
 }
 
 TEST(string, to_uppercase_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    String r = string_to_uppercase((String){NULL, 0}, growing_arena_allocator(a));
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    String r =
+        string_to_uppercase((String){NULL, 0}, growing_arena_allocator(a));
     EXPECT_EQ(r.len, 0);
     growing_arena_destroy(a);
 }
@@ -460,11 +531,15 @@ TEST(string, to_uppercase_empty)
 
 TEST(string, join_basic)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
-    String result = string_join(it, STRING_LIT("-"), growing_arena_allocator(a));
+    String result =
+        string_join(it, STRING_LIT("-"), growing_arena_allocator(a));
     EXPECT_TRUE(string_equals(result, STRING_LIT("a-b-c")));
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -472,11 +547,15 @@ TEST(string, join_basic)
 
 TEST(string, join_single_token)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("hello"), STRING_LIT(","), scratch_allocator(&sc));
-    String result = string_join(it, STRING_LIT(","), growing_arena_allocator(a));
+    String result =
+        string_join(it, STRING_LIT(","), growing_arena_allocator(a));
     EXPECT_TRUE(string_equals(result, STRING_LIT("hello")));
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -484,8 +563,11 @@ TEST(string, join_single_token)
 
 TEST(string, join_empty_separator)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, a);
     Iter it = string_split(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
     String result = string_join(it, STRING_LIT(""), growing_arena_allocator(a));
@@ -581,4 +663,15 @@ TEST(string, to_double_trailing_garbage)
 {
     double val;
     EXPECT_FALSE(string_to_double(STRING_LIT("1.5x"), &val));
+}
+
+/* --- OOM paths ---------------------------------------------------------- */
+
+TEST(string, split_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(0, &ctx); /* state alloc fails */
+    Iter it = string_split(STRING_LIT("a,b,c"), STRING_LIT(","), al);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
 }

@@ -836,3 +836,35 @@ TEST(hashmap, set_returns_oom_when_val_alloc_fails)
     EXPECT_EQ(hashmap_len(m), 0);
     hashmap_free(m);
 }
+
+TEST(hashmap, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    ASSERT_NE(m, nullptr);
+    for (int i = 0; i < 3; i++)
+        hashmap_set(m, &i, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = hashmap_iter(m);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    hashmap_free(m);
+}
+
+TEST(hashmap, iter_rev_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    HashMap *m =
+        hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
+    ASSERT_NE(m, nullptr);
+    for (int i = 0; i < 3; i++)
+        hashmap_set(m, &i, &i);
+    ctx.remaining = 0;
+    Iter it = hashmap_iter_rev(m);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    hashmap_free(m);
+}

@@ -218,3 +218,20 @@ TEST(list, sys_alloc_clear_frees_all_nodes)
     EXPECT_EQ(list_len(l), 1);
     list_free(l);
 }
+
+/* ---- OOM paths: an exhausted allocator must not crash ------------------ */
+
+TEST(list, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    List *l = list_create(sizeof(int), al);
+    ASSERT_NE(l, nullptr);
+    for (int i = 0; i < 3; i++)
+        list_push_back(l, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = list_iter(l);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    list_free(l);
+}

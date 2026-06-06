@@ -427,8 +427,9 @@ Iter hashmap_iter(const HashMap *map)
 
         sizeof(HashMapIterState),
         _Alignof(HashMapIterState));
-    if (s)
-        *s = (HashMapIterState){map, 0};
+    if (!s)
+        return (Iter){0};
+    *s = (HashMapIterState){map, 0};
     return (Iter){.next = hashmap_iter_next,
                   .drop = hashmap_iter_drop,
                   .state = s,
@@ -447,8 +448,9 @@ Iter hashmap_iter_rev(const HashMap *map)
 
         sizeof(HashMapIterState),
         _Alignof(HashMapIterState));
-    if (s)
-        *s = (HashMapIterState){map, map->cap}; /* start past the last slot */
+    if (!s)
+        return (Iter){0};
+    *s = (HashMapIterState){map, map->cap}; /* start past the last slot */
     return (Iter){.next = hashmap_iter_rev_next,
                   .drop = hashmap_iter_drop,
                   .state = s,

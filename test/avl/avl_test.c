@@ -6,6 +6,8 @@ extern "C" {
 #include "seqc/avl.h"
 }
 
+#include "../oom_alloc.h"
+
 /* ---- comparator -------------------------------------------------------- */
 
 static int int_cmp(const void *a, const void *b)
@@ -400,4 +402,52 @@ TEST(avl, clear_allows_reuse)
     EXPECT_EQ(avl_len(t), 1);
     EXPECT_TRUE(avl_contains(t, &x));
     growing_arena_destroy(a);
+}
+
+/* ---- OOM paths: an exhausted allocator must not crash ------------------ */
+
+TEST(avl, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    ASSERT_NE(t, nullptr);
+    for (int i = 0; i < 3; i++)
+        avl_insert(t, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = avl_iter(t);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    avl_free(t);
+}
+
+TEST(avl, iter_rev_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    ASSERT_NE(t, nullptr);
+    for (int i = 0; i < 3; i++)
+        avl_insert(t, &i);
+    ctx.remaining = 0;
+    Iter it = avl_iter_rev(t);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    avl_free(t);
+}
+
+TEST(avl, iter_range_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    ASSERT_NE(t, nullptr);
+    for (int i = 0; i < 5; i++)
+        avl_insert(t, &i);
+    int lo = 1, hi = 3;
+    ctx.remaining = 0;
+    Iter it = avl_iter_range(t, &lo, &hi);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    avl_free(t);
 }

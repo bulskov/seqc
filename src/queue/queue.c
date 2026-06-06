@@ -157,6 +157,8 @@ Iter queue_iter(const Queue *q)
         return (Iter){0};
     QueueIterState *s =
         mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterState));
+    if (!s)
+        return (Iter){0};
     *s = (QueueIterState){q->buf, q->head, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_next,
                   .drop = queue_iter_drop,
@@ -198,6 +200,8 @@ Iter queue_iter_rev(const Queue *q)
         return (Iter){0};
     QueueIterRevState *s =
         mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterRevState));
+    if (!s)
+        return (Iter){0};
     size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
     *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
     return (Iter){.next = queue_iter_rev_next,

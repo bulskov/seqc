@@ -6,6 +6,8 @@ extern "C" {
 #include "seqc/dlist.h"
 }
 
+#include "../oom_alloc.h"
+
 /* ---- tests ------------------------------------------------------------- */
 
 TEST(dlist, is_empty_on_create)
@@ -190,4 +192,36 @@ TEST(dlist, clear_allows_reuse)
     EXPECT_EQ(dlist_len(l), 1);
     EXPECT_EQ(*(int *)dlist_front(l), 99);
     growing_arena_destroy(a);
+}
+
+/* ---- OOM paths: an exhausted allocator must not crash ------------------ */
+
+TEST(dlist, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    DList *l = dlist_create(sizeof(int), al);
+    ASSERT_NE(l, nullptr);
+    for (int i = 0; i < 3; i++)
+        dlist_push_back(l, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = dlist_iter(l);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    dlist_free(l);
+}
+
+TEST(dlist, iter_rev_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    DList *l = dlist_create(sizeof(int), al);
+    ASSERT_NE(l, nullptr);
+    for (int i = 0; i < 3; i++)
+        dlist_push_back(l, &i);
+    ctx.remaining = 0;
+    Iter it = dlist_iter_rev(l);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    dlist_free(l);
 }

@@ -210,6 +210,8 @@ Iter dlist_iter(const DList *l)
         return (Iter){0};
     DListIterState *s =
         mem_alloc(l->allocator, sizeof *s, _Alignof(DListIterState));
+    if (!s)
+        return (Iter){0};
     *s = (DListIterState){l->head, l->elem_size};
     return (Iter){.next = dlist_iter_next_fwd,
                   .drop = dlist_iter_drop,
@@ -224,6 +226,8 @@ Iter dlist_iter_rev(const DList *l)
         return (Iter){0};
     DListIterState *s =
         mem_alloc(l->allocator, sizeof *s, _Alignof(DListIterState));
+    if (!s)
+        return (Iter){0};
     *s = (DListIterState){l->tail, l->elem_size};
     return (Iter){.next = dlist_iter_next_rev,
                   .drop = dlist_iter_drop,

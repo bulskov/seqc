@@ -261,3 +261,35 @@ TEST(queue, sys_alloc_free_releases_memory)
     queue_free(q);
     /* queue_free releases all memory — verified by sys_allocator not leaking */
 }
+
+/* ---- OOM paths: an exhausted allocator must not crash ------------------ */
+
+TEST(queue, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    Queue *q = queue_create(sizeof(int), al);
+    ASSERT_NE(q, nullptr);
+    for (int i = 0; i < 3; i++)
+        queue_push(q, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = queue_iter(q);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    queue_free(q);
+}
+
+TEST(queue, iter_rev_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    Queue *q = queue_create(sizeof(int), al);
+    ASSERT_NE(q, nullptr);
+    for (int i = 0; i < 3; i++)
+        queue_push(q, &i);
+    ctx.remaining = 0;
+    Iter it = queue_iter_rev(q);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    queue_free(q);
+}

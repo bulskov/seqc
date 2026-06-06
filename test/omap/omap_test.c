@@ -7,6 +7,8 @@ extern "C" {
 #include "seqc/string.h"
 }
 
+#include "../oom_alloc.h"
+
 /* ---- comparators ------------------------------------------------------- */
 
 static int int_cmp(const void *a, const void *b)
@@ -390,4 +392,52 @@ TEST(omap, max_entry_returns_largest_key_and_value)
     EXPECT_EQ(max_k, 7);
     EXPECT_EQ(max_v, 70);
     growing_arena_destroy(a);
+}
+
+/* ---- OOM paths: an exhausted allocator must not crash ------------------ */
+
+TEST(omap, iter_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    ASSERT_NE(m, nullptr);
+    for (int i = 0; i < 3; i++)
+        omap_set(m, &i, &i);
+    ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
+    Iter it = omap_iter(m);
+    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    iter_drop(&it);
+    omap_free(m);
+}
+
+TEST(omap, iter_rev_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    ASSERT_NE(m, nullptr);
+    for (int i = 0; i < 3; i++)
+        omap_set(m, &i, &i);
+    ctx.remaining = 0;
+    Iter it = omap_iter_rev(m);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    omap_free(m);
+}
+
+TEST(omap, iter_range_oom_returns_empty)
+{
+    OomCtx ctx;
+    allocator_t al = oom_after_allocator(64, &ctx);
+    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    ASSERT_NE(m, nullptr);
+    for (int i = 0; i < 5; i++)
+        omap_set(m, &i, &i);
+    int lo = 1, hi = 3;
+    ctx.remaining = 0;
+    Iter it = omap_iter_range(m, &lo, &hi);
+    EXPECT_EQ(it.next, nullptr);
+    iter_drop(&it);
+    omap_free(m);
 }

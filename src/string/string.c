@@ -402,6 +402,8 @@ Iter string_split(String s, String delim, allocator_t allocator)
 
     SplitState *state =
         mem_alloc(allocator, sizeof(SplitState), _Alignof(SplitState));
+    if (!state)
+        return (Iter){0};
     *state = (SplitState){s, delim, 0};
     return (Iter){.next = split_next,
                   .drop = split_drop,

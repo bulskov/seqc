@@ -196,6 +196,8 @@ Iter list_iter(const List *l)
         return (Iter){0};
     ListIterState *s =
         mem_alloc(l->allocator, sizeof *s, _Alignof(ListIterState));
+    if (!s)
+        return (Iter){0};
     *s = (ListIterState){l->head, l->elem_size};
     return (Iter){.next = list_iter_next,
                   .drop = list_iter_drop,
