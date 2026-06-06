@@ -41,6 +41,11 @@ String hello = STRING_LIT("hello");
 
 Sentinel returned by `string_find` when no match is found.
 
+### `STRING_FMT` / `STRING_ARG`
+
+Macros for printing a `String` with the `printf` family without allocating —
+see [Printing & stdio interop](#printing--stdio-interop).
+
 ---
 
 ## Construction
@@ -86,7 +91,74 @@ const char *string_to_cstr(String s, Allocator allocator);
 ```
 
 Allocate an arena-owned null-terminated copy. Use when you need to pass a
-`String` to a C API that expects `char *`.
+`String` to a C API that expects `char *` and the copy must outlive the call.
+
+### `string_to_cstr_buf`
+
+```c
+const char *string_to_cstr_buf(String s, char *buf, size_t bufsize);
+```
+
+Copy `s` into a caller-supplied buffer and null-terminate it — for passing to
+APIs that require a `const char *` (e.g. `fopen`, `getenv`) without allocating.
+Returns `buf`, or `NULL` if `buf` is `NULL` or too small to hold `s.len + 1`
+bytes.
+
+```c
+char  path[256];
+FILE *f = fopen(string_to_cstr_buf(p, path, sizeof path), "r");
+```
+
+---
+
+## Printing & stdio interop
+
+`String` is length-delimited and not null-terminated, so it cannot be passed
+directly to `printf("%s", ...)`. These helpers bridge to standard I/O without
+forcing an allocation.
+
+### `STRING_FMT` / `STRING_ARG`
+
+```c
+#define STRING_FMT     "%.*s"
+#define STRING_ARG(s)  (int)(s).len, (s).ptr
+```
+
+Print a `String` with the `printf` family using the precision form `"%.*s"`,
+which reads exactly `len` bytes and needs no terminator. Zero allocation.
+
+```c
+printf("hello, " STRING_FMT "!\n", STRING_ARG(name));
+fprintf(stderr, "bad token " STRING_FMT " at %zu\n", STRING_ARG(tok), pos);
+```
+
+Caveats: the precision argument is an `int`, so a `String` longer than
+`INT_MAX` is truncated; `STRING_ARG(s)` evaluates `s` twice (avoid arguments
+with side effects); and `"%.*s"` stops at an embedded NUL. For binary-safe
+output, use the `string_io.h` helpers below.
+
+### `string_io.h` write helpers
+
+**Header:** `include/seqc/string_io.h` — kept separate from `string.h` so the
+core string type carries no `<stdio.h>` dependency.
+
+```c
+size_t string_fwrite(String s, FILE *f);  /* write s.len bytes to f   */
+size_t string_print(String s);            /* write s to stdout        */
+size_t string_println(String s);          /* write s + '\n' to stdout */
+```
+
+Each writes exactly `s.len` bytes and is binary-safe — embedded NULs are
+preserved. Each returns the number of bytes written; `string_fwrite` returns
+`0` for a `NULL` stream or an empty string, and `string_println` counts the
+trailing newline.
+
+```c
+#include "seqc/string_io.h"
+
+string_println(STRING_LIT("hello"));      /* "hello\n" to stdout       */
+size_t n = string_fwrite(body, logfile);  /* exact bytes, NUL-safe     */
+```
 
 ---
 
@@ -397,7 +469,7 @@ Iter    it  = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
                            arena_allocator(a));
 String  tok;
 while (it.next(&it, &tok))
-    printf("%.*s\n", (int)tok.len, tok.ptr);
+    printf(STRING_FMT "\n", STRING_ARG(tok));
 iter_drop(&it);
 // prints: a / b / c
 ```
