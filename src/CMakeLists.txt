@@ -4,6 +4,7 @@ add_library(seqc STATIC
     vec/vec.c
     hashmap/hashmap.c
     string/string.c
+    string/string_io.c
     stack/stack.c
     queue/queue.c
     list/list.c

@@ -147,10 +147,35 @@ prebuilt `lib/libarena.a` and merged `include/` for this purpose.
 | `set`     | Open-addressing hash set (Robin Hood)                 | [docs/set.md](docs/set.md)         |
 | `hashmap` | Open-addressing hash map (Robin Hood)                 | [docs/hashmap.md](docs/hashmap.md) |
 | `string`  | Bounded string + StringBuilder + iter sources         | [docs/string.md](docs/string.md)   |
+| `string_io` | Optional stdio output for `String` (separate header)| [docs/string.md](docs/string.md)   |
 | `bstree`  | Unbalanced binary search tree                         | [docs/bstree.md](docs/bstree.md)   |
 | `avl`     | Self-balancing AVL tree                               | [docs/avl.md](docs/avl.md)         |
 | `omap`    | Ordered map backed by AVL tree                        | [docs/omap.md](docs/omap.md)       |
 | `pqueue`  | Binary min-heap priority queue                        | [docs/pqueue.md](docs/pqueue.md)   |
+
+## Strings and stdio interop
+
+`String` is a length-delimited view (`{ptr, len}`), not NUL-terminated. To
+print one with the `printf` family without allocating or copying, use the
+`STRING_FMT` / `STRING_ARG` macros — the standard `"%.*s"` idiom:
+
+```c
+printf("hello, " STRING_FMT "!\n", STRING_ARG(name));
+```
+
+For binary-safe output (exact byte count, tolerates embedded NULs), include
+`seqc/string_io.h` and use `string_fwrite`, `string_print`, or
+`string_println`. The header is separate so the core string type carries no
+`<stdio.h>` dependency.
+
+When an API genuinely requires a `const char *` (e.g. `fopen`, `getenv`),
+`string_to_cstr_buf` copies into a caller-supplied stack buffer with no
+allocator (or `string_to_cstr` for an allocator-owned copy):
+
+```c
+char path[256];
+FILE *f = fopen(string_to_cstr_buf(p, path, sizeof path), "r");
+```
 
 ## Quick example
 

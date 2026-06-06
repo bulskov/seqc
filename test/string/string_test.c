@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cstdio>
+
 extern "C"
 {
 #include "arena/growing_arena.h"
@@ -674,4 +676,66 @@ TEST(string, split_oom_returns_empty)
     Iter it = string_split(STRING_LIT("a,b,c"), STRING_LIT(","), al);
     EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
     iter_drop(&it);
+}
+
+/* --- printf interop (STRING_FMT / STRING_ARG) --------------------------- */
+
+TEST(string, fmt_macro_prints_view)
+{
+    char buf[64];
+    int n = snprintf(
+        buf, sizeof buf, "<" STRING_FMT ">", STRING_ARG(STRING_LIT("hello")));
+    EXPECT_EQ(n, 7);
+    EXPECT_STREQ(buf, "<hello>");
+}
+
+TEST(string, fmt_macro_respects_length_not_nul)
+{
+    /* A non-NUL-terminated slice into the middle of a larger buffer: the
+     * precision form must print exactly s.len bytes, not run to a NUL. */
+    String s = string_slice(STRING_LIT("hello world"), 0, 5);
+    char buf[16];
+    int n = snprintf(buf, sizeof buf, STRING_FMT, STRING_ARG(s));
+    EXPECT_EQ(n, 5);
+    EXPECT_STREQ(buf, "hello");
+}
+
+/* --- string_to_cstr_buf ------------------------------------------------- */
+
+TEST(string, to_cstr_buf_copies_and_terminates)
+{
+    char buf[16];
+    const char *c = string_to_cstr_buf(STRING_LIT("hi"), buf, sizeof buf);
+    ASSERT_EQ(c, buf);
+    EXPECT_STREQ(c, "hi");
+}
+
+TEST(string, to_cstr_buf_exact_fit)
+{
+    char buf[4]; /* "abc" + NUL == 4 bytes */
+    const char *c = string_to_cstr_buf(STRING_LIT("abc"), buf, sizeof buf);
+    ASSERT_NE(c, nullptr);
+    EXPECT_STREQ(c, "abc");
+}
+
+TEST(string, to_cstr_buf_rejects_too_small)
+{
+    char buf[3]; /* "abc" needs 4 bytes; 3 is too small */
+    EXPECT_EQ(
+        string_to_cstr_buf(STRING_LIT("abc"), buf, sizeof buf), nullptr);
+}
+
+TEST(string, to_cstr_buf_empty_string)
+{
+    char buf[4];
+    const char *c = string_to_cstr_buf((String){NULL, 0}, buf, sizeof buf);
+    ASSERT_NE(c, nullptr);
+    EXPECT_STREQ(c, "");
+}
+
+TEST(string, to_cstr_buf_null_buf_or_zero_size)
+{
+    char buf[4];
+    EXPECT_EQ(string_to_cstr_buf(STRING_LIT("a"), nullptr, 4), nullptr);
+    EXPECT_EQ(string_to_cstr_buf(STRING_LIT("a"), buf, 0), nullptr);
 }

@@ -51,6 +51,18 @@ const char *string_to_cstr(String s, allocator_t allocator)
     return buf;
 }
 
+const char *string_to_cstr_buf(String s, char *buf, size_t bufsize)
+{
+    if (!buf || bufsize == 0)
+        return NULL;
+    if (s.len >= bufsize) /* need s.len bytes + a NUL; overflow-safe form */
+        return NULL;
+    if (s.ptr && s.len > 0)
+        memcpy(buf, s.ptr, s.len);
+    buf[s.len] = '\0';
+    return buf;
+}
+
 /* --- Comparison --------------------------------------------------------- */
 
 bool string_equals(String a, String b)

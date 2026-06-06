@@ -17,6 +17,18 @@ typedef struct
 /* Wrap a string literal without copying */
 #define STRING_LIT(s) ((String){(s), sizeof(s) - 1})
 
+/* printf-family interop: print a String without allocating or
+ * NUL-terminating, using the precision form "%.*s".  For example:
+ *
+ *     printf("hello, " STRING_FMT "!\n", STRING_ARG(name));
+ *
+ * Caveats: precision is an int, so a String longer than INT_MAX is
+ * truncated; STRING_ARG evaluates its argument twice (avoid side effects);
+ * and "%.*s" stops at an embedded NUL.  For binary-safe, NUL-tolerant
+ * output, use the write helpers in seqc/string_io.h instead. */
+#define STRING_FMT "%.*s"
+#define STRING_ARG(s) (int)(s).len, (s).ptr
+
 /* SIZE_MAX sentinel returned by string_find when not found */
 #define STRING_NOT_FOUND SIZE_MAX
 
@@ -32,6 +44,11 @@ String string_from_cstr(const char *s, allocator_t allocator);
 String string_copy(String s, allocator_t allocator); /* allocator copy      */
 const char *string_to_cstr(
     String s, allocator_t allocator); /* copy + null-terminate */
+
+/* Copy s into a caller-provided buffer and null-terminate it, for passing to
+ * APIs that require a const char * (fopen, getenv, ...) without allocating.
+ * Returns buf, or NULL if buf is NULL or too small to hold s.len + 1 bytes. */
+const char *string_to_cstr_buf(String s, char *buf, size_t bufsize);
 
 /* --- Comparison --------------------------------------------------------- */
 
