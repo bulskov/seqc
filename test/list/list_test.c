@@ -175,9 +175,10 @@ TEST(list, sys_alloc_free_releases_nodes)
     List *l = list_create(sizeof(int), al);
     for (int i = 0; i < 4; i++)
         list_push_back(l, &i);
-    /* list_free walks the list and frees each node */
+    /* list_free walks the list and frees each node (and the List handle
+     * itself); releasing every node is verified by the leak sanitizer.
+     * `l` is dangling after this call, so it must not be dereferenced. */
     list_free(l);
-    EXPECT_TRUE(list_is_empty(l));
 }
 TEST(list, sys_alloc_pop_front_frees_node)
 {

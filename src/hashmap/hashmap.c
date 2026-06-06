@@ -219,19 +219,22 @@ HashMap *hashmap_create(
 
 void hashmap_free(HashMap *map)
 {
-    if (!map || !map->buckets)
+    if (!map)
     {
-        return; /* nothing to free */
+        return;
     }
-    for (size_t i = 0; i < map->cap; i++)
+    if (map->buckets) /* defensive: free the struct even if buckets is NULL */
     {
-        if (map->buckets[i].psl != 0)
+        for (size_t i = 0; i < map->cap; i++)
         {
-            mem_free(map->allocator, map->buckets[i].key, map->key_size);
-            mem_free(map->allocator, map->buckets[i].value, map->val_size);
+            if (map->buckets[i].psl != 0)
+            {
+                mem_free(map->allocator, map->buckets[i].key, map->key_size);
+                mem_free(map->allocator, map->buckets[i].value, map->val_size);
+            }
         }
+        mem_free(map->allocator, map->buckets, map->cap * sizeof(Bucket));
     }
-    mem_free(map->allocator, map->buckets, map->cap * sizeof(Bucket));
     allocator_t al = map->allocator;
     mem_free(al, map, sizeof(HashMap));
 }

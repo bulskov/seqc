@@ -207,12 +207,15 @@ bool set_is_empty(const Set *s)
 
 void set_free(Set *s)
 {
-    if (!s || !s->buckets)
+    if (!s)
         return;
-    for (size_t i = 0; i < s->cap; i++)
-        if (s->buckets[i].psl > 0)
-            mem_free(s->allocator, s->buckets[i].key, s->elem_size);
-    mem_free(s->allocator, s->buckets, s->cap * sizeof(SetBucket));
+    if (s->buckets) /* may be NULL: empty set, or first add OOM'd */
+    {
+        for (size_t i = 0; i < s->cap; i++)
+            if (s->buckets[i].psl > 0)
+                mem_free(s->allocator, s->buckets[i].key, s->elem_size);
+        mem_free(s->allocator, s->buckets, s->cap * sizeof(SetBucket));
+    }
     allocator_t al = s->allocator;
     mem_free(al, s, sizeof(Set));
 }

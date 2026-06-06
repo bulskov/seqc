@@ -636,6 +636,38 @@ TEST(iter, window_source_too_short)
     growing_arena_destroy(arena);
 }
 
+TEST(iter, window_zero_yields_nothing)
+{
+    int data[] = {1, 2, 3};
+    Slice s = {data, 3, sizeof(int)};
+    growing_arena_t _arena_storage;
+    growing_arena_t *arena = &_arena_storage;
+    growing_arena_init(arena, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, arena);
+    EXPECT_EQ(
+        iter_count(iter_window(iter_from_slice(s, scratch_allocator(&sc)), 0)),
+        0u);
+    scratch_end(&sc);
+    growing_arena_destroy(arena);
+}
+
+TEST(iter, chunks_zero_yields_nothing)
+{
+    int data[] = {1, 2, 3};
+    Slice s = {data, 3, sizeof(int)};
+    growing_arena_t _arena_storage;
+    growing_arena_t *arena = &_arena_storage;
+    growing_arena_init(arena, 256);
+    scratch_t sc;
+    growing_arena_scratch_begin(&sc, arena);
+    EXPECT_EQ(
+        iter_count(iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 0)),
+        0u);
+    scratch_end(&sc);
+    growing_arena_destroy(arena);
+}
+
 /* ---- iter_chunks ------------------------------------------------------- */
 
 TEST(iter, chunks_even)

@@ -301,6 +301,16 @@ TEST(set, sys_alloc_free_releases_memory)
     /* memory released — verified by sys_allocator not leaking */
 }
 
+TEST(set, sys_alloc_empty_free_releases_struct)
+{
+    allocator_t al = sys_allocator();
+    Set *s = set_create(sizeof(int), int_hash, int_eq, al);
+    EXPECT_NE(s, nullptr);
+    /* No adds: the bucket array is never allocated, but set_free must still
+     * release the Set struct itself (else it leaks). */
+    set_free(s);
+}
+
 TEST(set, sys_alloc_clear_frees_keys)
 {
     allocator_t al = sys_allocator();

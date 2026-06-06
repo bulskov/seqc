@@ -808,6 +808,8 @@ typedef struct
 static bool window_next(Iter *it, void *out)
 {
     WindowState *s = it->state;
+    if (s->n == 0)
+        return false; /* a zero-width window yields nothing */
     if (!s->primed)
     {
         /* Fill first n elements */
@@ -834,7 +836,8 @@ static void window_drop(Iter *it)
 {
     WindowState *s = it->state;
     iter_drop(&s->source);
-    mem_free(it->allocator, s->buf, s->n * s->elem_size);
+    if (s->buf)
+        mem_free(it->allocator, s->buf, s->n * s->elem_size);
     mem_free(it->allocator, s, sizeof(WindowState));
 }
 
@@ -842,9 +845,11 @@ Iter iter_window(Iter source, size_t n)
 {
     WindowState *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(WindowState));
-    char *buf = mem_alloc(
-        source.allocator, n * source.elem_size, _Alignof(max_align_t));
-    if (!s || !buf)
+    /* n == 0 needs no buffer; window_next yields nothing in that case */
+    char *buf = n ? mem_alloc(source.allocator, n * source.elem_size,
+                              _Alignof(max_align_t))
+                  : NULL;
+    if (!s || (n && !buf))
     {
         if (s)
             mem_free(source.allocator, s, sizeof(WindowState));
@@ -894,7 +899,8 @@ static void chunk_drop(Iter *it)
 {
     ChunkState *s = it->state;
     iter_drop(&s->source);
-    mem_free(it->allocator, s->buf, s->n * s->elem_size);
+    if (s->buf)
+        mem_free(it->allocator, s->buf, s->n * s->elem_size);
     mem_free(it->allocator, s, sizeof(ChunkState));
 }
 
@@ -902,9 +908,11 @@ Iter iter_chunks(Iter source, size_t n)
 {
     ChunkState *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(ChunkState));
-    char *buf = mem_alloc(
-        source.allocator, n * source.elem_size, _Alignof(max_align_t));
-    if (!s || !buf)
+    /* n == 0 needs no buffer; chunk_next yields nothing in that case */
+    char *buf = n ? mem_alloc(source.allocator, n * source.elem_size,
+                              _Alignof(max_align_t))
+                  : NULL;
+    if (!s || (n && !buf))
     {
         if (s)
             mem_free(source.allocator, s, sizeof(ChunkState));

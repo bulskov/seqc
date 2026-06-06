@@ -253,6 +253,23 @@ TEST(string, split_no_delim)
     growing_arena_destroy(a);
 }
 
+TEST(string, split_null_string_yields_one_empty_token)
+{
+    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    scratch_t sc; growing_arena_scratch_begin(&sc, a);
+    String null_str = {NULL, 0};
+    /* The iterator is consumed after string_split returns, so its yielded
+     * token must not point into string_split's own stack frame. */
+    Iter it = string_split(null_str, STRING_LIT(","), scratch_allocator(&sc));
+    String token = {(char *)1, 999}; /* poison: must be overwritten */
+    EXPECT_TRUE(it.next(&it, &token));
+    EXPECT_EQ(token.len, 0u);
+    EXPECT_FALSE(it.next(&it, &token));
+    iter_drop(&it);
+    scratch_end(&sc);
+    growing_arena_destroy(a);
+}
+
 /* --- HashMap with String keys ------------------------------------------- */
 
 TEST(string, hashmap_string_keys)

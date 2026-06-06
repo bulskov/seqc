@@ -384,9 +384,14 @@ Iter string_split(String s, String delim, allocator_t allocator)
 {
     if (s.ptr == NULL)
     {
-        /* Edge case: split on NULL string → emit one empty token */
-        String empty = {NULL, 0};
-        return iter_from_slice((Slice){&empty, 1, sizeof(String)}, allocator);
+        /* Edge case: split on NULL string → emit one empty token.  The token
+         * must outlive this call, so it is allocator-owned, not a stack local
+         * (the iterator is consumed after string_split returns). */
+        String *empty = mem_alloc(allocator, sizeof(String), _Alignof(String));
+        if (!empty)
+            return (Iter){0};
+        *empty = (String){NULL, 0};
+        return iter_from_slice((Slice){empty, 1, sizeof(String)}, allocator);
     }
 
     if (!delim.ptr || delim.len == 0)
