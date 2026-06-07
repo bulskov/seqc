@@ -4,7 +4,7 @@ Double-ended circular buffer (deque). All push/pop operations are amortised
 O(1). Random access via `ringbuf_at` is O(1). The buffer grows automatically
 when full.
 
-Because both ends are equally cheap to use, `RingBuf` can serve as a FIFO
+Because both ends are equally cheap to use, `ringbuf_t` can serve as a FIFO
 queue (push-back / pop-front), a LIFO stack (push-back / pop-back), a deque,
 or a sliding-window buffer.
 
@@ -15,10 +15,10 @@ or a sliding-window buffer.
 
 ## Type
 
-### `RingBuf`
+### `ringbuf_t`
 
 ```c
-typedef struct RingBuf RingBuf;
+typedef struct ringbuf_t ringbuf_t;
 ```
 
 Opaque handle. Backed internally by a power-of-2 flat buffer with a moving
@@ -31,7 +31,7 @@ Opaque handle. Backed internally by a power-of-2 flat buffer with a moving
 ### `ringbuf_create`
 
 ```c
-RingBuf *ringbuf_create(size_t elem_size, Allocator allocator);
+ringbuf_t *ringbuf_create(size_t elem_size, allocator_t allocator);
 ```
 
 Create an empty ring buffer. Returns `NULL` if `elem_size` is zero or the
@@ -39,7 +39,7 @@ initial allocation fails.
 
 ```c
 Arena   *a = arena_create(4096);
-RingBuf *r = ringbuf_create(sizeof(int), arena_allocator(a));
+ringbuf_t *r = ringbuf_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -47,7 +47,7 @@ RingBuf *r = ringbuf_create(sizeof(int), arena_allocator(a));
 ### `ringbuf_push_back`
 
 ```c
-SeqcStatus ringbuf_push_back(RingBuf *r, const void *elem);
+seqc_status_t ringbuf_push_back(ringbuf_t *r, const void *elem);
 ```
 
 Append a copy of `elem` to the back (tail). Grows the buffer if full.
@@ -58,7 +58,7 @@ Returns `SEQC_OOM` on allocation failure; `SEQC_OK` otherwise.
 ### `ringbuf_push_front`
 
 ```c
-SeqcStatus ringbuf_push_front(RingBuf *r, const void *elem);
+seqc_status_t ringbuf_push_front(ringbuf_t *r, const void *elem);
 ```
 
 Prepend a copy of `elem` to the front (head). Grows the buffer if full.
@@ -69,7 +69,7 @@ Returns `SEQC_OOM` on allocation failure; `SEQC_OK` otherwise.
 ### `ringbuf_pop_front`
 
 ```c
-SeqcStatus ringbuf_pop_front(RingBuf *r, void *out);
+seqc_status_t ringbuf_pop_front(ringbuf_t *r, void *out);
 ```
 
 Remove the front element. Copies it into `*out` if `out` is not `NULL`.
@@ -86,7 +86,7 @@ while (ringbuf_pop_front(r, &val) == SEQC_OK)
 ### `ringbuf_pop_back`
 
 ```c
-SeqcStatus ringbuf_pop_back(RingBuf *r, void *out);
+seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out);
 ```
 
 Remove the back element. Copies it into `*out` if `out` is not `NULL`.
@@ -97,7 +97,7 @@ Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty.
 ### `ringbuf_at`
 
 ```c
-SeqcStatus ringbuf_at(const RingBuf *r, size_t i, void *out);
+seqc_status_t ringbuf_at(const ringbuf_t *r, size_t i, void *out);
 ```
 
 Copy the element at logical index `i` (0 = front) into `*out`. `out` may be
@@ -115,9 +115,9 @@ ringbuf_at(r, ringbuf_len(r) - 1, &back);
 ### `ringbuf_len` / `ringbuf_cap` / `ringbuf_is_empty`
 
 ```c
-size_t ringbuf_len(const RingBuf *r);
-size_t ringbuf_cap(const RingBuf *r);
-bool   ringbuf_is_empty(const RingBuf *r);
+size_t ringbuf_len(const ringbuf_t *r);
+size_t ringbuf_cap(const ringbuf_t *r);
+bool   ringbuf_is_empty(const ringbuf_t *r);
 ```
 
 `len` — number of elements currently stored.  
@@ -129,13 +129,13 @@ bool   ringbuf_is_empty(const RingBuf *r);
 ### `ringbuf_iter`
 
 ```c
-Iter ringbuf_iter(const RingBuf *r);
+iter_t ringbuf_iter(const ringbuf_t *r);
 ```
 
-Create a forward [`Iter`](iter.md) from front to back.
+Create a forward [`iter_t`](iter.md) from front to back.
 
 ```c
-Iter it = ringbuf_iter(r);
+iter_t it = ringbuf_iter(r);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
@@ -145,17 +145,17 @@ iter_drop(&it);
 ### `ringbuf_iter_rev`
 
 ```c
-Iter ringbuf_iter_rev(const RingBuf *r);
+iter_t ringbuf_iter_rev(const ringbuf_t *r);
 ```
 
-Create a reverse [`Iter`](iter.md) from back to front.
+Create a reverse [`iter_t`](iter.md) from back to front.
 
 ---
 
 ### `ringbuf_clear`
 
 ```c
-void ringbuf_clear(RingBuf *r);
+void ringbuf_clear(ringbuf_t *r);
 ```
 
 Remove all elements. The allocated buffer is retained, so subsequent pushes
@@ -166,10 +166,10 @@ will not reallocate until capacity is exhausted again.
 ### `ringbuf_free`
 
 ```c
-void ringbuf_free(RingBuf *r);
+void ringbuf_free(ringbuf_t *r);
 ```
 
-Free the buffer and the `RingBuf` struct itself. Do not use `r` after calling
+Free the buffer and the `ringbuf_t` struct itself. Do not use `r` after calling
 this.
 
 ---
@@ -181,7 +181,7 @@ this.
 #include "seqc/arena.h"
 
 Arena   *a = arena_create(4096);
-RingBuf *w = ringbuf_create(sizeof(int), arena_allocator(a));
+ringbuf_t *w = ringbuf_create(sizeof(int), arena_allocator(a));
 
 int stream[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 const size_t WINDOW = 4;
@@ -200,7 +200,7 @@ arena_free(a);
 ## Example: deque
 
 ```c
-RingBuf *d = ringbuf_create(sizeof(int), arena_allocator(a));
+ringbuf_t *d = ringbuf_create(sizeof(int), arena_allocator(a));
 
 int vals[] = {3, 4, 5};
 for (int i = 0; i < 3; i++) ringbuf_push_back(d, &vals[i]);

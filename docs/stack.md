@@ -1,6 +1,6 @@
 # stack
 
-LIFO stack backed by a [`Vec`](vec.md).
+LIFO stack backed by a [`vec_t`](vec.md).
 
 **Header:** `include/seqc/stack.h`  
 **See also:** [`vec`](vec.md) · [`iter`](iter.md) · [`arena`](arena.md)
@@ -9,13 +9,13 @@ LIFO stack backed by a [`Vec`](vec.md).
 
 ## Type
 
-### `Stack`
+### `seqc_stack_t`
 
 ```c
-typedef struct Stack Stack;
+typedef struct seqc_stack_t seqc_stack_t;
 ```
 
-Opaque handle. Backed internally by a [`Vec`](vec.md).
+Opaque handle. Backed internally by a [`vec_t`](vec.md).
 
 ---
 
@@ -24,14 +24,14 @@ Opaque handle. Backed internally by a [`Vec`](vec.md).
 ### `stack_create`
 
 ```c
-Stack *stack_create(size_t elem_size, Allocator allocator);
+seqc_stack_t *stack_create(size_t elem_size, allocator_t allocator);
 ```
 
 Create an empty stack. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-Stack *s = stack_create(sizeof(int), arena_allocator(a));
+seqc_stack_t *s = stack_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -39,10 +39,10 @@ Stack *s = stack_create(sizeof(int), arena_allocator(a));
 ### `stack_push`
 
 ```c
-SeqcStatus stack_push(Stack *s, const void *elem);
+seqc_status_t stack_push(seqc_stack_t *s, const void *elem);
 ```
 
-Push a copy of `elem` onto the top. Returns `SEQC_OOM` if the underlying Vec
+Push a copy of `elem` onto the top. Returns `SEQC_OOM` if the underlying vec_t
 fails to grow; `SEQC_OK` otherwise.
 
 ---
@@ -50,7 +50,7 @@ fails to grow; `SEQC_OK` otherwise.
 ### `stack_pop`
 
 ```c
-SeqcStatus stack_pop(Stack *s, void *out);
+seqc_status_t stack_pop(seqc_stack_t *s, void *out);
 ```
 
 Remove the top element. Copies it into `*out` if `out` is not `NULL`.
@@ -67,7 +67,7 @@ if (stack_pop(s, &val) == SEQC_OK)
 ### `stack_peek`
 
 ```c
-void *stack_peek(const Stack *s);
+void *stack_peek(const seqc_stack_t *s);
 ```
 
 Return a pointer to the top element without removing it. Returns `NULL` if
@@ -78,8 +78,8 @@ the stack is empty.
 ### `stack_is_empty` / `stack_len`
 
 ```c
-bool   stack_is_empty(const Stack *s);
-size_t stack_len(const Stack *s);
+bool   stack_is_empty(const seqc_stack_t *s);
+size_t stack_len(const seqc_stack_t *s);
 ```
 
 ---
@@ -87,7 +87,7 @@ size_t stack_len(const Stack *s);
 ### `stack_iter`
 
 ```c
-Iter stack_iter(const Stack *s);
+iter_t stack_iter(const seqc_stack_t *s);
 ```
 
 Iterate from **bottom to top** (insertion order). For most stack use cases you
@@ -98,7 +98,7 @@ want to `pop` elements one at a time rather than iterate.
 ### `stack_iter_rev`
 
 ```c
-Iter stack_iter_rev(const Stack *s);
+iter_t stack_iter_rev(const seqc_stack_t *s);
 ```
 
 Iterate from **top to bottom** (reverse insertion order — LIFO order).
@@ -108,20 +108,20 @@ Iterate from **top to bottom** (reverse insertion order — LIFO order).
 ### `stack_clear`
 
 ```c
-void stack_clear(Stack *s);
+void stack_clear(seqc_stack_t *s);
 ```
 
-Empty the stack. The underlying Vec buffer is retained.
+Empty the stack. The underlying vec_t buffer is retained.
 
 ---
 
 ### `stack_free`
 
 ```c
-void stack_free(Stack *s);
+void stack_free(seqc_stack_t *s);
 ```
 
-Free the Stack and all its internal storage. Do not use `s` after calling this.
+Free the stack and all its internal storage. Do not use `s` after calling this.
 
 ---
 
@@ -129,7 +129,7 @@ Free the Stack and all its internal storage. Do not use `s` after calling this.
 
 ```c
 Arena *a = arena_create(4096);
-Stack *s = stack_create(sizeof(int), arena_allocator(a));
+seqc_stack_t *s = stack_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
     stack_push(s, &i);

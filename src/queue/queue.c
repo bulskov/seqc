@@ -6,7 +6,7 @@
 
 #define INITIAL_CAP 16
 
-struct Queue
+struct queue_t
 {
     char *buf;
     size_t cap;
@@ -16,12 +16,12 @@ struct Queue
     allocator_t allocator;
 };
 
-Queue *queue_create(size_t elem_size, allocator_t allocator)
+queue_t *queue_create(size_t elem_size, allocator_t allocator)
 {
-    Queue *q = mem_alloc(allocator, sizeof(Queue), _Alignof(Queue));
+    queue_t *q = mem_alloc(allocator, sizeof(queue_t), _Alignof(queue_t));
     if (!q)
         return NULL;
-    *q = (Queue){.buf = NULL,
+    *q = (queue_t){.buf = NULL,
                  .cap = 0,
                  .len = 0,
                  .head = 0,
@@ -30,7 +30,7 @@ Queue *queue_create(size_t elem_size, allocator_t allocator)
     return q;
 }
 
-static SeqcStatus queue_grow(Queue *q)
+static seqc_status_t queue_grow(queue_t *q)
 {
     if (q->cap > SIZE_MAX / 2)
         return SEQC_OOM;
@@ -56,13 +56,13 @@ static SeqcStatus queue_grow(Queue *q)
     return SEQC_OK;
 }
 
-SeqcStatus queue_push(Queue *q, const void *elem)
+seqc_status_t queue_push(queue_t *q, const void *elem)
 {
     if (!q || !elem)
         return SEQC_INVALID;
     if (q->len == q->cap)
     {
-        SeqcStatus s = queue_grow(q);
+        seqc_status_t s = queue_grow(q);
         if (s != SEQC_OK)
             return s;
     }
@@ -72,7 +72,7 @@ SeqcStatus queue_push(Queue *q, const void *elem)
     return SEQC_OK;
 }
 
-SeqcStatus queue_pop(Queue *q, void *out)
+seqc_status_t queue_pop(queue_t *q, void *out)
 {
     if (!q || q->len == 0)
         return SEQC_NOT_FOUND;
@@ -83,14 +83,14 @@ SeqcStatus queue_pop(Queue *q, void *out)
     return SEQC_OK;
 }
 
-void *queue_peek(const Queue *q)
+void *queue_peek(const queue_t *q)
 {
     if (!q || q->len == 0)
         return NULL;
     return q->buf + q->head * q->elem_size;
 }
 
-void *queue_back(const Queue *q)
+void *queue_back(const queue_t *q)
 {
     if (!q || q->len == 0)
         return NULL;
@@ -98,17 +98,17 @@ void *queue_back(const Queue *q)
     return q->buf + tail * q->elem_size;
 }
 
-bool queue_is_empty(const Queue *q)
+bool queue_is_empty(const queue_t *q)
 {
     return !q || q->len == 0;
 }
 
-size_t queue_len(const Queue *q)
+size_t queue_len(const queue_t *q)
 {
     return q ? q->len : 0;
 }
 
-void queue_clear(Queue *q)
+void queue_clear(queue_t *q)
 {
     if (q)
     {
@@ -117,14 +117,14 @@ void queue_clear(Queue *q)
     }
 }
 
-void queue_free(Queue *q)
+void queue_free(queue_t *q)
 {
     if (!q)
         return;
     if (q->buf)
         mem_free(q->allocator, q->buf, q->cap * q->elem_size);
     allocator_t al = q->allocator;
-    mem_free(al, q, sizeof(Queue));
+    mem_free(al, q, sizeof(queue_t));
 }
 
 /* ---- iter -------------------------------------------------------------- */
@@ -136,11 +136,11 @@ typedef struct
     size_t cap;
     size_t remaining;
     size_t elem_size;
-} QueueIterState;
+} queue_iter_state_t;
 
-static bool queue_iter_next(Iter *it, void *out)
+static bool queue_iter_next(iter_t *it, void *out)
 {
-    QueueIterState *s = it->state;
+    queue_iter_state_t *s = it->state;
     if (s->remaining == 0 || s->cap == 0)
         return false;
     memcpy(out, s->buf + s->head * s->elem_size, s->elem_size);
@@ -149,21 +149,21 @@ static bool queue_iter_next(Iter *it, void *out)
     return true;
 }
 
-static void queue_iter_drop(Iter *it)
+static void queue_iter_drop(iter_t *it)
 {
-    mem_free(it->allocator, it->state, sizeof(QueueIterState));
+    mem_free(it->allocator, it->state, sizeof(queue_iter_state_t));
 }
 
-Iter queue_iter(const Queue *q)
+iter_t queue_iter(const queue_t *q)
 {
     if (!q)
-        return (Iter){0};
-    QueueIterState *s =
-        mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterState));
+        return (iter_t){0};
+    queue_iter_state_t *s =
+        mem_alloc(q->allocator, sizeof *s, _Alignof(queue_iter_state_t));
     if (!s)
-        return (Iter){0};
-    *s = (QueueIterState){q->buf, q->head, q->cap, q->len, q->elem_size};
-    return (Iter){.next = queue_iter_next,
+        return (iter_t){0};
+    *s = (queue_iter_state_t){q->buf, q->head, q->cap, q->len, q->elem_size};
+    return (iter_t){.next = queue_iter_next,
                   .drop = queue_iter_drop,
                   .state = s,
                   .elem_size = q->elem_size,
@@ -179,11 +179,11 @@ typedef struct
     size_t cap;
     size_t remaining;
     size_t elem_size;
-} QueueIterRevState;
+} queue_iter_rev_state_t;
 
-static bool queue_iter_rev_next(Iter *it, void *out)
+static bool queue_iter_rev_next(iter_t *it, void *out)
 {
-    QueueIterRevState *s = it->state;
+    queue_iter_rev_state_t *s = it->state;
     if (s->remaining == 0 || s->cap == 0)
         return false;
     memcpy(out, s->buf + s->tail * s->elem_size, s->elem_size);
@@ -192,22 +192,22 @@ static bool queue_iter_rev_next(Iter *it, void *out)
     return true;
 }
 
-static void queue_iter_rev_drop(Iter *it)
+static void queue_iter_rev_drop(iter_t *it)
 {
-    mem_free(it->allocator, it->state, sizeof(QueueIterRevState));
+    mem_free(it->allocator, it->state, sizeof(queue_iter_rev_state_t));
 }
 
-Iter queue_iter_rev(const Queue *q)
+iter_t queue_iter_rev(const queue_t *q)
 {
     if (!q)
-        return (Iter){0};
-    QueueIterRevState *s =
-        mem_alloc(q->allocator, sizeof *s, _Alignof(QueueIterRevState));
+        return (iter_t){0};
+    queue_iter_rev_state_t *s =
+        mem_alloc(q->allocator, sizeof *s, _Alignof(queue_iter_rev_state_t));
     if (!s)
-        return (Iter){0};
+        return (iter_t){0};
     size_t tail = (q->len > 0) ? (q->head + q->len - 1) % q->cap : 0;
-    *s = (QueueIterRevState){q->buf, tail, q->cap, q->len, q->elem_size};
-    return (Iter){.next = queue_iter_rev_next,
+    *s = (queue_iter_rev_state_t){q->buf, tail, q->cap, q->len, q->elem_size};
+    return (iter_t){.next = queue_iter_rev_next,
                   .drop = queue_iter_rev_drop,
                   .state = s,
                   .elem_size = q->elem_size,

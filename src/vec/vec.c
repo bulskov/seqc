@@ -7,7 +7,7 @@
 
 #define INITIAL_CAP 16
 
-struct Vec
+struct vec_t
 {
     void *data;
     size_t len;
@@ -16,16 +16,16 @@ struct Vec
     allocator_t allocator;
 };
 
-Vec *vec_create(size_t elem_size, allocator_t allocator)
+vec_t *vec_create(size_t elem_size, allocator_t allocator)
 {
     if (elem_size == 0 || !allocator.vt)
     {
         return NULL;
     }
-    Vec *v = mem_alloc(allocator, sizeof(Vec), _Alignof(Vec));
+    vec_t *v = mem_alloc(allocator, sizeof(vec_t), _Alignof(vec_t));
     if (!v)
         return NULL;
-    *v = (Vec){.data = NULL,
+    *v = (vec_t){.data = NULL,
                .len = 0,
                .cap = 0,
                .elem_size = elem_size,
@@ -33,16 +33,16 @@ Vec *vec_create(size_t elem_size, allocator_t allocator)
     return v;
 }
 
-Vec *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
+vec_t *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
 {
     if (elem_size == 0 || capacity == 0 || !allocator.vt)
     {
         return NULL;
     }
-    Vec *v = mem_alloc(allocator, sizeof(Vec), _Alignof(Vec));
+    vec_t *v = mem_alloc(allocator, sizeof(vec_t), _Alignof(vec_t));
     if (!v)
         return NULL;
-    *v = (Vec){.data = mem_alloc(
+    *v = (vec_t){.data = mem_alloc(
                    allocator, capacity * elem_size, _Alignof(max_align_t)),
                .len = 0,
                .cap = capacity,
@@ -50,28 +50,28 @@ Vec *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
                .allocator = allocator};
     if (!v->data)
     {
-        mem_free(allocator, v, sizeof(Vec));
+        mem_free(allocator, v, sizeof(vec_t));
         return NULL;
     }
     return v;
 }
 
-size_t vec_len(const Vec *v)
+size_t vec_len(const vec_t *v)
 {
     return v ? v->len : 0;
 }
 
-size_t vec_elem_size(const Vec *v)
+size_t vec_elem_size(const vec_t *v)
 {
     return v ? v->elem_size : 0;
 }
 
-size_t vec_cap(const Vec *v)
+size_t vec_cap(const vec_t *v)
 {
     return v ? v->cap : 0;
 }
 
-SeqcStatus vec_push(Vec *v, const void *elem)
+seqc_status_t vec_push(vec_t *v, const void *elem)
 {
     if (!v || !elem)
         return SEQC_INVALID;
@@ -97,7 +97,7 @@ SeqcStatus vec_push(Vec *v, const void *elem)
     return SEQC_OK;
 }
 
-void *vec_get(const Vec *v, size_t i)
+void *vec_get(const vec_t *v, size_t i)
 {
     if (!v || i >= v->len)
     {
@@ -106,7 +106,7 @@ void *vec_get(const Vec *v, size_t i)
     return (char *)v->data + i * v->elem_size;
 }
 
-SeqcStatus vec_get_copy(const Vec *v, size_t i, void *out)
+seqc_status_t vec_get_copy(const vec_t *v, size_t i, void *out)
 {
     if (!v || !out)
         return SEQC_INVALID;
@@ -116,34 +116,34 @@ SeqcStatus vec_get_copy(const Vec *v, size_t i, void *out)
     return SEQC_OK;
 }
 
-Slice vec_as_slice(const Vec *v)
+slice_t vec_as_slice(const vec_t *v)
 {
     if (!v)
     {
-        return (Slice){0};
+        return (slice_t){0};
     }
-    return (Slice){v->data, v->len, v->elem_size};
+    return (slice_t){v->data, v->len, v->elem_size};
 }
 
-Iter vec_iter(const Vec *v)
+iter_t vec_iter(const vec_t *v)
 {
     if (!v)
     {
-        return (Iter){0};
+        return (iter_t){0};
     }
     return iter_from_slice(vec_as_slice(v), v->allocator);
 }
 
-Iter vec_iter_rev(const Vec *v)
+iter_t vec_iter_rev(const vec_t *v)
 {
     if (!v)
     {
-        return (Iter){0};
+        return (iter_t){0};
     }
     return iter_from_slice_rev(vec_as_slice(v), v->allocator);
 }
 
-SeqcStatus vec_pop(Vec *v, void *out)
+seqc_status_t vec_pop(vec_t *v, void *out)
 {
     if (!v || v->len == 0)
         return SEQC_NOT_FOUND;
@@ -153,14 +153,14 @@ SeqcStatus vec_pop(Vec *v, void *out)
     return SEQC_OK;
 }
 
-void vec_set(Vec *v, size_t i, const void *elem)
+void vec_set(vec_t *v, size_t i, const void *elem)
 {
     if (!v || !elem || i >= v->len)
         return;
     memcpy((char *)v->data + i * v->elem_size, elem, v->elem_size);
 }
 
-SeqcStatus vec_reserve(Vec *v, size_t capacity)
+seqc_status_t vec_reserve(vec_t *v, size_t capacity)
 {
     if (!v)
         return SEQC_INVALID;
@@ -180,7 +180,7 @@ SeqcStatus vec_reserve(Vec *v, size_t capacity)
     return SEQC_OK;
 }
 
-SeqcStatus vec_insert(Vec *v, size_t i, const void *elem)
+seqc_status_t vec_insert(vec_t *v, size_t i, const void *elem)
 {
     if (!v || !elem || i > v->len)
         return SEQC_INVALID;
@@ -188,7 +188,7 @@ SeqcStatus vec_insert(Vec *v, size_t i, const void *elem)
     if (v->len == v->cap)
     {
         size_t new_cap = v->cap == 0 ? INITIAL_CAP : v->cap * 2;
-        SeqcStatus s = vec_reserve(v, new_cap);
+        seqc_status_t s = vec_reserve(v, new_cap);
         if (s != SEQC_OK)
             return s;
     }
@@ -202,7 +202,7 @@ SeqcStatus vec_insert(Vec *v, size_t i, const void *elem)
     return SEQC_OK;
 }
 
-void vec_remove(Vec *v, size_t i)
+void vec_remove(vec_t *v, size_t i)
 {
     if (!v || i >= v->len)
         return;
@@ -214,13 +214,13 @@ void vec_remove(Vec *v, size_t i)
     v->len--;
 }
 
-void vec_clear(Vec *v)
+void vec_clear(vec_t *v)
 {
     if (v)
         v->len = 0;
 }
 
-void *vec_find(const Vec *v, pred_fn pred, void *ctx)
+void *vec_find(const vec_t *v, pred_fn pred, void *ctx)
 {
     if (!v || !pred)
         return NULL;
@@ -233,29 +233,29 @@ void *vec_find(const Vec *v, pred_fn pred, void *ctx)
     return NULL;
 }
 
-bool vec_contains(const Vec *v, pred_fn pred, void *ctx)
+bool vec_contains(const vec_t *v, pred_fn pred, void *ctx)
 {
     return vec_find(v, pred, ctx) != NULL;
 }
 
-void vec_free(Vec *v)
+void vec_free(vec_t *v)
 {
     if (!v)
         return;
     if (v->data)
         mem_free(v->allocator, v->data, v->cap * v->elem_size);
     allocator_t al = v->allocator;
-    mem_free(al, v, sizeof(Vec));
+    mem_free(al, v, sizeof(vec_t));
 }
 
-void vec_sort(Vec *v, compare_fn cmp)
+void vec_sort(vec_t *v, compare_fn cmp)
 {
     if (!v || !cmp || v->len < 2)
         return;
     qsort(v->data, v->len, v->elem_size, cmp);
 }
 
-SeqcStatus vec_extend(Vec *v, Iter it)
+seqc_status_t vec_extend(vec_t *v, iter_t it)
 {
     if (!v)
     {
@@ -268,7 +268,7 @@ SeqcStatus vec_extend(Vec *v, Iter it)
         iter_drop(&it);
         return SEQC_OOM;
     }
-    SeqcStatus st = SEQC_OK;
+    seqc_status_t st = SEQC_OK;
     while (it.next(&it, elem))
     {
         st = vec_push(v, elem);

@@ -7,12 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-07
+
+### Added
+
+- `string_split_any(s, set, al)`: split on **any** single character in `set`,
+  with each matching character acting as its own boundary. Empty tokens are
+  kept, so whitespace-style tokenisation is `string_split_any` composed with
+  `iter_filter` to drop the empties.
+
+### Changed
+
+- **BREAKING:** all public types are renamed from `TitleCase` to lowercase
+  `snake_case_t`, matching the C standard library and the `arena_allocator`
+  dependency (no more mixing `String`/`Iter` with `allocator_t` in one
+  signature). Examples: `String`→`string_t`, `Iter`→`iter_t`, `Vec`→`vec_t`,
+  `List`→`list_t`, `HashMap`→`hashmap_t`, `BSTree`→`bstree_t`, `AVLTree`→`avl_t`,
+  `SeqcStatus`→`seqc_status_t`, `MapEntry`→`map_entry_t`. The `Stack` type
+  becomes **`seqc_stack_t`** (not `stack_t`, which POSIX reserves in
+  `<signal.h>`).
+- **BREAKING:** `StringBuilder` is renamed to `strbuf_t` and its `sb_*`
+  functions to `strbuf_*` (e.g. `sb_append` → `strbuf_append`).
+- **BREAKING:** `string_split` is renamed to `string_split_substr` to make the
+  match semantics explicit alongside the new `string_split_any`. The behaviour
+  is otherwise unchanged (split on a contiguous substring, empty tokens kept).
+- **BREAKING:** splitting on an empty delimiter/set now yields the input as a
+  single token instead of emitting each character. Use `string_chars` for
+  per-character iteration.
+
 ## [1.1.0] - 2026-06-07
 
 ### Added
 
-- String/stdio interop: `STRING_FMT` and `STRING_ARG` macros for printing a
-  `String` via `printf`'s `"%.*s"` form without allocating; a new
+- string_t/stdio interop: `STRING_FMT` and `STRING_ARG` macros for printing a
+  `string_t` via `printf`'s `"%.*s"` form without allocating; a new
   `seqc/string_io.h` header with binary-safe `string_fwrite` / `string_print`
   / `string_println` (keeps `<stdio.h>` out of the core string type); and
   `string_to_cstr_buf` for NUL-terminating into a caller-supplied stack buffer.

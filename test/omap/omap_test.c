@@ -19,7 +19,7 @@ static int int_cmp(const void *a, const void *b)
 
 static int string_cmp(const void *a, const void *b)
 {
-    return string_compare(*(const String *)a, *(const String *)b);
+    return string_compare(*(const string_t *)a, *(const string_t *)b);
 }
 
 /* ---- basic tests ------------------------------------------------------- */
@@ -27,7 +27,7 @@ static int string_cmp(const void *a, const void *b)
 TEST(omap, empty_on_create)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     EXPECT_EQ(omap_len(m), 0);
     int mk;
     EXPECT_NE(omap_min_key(m, &mk), SEQC_OK);
@@ -38,7 +38,7 @@ TEST(omap, empty_on_create)
 TEST(omap, set_and_get)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int k1 = 1, v1 = 100;
     int k2 = 2, v2 = 200;
     int k3 = 3, v3 = 300;
@@ -56,7 +56,7 @@ TEST(omap, set_and_get)
 TEST(omap, update_existing_key)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int k = 5, v1 = 10, v2 = 99;
     EXPECT_EQ(omap_set(m, &k, &v1), SEQC_OK); /* inserted */
     EXPECT_EQ(omap_set(m, &k, &v2), SEQC_OK); /* updated  */
@@ -70,7 +70,7 @@ TEST(omap, update_existing_key)
 TEST(omap, get_missing_returns_null)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int k = 42;
     EXPECT_NE(omap_get(m, &k, NULL), SEQC_OK);
     growing_arena_destroy(a);
@@ -79,7 +79,7 @@ TEST(omap, get_missing_returns_null)
 TEST(omap, contains)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int present = 7, absent = 8;
     int v = 0;
     omap_set(m, &present, &v);
@@ -91,7 +91,7 @@ TEST(omap, contains)
 TEST(omap, min_max_keys)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {5, 1, 8, 3, 9, 2};
     int v = 0;
     for (int i = 0; i < 6; i++)
@@ -107,7 +107,7 @@ TEST(omap, min_max_keys)
 TEST(omap, remove_existing)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int k = 5, v = 50;
     omap_set(m, &k, &v);
     EXPECT_EQ(omap_remove(m, &k), SEQC_OK);
@@ -119,7 +119,7 @@ TEST(omap, remove_existing)
 TEST(omap, remove_nonexistent_returns_0)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int k = 99;
     EXPECT_NE(omap_remove(m, &k), SEQC_OK);
     growing_arena_destroy(a);
@@ -128,7 +128,7 @@ TEST(omap, remove_nonexistent_returns_0)
 TEST(omap, remove_rebalances)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 0;
     for (int i = 1; i <= 7; i++)
         omap_set(m, &i, &v);
@@ -143,7 +143,7 @@ TEST(omap, remove_rebalances)
 TEST(omap, iter_ascending_order)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
     {
@@ -151,8 +151,8 @@ TEST(omap, iter_ascending_order)
         omap_set(m, &keys[i], &v);
     }
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = omap_iter(m);
-    OMapEntry entries[7];
+    iter_t it = omap_iter(m);
+    omap_entry_t entries[7];
     size_t n = 0;
     while (it.next(&it, &entries[n]))
         n++;
@@ -170,7 +170,7 @@ TEST(omap, iter_ascending_order)
 TEST(omap, iter_empty)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
     EXPECT_EQ(iter_count(omap_iter(m)), 0);
     scratch_end(&sc);
@@ -182,11 +182,11 @@ TEST(omap, iter_empty)
 TEST(omap, string_keys)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 2048);
-    OMap *m = omap_create(
-        sizeof(String), sizeof(int), string_cmp, growing_arena_allocator(a));
-    String k1 = STRING_LIT("banana");
-    String k2 = STRING_LIT("apple");
-    String k3 = STRING_LIT("cherry");
+    omap_t *m = omap_create(
+        sizeof(string_t), sizeof(int), string_cmp, growing_arena_allocator(a));
+    string_t k1 = STRING_LIT("banana");
+    string_t k2 = STRING_LIT("apple");
+    string_t k3 = STRING_LIT("cherry");
     int v1 = 1, v2 = 2, v3 = 3;
     omap_set(m, &k1, &v1);
     omap_set(m, &k2, &v2);
@@ -196,14 +196,14 @@ TEST(omap, string_keys)
     EXPECT_EQ(gv, 2);
     /* iterator must yield keys in lexicographic order: apple, banana, cherry */
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = omap_iter(m);
-    OMapEntry e;
+    iter_t it = omap_iter(m);
+    omap_entry_t e;
     it.next(&it, &e);
-    EXPECT_TRUE(string_equals(*(String *)e.key, STRING_LIT("apple")));
+    EXPECT_TRUE(string_equals(*(string_t *)e.key, STRING_LIT("apple")));
     it.next(&it, &e);
-    EXPECT_TRUE(string_equals(*(String *)e.key, STRING_LIT("banana")));
+    EXPECT_TRUE(string_equals(*(string_t *)e.key, STRING_LIT("banana")));
     it.next(&it, &e);
-    EXPECT_TRUE(string_equals(*(String *)e.key, STRING_LIT("cherry")));
+    EXPECT_TRUE(string_equals(*(string_t *)e.key, STRING_LIT("cherry")));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -214,7 +214,7 @@ TEST(omap, string_keys)
 TEST(omap, height_stays_logarithmic)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 65536);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 0;
     for (int i = 0; i < 1000; i++)
         omap_set(m, &i, &v);
@@ -228,7 +228,7 @@ TEST(omap, height_stays_logarithmic)
 TEST(omap, iter_rev_descending)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {4, 2, 6, 1, 3, 5, 7};
     for (int i = 0; i < 7; i++)
     {
@@ -236,8 +236,8 @@ TEST(omap, iter_rev_descending)
         omap_set(m, &keys[i], &v);
     }
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = omap_iter_rev(m);
-    OMapEntry e;
+    iter_t it = omap_iter_rev(m);
+    omap_entry_t e;
     int prev_key = 8; /* larger than any key */
     int n = 0;
     while (it.next(&it, &e))
@@ -256,15 +256,15 @@ TEST(omap, iter_rev_descending)
 TEST(omap, iter_range_mid)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 1; i <= 10; i++)
     {
         int v = i * 100;
         omap_set(m, &i, &v);
     }
     int lo = 3, hi = 7;
-    Iter it = omap_iter_range(m, &lo, &hi);
-    OMapEntry e;
+    iter_t it = omap_iter_range(m, &lo, &hi);
+    omap_entry_t e;
     int n = 0;
     int prev = 0;
     while (it.next(&it, &e))
@@ -285,15 +285,15 @@ TEST(omap, iter_range_mid)
 TEST(omap, iter_range_no_lo)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 1; i <= 5; i++)
     {
         int v = 0;
         omap_set(m, &i, &v);
     }
     int hi = 3;
-    Iter it = omap_iter_range(m, NULL, &hi);
-    OMapEntry e;
+    iter_t it = omap_iter_range(m, NULL, &hi);
+    omap_entry_t e;
     int n = 0;
     while (it.next(&it, &e))
         n++;
@@ -305,7 +305,7 @@ TEST(omap, iter_range_no_lo)
 TEST(omap, iter_range_empty_result)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {1, 5, 10};
     for (int i = 0; i < 3; i++)
     {
@@ -313,8 +313,8 @@ TEST(omap, iter_range_empty_result)
         omap_set(m, &keys[i], &v);
     }
     int lo = 6, hi = 9;
-    Iter it = omap_iter_range(m, &lo, &hi);
-    OMapEntry e;
+    iter_t it = omap_iter_range(m, &lo, &hi);
+    omap_entry_t e;
     EXPECT_TRUE(!it.next(&it, &e));
     iter_drop(&it);
     growing_arena_destroy(a);
@@ -325,7 +325,7 @@ TEST(omap, iter_range_empty_result)
 TEST(omap, clear_empties_map)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {3, 1, 5};
     for (int i = 0; i < 3; i++)
     {
@@ -343,7 +343,7 @@ TEST(omap, clear_empties_map)
 TEST(omap, clear_allows_reuse)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {3, 1, 5};
     for (int i = 0; i < 3; i++)
     {
@@ -363,7 +363,7 @@ TEST(omap, clear_allows_reuse)
 TEST(omap, min_entry_returns_smallest_key_and_value)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
     {
@@ -380,7 +380,7 @@ TEST(omap, min_entry_returns_smallest_key_and_value)
 TEST(omap, max_entry_returns_largest_key_and_value)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, growing_arena_allocator(a));
     int keys[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
     {
@@ -398,14 +398,14 @@ TEST(omap, max_entry_returns_largest_key_and_value)
 
 TEST(omap, iter_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
     ASSERT_NE(m, nullptr);
     for (int i = 0; i < 3; i++)
         omap_set(m, &i, &i);
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
-    Iter it = omap_iter(m);
+    iter_t it = omap_iter(m);
     EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
     iter_drop(&it);
     omap_free(m);
@@ -413,14 +413,14 @@ TEST(omap, iter_oom_returns_empty)
 
 TEST(omap, iter_rev_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
     ASSERT_NE(m, nullptr);
     for (int i = 0; i < 3; i++)
         omap_set(m, &i, &i);
     ctx.remaining = 0;
-    Iter it = omap_iter_rev(m);
+    iter_t it = omap_iter_rev(m);
     EXPECT_EQ(it.next, nullptr);
     iter_drop(&it);
     omap_free(m);
@@ -428,15 +428,15 @@ TEST(omap, iter_rev_oom_returns_empty)
 
 TEST(omap, iter_range_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    OMap *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
+    omap_t *m = omap_create(sizeof(int), sizeof(int), int_cmp, al);
     ASSERT_NE(m, nullptr);
     for (int i = 0; i < 5; i++)
         omap_set(m, &i, &i);
     int lo = 1, hi = 3;
     ctx.remaining = 0;
-    Iter it = omap_iter_range(m, &lo, &hi);
+    iter_t it = omap_iter_range(m, &lo, &hi);
     EXPECT_EQ(it.next, nullptr);
     iter_drop(&it);
     omap_free(m);

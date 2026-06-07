@@ -13,7 +13,7 @@ extern "C" {
 TEST(dlist, is_empty_on_create)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     EXPECT_TRUE(dlist_is_empty(l));
     EXPECT_EQ(dlist_len(l), 0);
     growing_arena_destroy(a);
@@ -22,11 +22,11 @@ TEST(dlist, is_empty_on_create)
 TEST(dlist, push_back_iter_forward)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
-    Iter it = dlist_iter(l);
+    iter_t it = dlist_iter(l);
     int got[3];
     size_t n = 0;
     while (it.next(&it, &got[n]))
@@ -42,11 +42,11 @@ TEST(dlist, push_back_iter_forward)
 TEST(dlist, iter_rev)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
-    Iter it = dlist_iter_rev(l);
+    iter_t it = dlist_iter_rev(l);
     int got[3];
     size_t n = 0;
     while (it.next(&it, &got[n]))
@@ -62,7 +62,7 @@ TEST(dlist, iter_rev)
 TEST(dlist, push_front_prepends)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int two = 2, one = 1;
     dlist_push_back(l, &two);
     dlist_push_front(l, &one);
@@ -74,7 +74,7 @@ TEST(dlist, push_front_prepends)
 TEST(dlist, pop_front_removes_head)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {10, 20, 30};
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
@@ -89,7 +89,7 @@ TEST(dlist, pop_front_removes_head)
 TEST(dlist, pop_back_removes_tail)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {10, 20, 30};
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &vals[i]);
@@ -104,7 +104,7 @@ TEST(dlist, pop_back_removes_tail)
 TEST(dlist, pop_until_empty)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 1;
     dlist_push_back(l, &v);
     int out;
@@ -119,7 +119,7 @@ TEST(dlist, pop_until_empty)
 TEST(dlist, front_back_null_if_empty)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 64);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     EXPECT_EQ(dlist_front(l), nullptr);
     EXPECT_EQ(dlist_back(l), nullptr);
     growing_arena_destroy(a);
@@ -128,7 +128,7 @@ TEST(dlist, front_back_null_if_empty)
 TEST(dlist, single_element_front_equals_back)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 42;
     dlist_push_back(l, &v);
     EXPECT_EQ(*(int *)dlist_front(l), 42);
@@ -140,7 +140,7 @@ TEST(dlist, prev_links_are_correct)
 {
     /* verify backward linkage by popping from the back repeatedly */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
         dlist_push_back(l, &vals[i]);
@@ -157,7 +157,7 @@ TEST(dlist, prev_links_are_correct)
 TEST(dlist, free_does_not_crash)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 1;
     dlist_push_back(l, &v);
     dlist_push_back(l, &v);
@@ -171,7 +171,7 @@ TEST(dlist, free_does_not_crash)
 TEST(dlist, clear_empties_list)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 4; i++)
         dlist_push_back(l, &i);
     dlist_clear(l);
@@ -183,7 +183,7 @@ TEST(dlist, clear_empties_list)
 TEST(dlist, clear_allows_reuse)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    DList *l = dlist_create(sizeof(int), growing_arena_allocator(a));
+    dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &i);
     dlist_clear(l);
@@ -198,14 +198,14 @@ TEST(dlist, clear_allows_reuse)
 
 TEST(dlist, iter_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    DList *l = dlist_create(sizeof(int), al);
+    dlist_t *l = dlist_create(sizeof(int), al);
     ASSERT_NE(l, nullptr);
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &i);
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
-    Iter it = dlist_iter(l);
+    iter_t it = dlist_iter(l);
     EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
     iter_drop(&it);
     dlist_free(l);
@@ -213,14 +213,14 @@ TEST(dlist, iter_oom_returns_empty)
 
 TEST(dlist, iter_rev_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    DList *l = dlist_create(sizeof(int), al);
+    dlist_t *l = dlist_create(sizeof(int), al);
     ASSERT_NE(l, nullptr);
     for (int i = 0; i < 3; i++)
         dlist_push_back(l, &i);
     ctx.remaining = 0;
-    Iter it = dlist_iter_rev(l);
+    iter_t it = dlist_iter_rev(l);
     EXPECT_EQ(it.next, nullptr);
     iter_drop(&it);
     dlist_free(l);

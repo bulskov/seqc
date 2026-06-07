@@ -16,20 +16,20 @@ reducing across different data structures.
   management; a single `growing_arena_destroy(&a)` releases everything at once.
   Use `scratch_allocator(&sc)` for temporary work inside a loop, or a plain
   malloc/free allocator when you need per-collection lifetime control.
-- **[Slice](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
+- **[slice_t](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
   materialising an iterator. Also the input to operations that need random access.
-- **[Iter](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
-  an `Iter` into another `Iter`. Nothing runs until a terminal is called.
-- **[Vec](docs/vec.md)** — a growable array. Owns its buffer, produces an `Iter` or a `Slice` on demand.
+- **[iter_t](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
+  an `iter_t` into another `iter_t`. Nothing runs until a terminal is called.
+- **[vec_t](docs/vec.md)** — a growable array. Owns its buffer, produces an `iter_t` or a `slice_t` on demand.
 
 The abstraction is intentionally `void *`-based. Type safety is the caller's responsibility.
 There are no macros in the public interface.
 
 ```
-Vec / List / BSTree / ...
+vec_t / list_t / bstree_t / ...
       │
       ▼
-    Iter ──[filter]──[map]──[take]──[skip]──► iter_collect() ──► Slice
+    iter_t ──[filter]──[map]──[take]──[skip]──► iter_collect() ──► slice_t
       ▲                                              │
       └──────────── iter_from_slice ────────────────┘
 ```
@@ -38,12 +38,21 @@ Vec / List / BSTree / ...
 
 - **Lazy by default** — adaptor chains allocate nothing until a terminal is called.
 - **Caller owns memory** — allocators are passed in; the library never hides allocations.
-- **Allocator-agnostic** — every collection takes an `Allocator`. Arena, scratch, and
+- **Allocator-agnostic** — every collection takes an `allocator_t`. Arena, scratch, and
   `sys_allocator()` (malloc/free) are all first-class. Different collections in the
   same program can use different allocators.
 - **No macros** — readability and debuggability over syntax sugar.
 - **One job per type** — iterators transform, slices store, arenas own.
 - **`void *` is the abstraction** — generics via element size, not code generation.
+
+### Naming
+
+Public types are lowercase `snake_case_t` matching their function prefix
+(`vec_t` ↔ `vec_*`, `string_t` ↔ `string_*`), so a declaration and its
+operations read as one module. Types are **not** otherwise `seqc_`-prefixed —
+short names keep call sites readable. The sole exception is `seqc_stack_t`:
+POSIX reserves `stack_t` (in `<signal.h>` for `sigaltstack`), so the stack type
+carries the `seqc_` prefix to avoid the clash. Its functions stay `stack_*`.
 
 ## Building
 
@@ -139,15 +148,15 @@ prebuilt `lib/libarena.a` and merged `include/` for this purpose.
 | `slice`   | Non-owning contiguous view                            | [docs/slice.md](docs/slice.md)     |
 | `iter`    | Lazy iterator pipeline — sources, adaptors, terminals | [docs/iter.md](docs/iter.md)       |
 | `vec`     | Growable array                                        | [docs/vec.md](docs/vec.md)         |
-| `stack`   | LIFO wrapper over Vec                                 | [docs/stack.md](docs/stack.md)     |
+| `stack`   | LIFO wrapper over vec_t                                 | [docs/stack.md](docs/stack.md)     |
 | `queue`   | FIFO ring buffer                                      | [docs/queue.md](docs/queue.md)     |
 | `ringbuf` | Double-ended circular buffer (deque)                  | [docs/ringbuf.md](docs/ringbuf.md) |
 | `list`    | Singly-linked list                                    | [docs/list.md](docs/list.md)       |
 | `dlist`   | Doubly-linked list                                    | [docs/dlist.md](docs/dlist.md)     |
 | `set`     | Open-addressing hash set (Robin Hood)                 | [docs/set.md](docs/set.md)         |
 | `hashmap` | Open-addressing hash map (Robin Hood)                 | [docs/hashmap.md](docs/hashmap.md) |
-| `string`  | Bounded string + StringBuilder + iter sources         | [docs/string.md](docs/string.md)   |
-| `string_io` | Optional stdio output for `String` (separate header)| [docs/string.md](docs/string.md)   |
+| `string`  | Bounded string + strbuf_t + iter sources         | [docs/string.md](docs/string.md)   |
+| `string_io` | Optional stdio output for `string_t` (separate header)| [docs/string.md](docs/string.md)   |
 | `bstree`  | Unbalanced binary search tree                         | [docs/bstree.md](docs/bstree.md)   |
 | `avl`     | Self-balancing AVL tree                               | [docs/avl.md](docs/avl.md)         |
 | `omap`    | Ordered map backed by AVL tree                        | [docs/omap.md](docs/omap.md)       |
@@ -155,7 +164,7 @@ prebuilt `lib/libarena.a` and merged `include/` for this purpose.
 
 ## Strings and stdio interop
 
-`String` is a length-delimited view (`{ptr, len}`), not NUL-terminated. To
+`string_t` is a length-delimited view (`{ptr, len}`), not NUL-terminated. To
 print one with the `printf` family without allocating or copying, use the
 `STRING_FMT` / `STRING_ARG` macros — the standard `"%.*s"` idiom:
 
@@ -203,13 +212,13 @@ int main(void) {
     growing_arena_init(&arena, 4096);
     allocator_t al = growing_arena_allocator(&arena);
 
-    Vec *v = vec_create(sizeof(int), al);
+    vec_t *v = vec_create(sizeof(int), al);
 
     for (int i = 0; i < 10; i++)
         vec_push(v, &i);
 
     // filter evens, double them, sort, collect
-    Slice result = iter_sort(
+    slice_t result = iter_sort(
                        iter_map(
                            iter_filter(vec_iter(v), is_even, NULL),
                            double_it, NULL, sizeof(int)),
@@ -229,23 +238,23 @@ int main(void) {
 
 | Function                                                                 | Yields                                              | Docs                       |
 | ------------------------------------------------------------------------ | --------------------------------------------------- | -------------------------- |
-| `iter_from_slice(s, al)`                                                 | Slice elements                                      | [iter](docs/iter.md)       |
-| `iter_from_slice_rev(s, al)`                                             | Slice elements in reverse                           | [iter](docs/iter.md)       |
+| `iter_from_slice(s, al)`                                                 | slice_t elements                                      | [iter](docs/iter.md)       |
+| `iter_from_slice_rev(s, al)`                                             | slice_t elements in reverse                           | [iter](docs/iter.md)       |
 | `iter_generate(fn, ctx, elem_size, al)`                                  | Stateful generator; stops when `fn` returns `false` | [iter](docs/iter.md)       |
 | `iter_range(start, end, step, al)`                                       | `long long` integer range                           | [iter](docs/iter.md)       |
-| `vec_iter(&v)` / `vec_iter_rev(&v)`                                      | Vec elements                                        | [vec](docs/vec.md)         |
-| `stack_iter(&s)`                                                         | Stack elements bottom→top                           | [stack](docs/stack.md)     |
-| `queue_iter(&q)`                                                         | Queue elements front→back                           | [queue](docs/queue.md)     |
-| `ringbuf_iter(r)` / `ringbuf_iter_rev(r)`                                | RingBuf elements front→back / reverse               | [ringbuf](docs/ringbuf.md) |
-| `list_iter(&l)`                                                          | List elements front→back                            | [list](docs/list.md)       |
-| `dlist_iter(&l)` / `dlist_iter_rev(&l)`                                  | DList forward / reverse                             | [dlist](docs/dlist.md)     |
-| `set_iter(&s)` / `set_iter_rev(&s)`                                      | Set elements (unordered)                            | [set](docs/set.md)         |
-| `hashmap_iter(m)` / `hashmap_iter_rev(m)`                                | `MapEntry` pairs (`HashMapEntry` alias)             | [hashmap](docs/hashmap.md) |
+| `vec_iter(&v)` / `vec_iter_rev(&v)`                                      | vec_t elements                                        | [vec](docs/vec.md)         |
+| `stack_iter(&s)`                                                         | stack elements bottom→top                           | [stack](docs/stack.md)     |
+| `queue_iter(&q)`                                                         | queue elements front→back                           | [queue](docs/queue.md)     |
+| `ringbuf_iter(r)` / `ringbuf_iter_rev(r)`                                | ringbuf_t elements front→back / reverse               | [ringbuf](docs/ringbuf.md) |
+| `list_iter(&l)`                                                          | list elements front→back                            | [list](docs/list.md)       |
+| `dlist_iter(&l)` / `dlist_iter_rev(&l)`                                  | dlist_t forward / reverse                             | [dlist](docs/dlist.md)     |
+| `set_iter(&s)` / `set_iter_rev(&s)`                                      | set elements (unordered)                            | [set](docs/set.md)         |
+| `hashmap_iter(m)` / `hashmap_iter_rev(m)`                                | `map_entry_t` pairs (`hashmap_entry_t` alias)             | [hashmap](docs/hashmap.md) |
 | `string_chars(s, al)` / `string_chars_rev(s, al)`                        | `char` values                                       | [string](docs/string.md)   |
-| `string_split(s, delim, al)`                                             | `String` tokens                                     | [string](docs/string.md)   |
+| `string_split_substr(s, delim, al)` / `string_split_any(s, set, al)`     | `string_t` tokens                                     | [string](docs/string.md)   |
 | `bstree_iter(t)` / `bstree_iter_rev(t)` / `bstree_iter_range(t, lo, hi)` | BST elements                                        | [bstree](docs/bstree.md)   |
 | `avl_iter(&t)` / `avl_iter_rev(&t)` / `avl_iter_range(&t, lo, hi)`       | AVL elements                                        | [avl](docs/avl.md)         |
-| `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)`    | `MapEntry` pairs (`OMapEntry` alias)                | [omap](docs/omap.md)       |
+| `omap_iter(&m)` / `omap_iter_rev(&m)` / `omap_iter_range(&m, lo, hi)`    | `map_entry_t` pairs (`omap_entry_t` alias)                | [omap](docs/omap.md)       |
 
 ### Adaptors (lazy)
 
@@ -260,8 +269,8 @@ int main(void) {
 | `iter_chain(a, b)`                     | Concatenate two iterators                           | [iter](docs/iter.md) |
 | `iter_zip(a, b)`                       | Interleave element pairs                            | [iter](docs/iter.md) |
 | `iter_enumerate(it)`                   | Pair each element with its index                    | [iter](docs/iter.md) |
-| `iter_window(it, n)`                   | Sliding window of size n (yields Slice)             | [iter](docs/iter.md) |
-| `iter_chunks(it, n)`                   | Non-overlapping chunks of size n (yields Slice)     | [iter](docs/iter.md) |
+| `iter_window(it, n)`                   | Sliding window of size n (yields slice_t)             | [iter](docs/iter.md) |
+| `iter_chunks(it, n)`                   | Non-overlapping chunks of size n (yields slice_t)     | [iter](docs/iter.md) |
 | `iter_flat_map(it, fn, ctx, out_size)` | Expand each element into a sub-iterator             | [iter](docs/iter.md) |
 | `iter_peekable(it)`                    | Wrap so `iter_peek()` can inspect without consuming | [iter](docs/iter.md) |
 | `iter_dedup(it, cmp)`                  | Skip consecutive equal elements                     | [iter](docs/iter.md) |
@@ -270,11 +279,11 @@ int main(void) {
 
 | Function                        | Returns              | Docs                 |
 | ------------------------------- | -------------------- | -------------------- |
-| `iter_collect(it, al)`          | Arena-owned `Slice`  | [iter](docs/iter.md) |
+| `iter_collect(it, al)`          | Arena-owned `slice_t`  | [iter](docs/iter.md) |
 | `iter_count(it)`                | `size_t` count       | [iter](docs/iter.md) |
 | `iter_foreach(it, fn, ctx)`     | — (side-effects)     | [iter](docs/iter.md) |
 | `iter_reduce(it, acc, fn, ctx)` | — (folds into acc)   | [iter](docs/iter.md) |
-| `iter_sort(it, cmp, al)`        | Sorted `Slice`       | [iter](docs/iter.md) |
+| `iter_sort(it, cmp, al)`        | Sorted `slice_t`       | [iter](docs/iter.md) |
 | `iter_find(it, pred, ctx, out)` | `bool` + first match | [iter](docs/iter.md) |
 | `iter_any(it, pred, ctx)`       | `true` if any match  | [iter](docs/iter.md) |
 | `iter_all(it, pred, ctx)`       | `true` if all match  | [iter](docs/iter.md) |

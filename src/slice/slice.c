@@ -1,6 +1,6 @@
 #include "seqc/slice.h"
 
-void *slice_get(Slice s, size_t i)
+void *slice_get(slice_t s, size_t i)
 {
     if (s.ptr == NULL || s.elem_size == 0 || i >= s.len)
     {
@@ -9,7 +9,7 @@ void *slice_get(Slice s, size_t i)
     return (char *)s.ptr + i * s.elem_size;
 }
 
-void *slice_find(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx)
+void *slice_find(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx)
 {
     if (s.ptr == NULL || s.elem_size == 0 || !pred)
         return NULL;
@@ -23,7 +23,7 @@ void *slice_find(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx)
 }
 
 bool slice_contains(
-    Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx)
+    slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx)
 {
     return slice_find(s, pred, ctx) != NULL;
 }

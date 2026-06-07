@@ -9,14 +9,14 @@ A non-owning view into a contiguous block of typed elements.
 
 ## Type
 
-### `Slice`
+### `slice_t`
 
 ```c
 typedef struct {
   void  *ptr;
   size_t len;
   size_t elem_size;
-} Slice;
+} slice_t;
 ```
 
 Fat pointer: base address + element count + element size. Does not own the
@@ -31,13 +31,13 @@ and other terminals.
 ### `slice_get`
 
 ```c
-void *slice_get(Slice s, size_t i);
+void *slice_get(slice_t s, size_t i);
 ```
 
 Return a pointer to element `i`. No bounds checking.
 
 ```c
-Slice s = iter_collect(iter_from_slice(original, al));
+slice_t s = iter_collect(iter_from_slice(original, al));
 
 for (size_t i = 0; i < s.len; i++) {
     int *val = slice_get(s, i);
@@ -50,7 +50,7 @@ for (size_t i = 0; i < s.len; i++) {
 ### `slice_find`
 
 ```c
-void *slice_find(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx);
+void *slice_find(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);
 ```
 
 Return a pointer to the first element for which `pred` returns `true`, or
@@ -63,14 +63,14 @@ static bool is_negative(const void *elem, void *ctx) {
 }
 
 int nums[] = {3, -1, 4, -2};
-Slice s = {nums, 4, sizeof(int)};
+slice_t s = {nums, 4, sizeof(int)};
 int *p = slice_find(s, is_negative, NULL);  // points to -1
 ```
 
 ### `slice_contains`
 
 ```c
-bool slice_contains(Slice s, bool (*pred)(const void *elem, void *ctx), void *ctx);
+bool slice_contains(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);
 ```
 
 Return `true` if any element satisfies `pred`. Equivalent to
@@ -86,14 +86,14 @@ Slices are returned by:
 |--------|-----|
 | `iter_collect(it)` | Materialise any iterator into an arena-owned slice |
 | `iter_sort(it, cmp)` | Collect + sort in one step |
-| `vec_as_slice(&v)` | Zero-copy view of a Vec's buffer |
-| Literal `(Slice){ptr, len, elem_size}` | Wrap any contiguous buffer |
+| `vec_as_slice(&v)` | Zero-copy view of a vec_t's buffer |
+| Literal `(slice_t){ptr, len, elem_size}` | Wrap any contiguous buffer |
 
 ```c
 // wrap a C array
 int nums[] = {3, 1, 4, 1, 5};
-Slice s = {nums, 5, sizeof(int)};
+slice_t s = {nums, 5, sizeof(int)};
 
 // iterate it
-Iter it = iter_from_slice(s, arena_allocator(a));
+iter_t it = iter_from_slice(s, arena_allocator(a));
 ```

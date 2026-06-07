@@ -7,7 +7,7 @@
  *   oom_after(n)       — returns NULL on the (n+1)-th alloc/realloc call
  *
  * Usage:
- *   OomCtx ctx = {0};
+ *   oom_ctx_t ctx = {0};
  *   allocator_t al = oom_after_allocator(2, &ctx);
  *   // first 2 alloc calls succeed (via malloc), 3rd returns NULL
  */
@@ -100,11 +100,11 @@ static const allocator_vtable_t null_allocator_vtable = {
 typedef struct
 {
     size_t remaining; /* calls left before failure */
-} OomCtx;
+} oom_ctx_t;
 
 static void *oom_alloc(void *ctx, size_t size, size_t align)
 {
-    OomCtx *c = (OomCtx *)ctx;
+    oom_ctx_t *c = (oom_ctx_t *)ctx;
     if (c->remaining == 0)
         return NULL;
     c->remaining--;
@@ -115,7 +115,7 @@ static void *oom_alloc(void *ctx, size_t size, size_t align)
 static void *oom_realloc(
     void *ctx, void *ptr, size_t old_size, size_t new_size, size_t align)
 {
-    OomCtx *c = (OomCtx *)ctx;
+    oom_ctx_t *c = (oom_ctx_t *)ctx;
     if (c->remaining == 0)
         return NULL;
     c->remaining--;
@@ -135,7 +135,7 @@ static const allocator_vtable_t oom_allocator_vtable = {
     oom_alloc, oom_realloc, oom_free};
 
 /* n = number of successful alloc/realloc calls before the first failure */
-[[maybe_unused]] static allocator_t oom_after_allocator(size_t n, OomCtx *ctx)
+[[maybe_unused]] static allocator_t oom_after_allocator(size_t n, oom_ctx_t *ctx)
 {
     ctx->remaining = n;
     allocator_t a = {&oom_allocator_vtable, ctx};

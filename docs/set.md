@@ -9,10 +9,10 @@ Open-addressing hash set using Robin Hood hashing.
 
 ## Types
 
-### `Set`
+### `set_t`
 
 ```c
-typedef struct Set Set;
+typedef struct set_t set_t;
 ```
 
 Opaque handle.
@@ -24,8 +24,8 @@ Opaque handle.
 ### `set_create`
 
 ```c
-Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq,
-                Allocator allocator);
+set_t *set_create(size_t elem_size, hash_fn hash, eq_fn eq,
+                allocator_t allocator);
 ```
 
 Create an empty set. Returns `NULL` if `elem_size` is zero. You must supply a
@@ -39,7 +39,7 @@ use `hash_fnv1a_str` / `hash_eq_str`.
 #include "seqc/hash.h"
 
 Arena *a = arena_create(4096);
-Set   *s = set_create(sizeof(int),
+set_t   *s = set_create(sizeof(int),
                       hash_fnv1a, hash_eq_bytes,
                       arena_allocator(a));
 ```
@@ -49,7 +49,7 @@ Set   *s = set_create(sizeof(int),
 ### `set_add`
 
 ```c
-SeqcStatus set_add(Set *s, const void *elem);
+seqc_status_t set_add(set_t *s, const void *elem);
 ```
 
 Add a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
@@ -60,7 +60,7 @@ already present (no-op), `SEQC_OOM` on allocation failure.
 ### `set_contains`
 
 ```c
-bool set_contains(const Set *s, const void *elem);
+bool set_contains(const set_t *s, const void *elem);
 ```
 
 Return `true` if `elem` is in the set, `false` otherwise.
@@ -70,7 +70,7 @@ Return `true` if `elem` is in the set, `false` otherwise.
 ### `set_remove`
 
 ```c
-SeqcStatus set_remove(Set *s, const void *elem);
+seqc_status_t set_remove(set_t *s, const void *elem);
 ```
 
 Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
@@ -80,8 +80,8 @@ Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 ### `set_len` / `set_is_empty`
 
 ```c
-size_t set_len(const Set *s);
-bool   set_is_empty(const Set *s);
+size_t set_len(const set_t *s);
+bool   set_is_empty(const set_t *s);
 ```
 
 ---
@@ -89,14 +89,14 @@ bool   set_is_empty(const Set *s);
 ### `set_iter`
 
 ```c
-Iter set_iter(const Set *s);
+iter_t set_iter(const set_t *s);
 ```
 
 Iterate over all elements in unspecified order. Yields elements of size
 `elem_size`.
 
 ```c
-Iter it = set_iter(s);
+iter_t it = set_iter(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
@@ -106,7 +106,7 @@ iter_drop(&it);
 ### `set_iter_rev`
 
 ```c
-Iter set_iter_rev(const Set *s);
+iter_t set_iter_rev(const set_t *s);
 ```
 
 Iterate over all elements in reverse bucket-storage order. Same element set as
@@ -114,7 +114,7 @@ Iterate over all elements in reverse bucket-storage order. Same element set as
 the opposite order without collecting first.
 
 ```c
-Iter it = set_iter_rev(s);
+iter_t it = set_iter_rev(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
@@ -126,7 +126,7 @@ iter_drop(&it);
 ### `set_add_all`
 
 ```c
-SeqcStatus set_add_all(Set *s, Iter it);
+seqc_status_t set_add_all(set_t *s, iter_t it);
 ```
 
 Drain `it`, adding each element into `s`. Duplicates are silently skipped.
@@ -148,21 +148,21 @@ functions. Return `SEQC_OOM` on the first allocation failure.
 ### `set_union`
 
 ```c
-SeqcStatus set_union(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_union(set_t *dest, const set_t *a, const set_t *b);
 ```
 
 Set `dest = a ∪ b`. All elements present in either `a` or `b` are added to
 `dest`. Duplicates are silently skipped.
 
 ```c
-Set *u = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+set_t *u = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
 set_union(u, s1, s2);
 ```
 
 ### `set_intersection`
 
 ```c
-SeqcStatus set_intersection(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_intersection(set_t *dest, const set_t *a, const set_t *b);
 ```
 
 Set `dest = a ∩ b`. Only elements present in **both** `a` and `b` are added.
@@ -171,13 +171,13 @@ Iterates the smaller set for efficiency.
 ### `set_difference`
 
 ```c
-SeqcStatus set_difference(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_difference(set_t *dest, const set_t *a, const set_t *b);
 ```
 
 Set `dest = a \ b`. Elements present in `a` but **not** in `b` are added.
 
 ```c
-void set_clear(Set *s);
+void set_clear(set_t *s);
 ```
 
 Remove all elements. Key copies are freed (no-op for arena allocators) and the
@@ -190,10 +190,10 @@ again.
 ### `set_free`
 
 ```c
-void set_free(Set *s);
+void set_free(set_t *s);
 ```
 
-Free all key copies, the bucket array, and the Set struct itself.
+Free all key copies, the bucket array, and the set struct itself.
 Do not use `s` after calling this.
 
 ---
@@ -209,7 +209,7 @@ tracked at zero cost and used as a secondary resize trigger.
 #define SET_PSL_THRESHOLD 128
 ```
 
-### `SetStats`
+### `set_stats_t`
 
 ```c
 typedef struct {
@@ -219,13 +219,13 @@ typedef struct {
     uint8_t max_psl;
     double  mean_psl;
     bool    is_healthy; /* mean_psl < 3.0 and max_psl <= SET_PSL_THRESHOLD/2 */
-} SetStats;
+} set_stats_t;
 ```
 
 ### `set_is_healthy`
 
 ```c
-bool set_is_healthy(const Set *s);
+bool set_is_healthy(const set_t *s);
 ```
 
 O(1). Returns `false` when `max_psl > SET_PSL_THRESHOLD / 2`.
@@ -233,14 +233,14 @@ O(1). Returns `false` when `max_psl > SET_PSL_THRESHOLD / 2`.
 ### `set_audit`
 
 ```c
-SetStats set_audit(const Set *s);
+set_stats_t set_audit(const set_t *s);
 ```
 
-O(n) full scan. Returns a `SetStats` with `len`, `cap`, `load_factor`,
+O(n) full scan. Returns a `set_stats_t` with `len`, `cap`, `load_factor`,
 `max_psl`, `mean_psl`, and `is_healthy`.
 
 ```c
-SetStats st = set_audit(s);
+set_stats_t st = set_audit(s);
 printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
        st.load_factor, st.max_psl, st.mean_psl,
        st.is_healthy ? "yes" : "no");
@@ -254,7 +254,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 #include "seqc/hash.h"
 
 Arena *a = arena_create(4096);
-Set   *s = set_create(sizeof(int), hash_fnv1a, hash_eq_bytes,
+set_t   *s = set_create(sizeof(int), hash_fnv1a, hash_eq_bytes,
                       arena_allocator(a));
 
 int nums[] = {1, 2, 3, 2, 1};

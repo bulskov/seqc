@@ -11,10 +11,10 @@ matter.
 
 ## Types
 
-### `BSTree`
+### `bstree_t`
 
 ```c
-typedef struct BSTree BSTree;
+typedef struct bstree_t bstree_t;
 ```
 
 Opaque handle.
@@ -26,7 +26,7 @@ Opaque handle.
 ### `bstree_create`
 
 ```c
-BSTree *bstree_create(size_t elem_size, compare_fn cmp, Allocator allocator);
+bstree_t *bstree_create(size_t elem_size, compare_fn cmp, allocator_t allocator);
 ```
 
 Create an empty tree. Returns `NULL` if `elem_size` is zero. `cmp` follows the
@@ -40,7 +40,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena  *a = arena_create(4096);
-BSTree *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 ```
 
 ---
@@ -48,7 +48,7 @@ BSTree *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 ### `bstree_insert`
 
 ```c
-SeqcStatus bstree_insert(BSTree *t, const void *elem);
+seqc_status_t bstree_insert(bstree_t *t, const void *elem);
 ```
 
 Insert a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
@@ -59,7 +59,7 @@ already present (tree unchanged), `SEQC_OOM` on allocation failure.
 ### `bstree_contains`
 
 ```c
-bool bstree_contains(const BSTree *t, const void *elem);
+bool bstree_contains(const bstree_t *t, const void *elem);
 ```
 
 Return `true` if `elem` is present.
@@ -69,7 +69,7 @@ Return `true` if `elem` is present.
 ### `bstree_remove`
 
 ```c
-SeqcStatus bstree_remove(BSTree *t, const void *elem);
+seqc_status_t bstree_remove(bstree_t *t, const void *elem);
 ```
 
 Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
@@ -79,8 +79,8 @@ Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 ### `bstree_min` / `bstree_max`
 
 ```c
-void *bstree_min(const BSTree *t);
-void *bstree_max(const BSTree *t);
+void *bstree_min(const bstree_t *t);
+void *bstree_max(const bstree_t *t);
 ```
 
 Pointer to the minimum / maximum element. Returns `NULL` if empty.
@@ -90,7 +90,7 @@ Pointer to the minimum / maximum element. Returns `NULL` if empty.
 ### `bstree_len`
 
 ```c
-size_t bstree_len(const BSTree *t);
+size_t bstree_len(const bstree_t *t);
 ```
 
 ---
@@ -98,15 +98,15 @@ size_t bstree_len(const BSTree *t);
 ### `bstree_height`
 
 ```c
-int bstree_height(const BSTree *t);
+int bstree_height(const bstree_t *t);
 ```
 
 Return the height of the tree (longest root-to-leaf path). Returns `0` for an
-empty tree, `1` for a single-node tree. Because `BSTree` is unbalanced,
+empty tree, `1` for a single-node tree. Because `bstree_t` is unbalanced,
 height can be as large as `n` on sorted input.
 
 ```c
-BSTree *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
     bstree_insert(t, &vals[i]);
@@ -116,23 +116,23 @@ printf("height=%d\n", bstree_height(t));  // 3
 ### `bstree_iter`
 
 ```c
-Iter bstree_iter(const BSTree *t);
+iter_t bstree_iter(const bstree_t *t);
 ```
 
-Ascending in-order [`Iter`](iter.md).
+Ascending in-order [`iter_t`](iter.md).
 
 ### `bstree_iter_rev`
 
 ```c
-Iter bstree_iter_rev(const BSTree *t);
+iter_t bstree_iter_rev(const bstree_t *t);
 ```
 
-Descending in-order [`Iter`](iter.md).
+Descending in-order [`iter_t`](iter.md).
 
 ### `bstree_iter_range`
 
 ```c
-Iter bstree_iter_range(const BSTree *t, const void *lo, const void *hi);
+iter_t bstree_iter_range(const bstree_t *t, const void *lo, const void *hi);
 ```
 
 Ascending in-order iteration over elements where `lo <= elem <= hi`.
@@ -140,7 +140,7 @@ Pass `NULL` for `lo` or `hi` to leave that bound open.
 
 ```c
 int lo = 3, hi = 7;
-Iter it = bstree_iter_range(t, &lo, &hi);
+iter_t it = bstree_iter_range(t, &lo, &hi);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);  // 3 4 5 6 7
@@ -152,11 +152,11 @@ iter_drop(&it);
 ### `bstree_clear`
 
 ```c
-void bstree_clear(BSTree *t);
+void bstree_clear(bstree_t *t);
 ```
 
 Remove all elements. Every node is freed back to the allocator (a no-op for
-arena allocators) and `root` is set to NULL. The `BSTree` struct remains valid
+arena allocators) and `root` is set to NULL. The `bstree_t` struct remains valid
 and can be reused immediately.
 
 ---
@@ -164,10 +164,10 @@ and can be reused immediately.
 ### `bstree_free`
 
 ```c
-void bstree_free(BSTree *t);
+void bstree_free(bstree_t *t);
 ```
 
-Free all nodes and then the BSTree struct itself. Do not use `t` after calling this.
+Free all nodes and then the bstree_t struct itself. Do not use `t` after calling this.
 
 ---
 
@@ -175,7 +175,7 @@ Free all nodes and then the BSTree struct itself. Do not use `t` after calling t
 
 ```c
 Arena  *a = arena_create(4096);
-BSTree *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
@@ -187,7 +187,7 @@ printf("min=%d max=%d len=%zu\n",
        bstree_len(t));           // 7
 
 // ascending
-Iter it = bstree_iter(t);
+iter_t it = bstree_iter(t);
 int v;
 while (it.next(&it, &v)) printf("%d ", v);
 iter_drop(&it);

@@ -9,10 +9,10 @@ Growable array backed by an arena-owned buffer.
 
 ## Type
 
-### `Vec`
+### `vec_t`
 
 ```c
-typedef struct Vec Vec;
+typedef struct vec_t vec_t;
 ```
 
 Opaque handle. All fields are private — use the accessor functions below.
@@ -24,24 +24,24 @@ Opaque handle. All fields are private — use the accessor functions below.
 ### `vec_create`
 
 ```c
-Vec *vec_create(size_t elem_size, Allocator allocator);
+vec_t *vec_create(size_t elem_size, allocator_t allocator);
 ```
 
-Create an empty Vec with an initial small capacity. Returns `NULL` if
+Create an empty vec_t with an initial small capacity. Returns `NULL` if
 `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-Vec   *v = vec_create(sizeof(int), arena_allocator(a));
+vec_t   *v = vec_create(sizeof(int), arena_allocator(a));
 ```
 
 ### `vec_create_size`
 
 ```c
-Vec *vec_create_size(size_t elem_size, size_t capacity, Allocator allocator);
+vec_t *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator);
 ```
 
-Create a Vec pre-allocated for at least `capacity` elements. Use this when the
+Create a vec_t pre-allocated for at least `capacity` elements. Use this when the
 final size is known in advance to avoid repeated reallocations.
 
 ---
@@ -49,23 +49,23 @@ final size is known in advance to avoid repeated reallocations.
 ### `vec_len` / `vec_cap` / `vec_elem_size`
 
 ```c
-size_t vec_len(const Vec *v);
-size_t vec_cap(const Vec *v);
-size_t vec_elem_size(const Vec *v);
+size_t vec_len(const vec_t *v);
+size_t vec_cap(const vec_t *v);
+size_t vec_elem_size(const vec_t *v);
 ```
 
-Accessors for the three key properties of the Vec.
+Accessors for the three key properties of the vec_t.
 
 ---
 
 ### `vec_push`
 
 ```c
-SeqcStatus vec_push(Vec *v, const void *elem);
+seqc_status_t vec_push(vec_t *v, const void *elem);
 ```
 
 Append a copy of `elem`. Reallocates if `len == cap`. Returns `SEQC_OOM` if
-the reallocation fails (the Vec is unchanged); `SEQC_OK` otherwise.
+the reallocation fails (the vec_t is unchanged); `SEQC_OK` otherwise.
 
 ```c
 for (int i = 0; i < 100; i++) {
@@ -78,11 +78,11 @@ for (int i = 0; i < 100; i++) {
 ### `vec_pop`
 
 ```c
-SeqcStatus vec_pop(Vec *v, void *out);
+seqc_status_t vec_pop(vec_t *v, void *out);
 ```
 
 Remove the last element. Copies it into `*out` if `out` is not `NULL`.
-Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if the Vec is empty.
+Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if the vec_t is empty.
 
 ```c
 int val;
@@ -95,7 +95,7 @@ while (vec_pop(v, &val) == SEQC_OK)
 ### `vec_get`
 
 ```c
-void *vec_get(const Vec *v, size_t i);
+void *vec_get(const vec_t *v, size_t i);
 ```
 
 Return a pointer to element `i`. No bounds checking. The pointer is
@@ -111,7 +111,7 @@ int *third = vec_get(v, 2);
 ### `vec_get_copy`
 
 ```c
-SeqcStatus vec_get_copy(const Vec *v, size_t i, void *out);
+seqc_status_t vec_get_copy(const vec_t *v, size_t i, void *out);
 ```
 
 Copy element `i` into `*out`. Returns `SEQC_OK` on success,
@@ -129,7 +129,7 @@ if (vec_get_copy(v, 2, &val) == SEQC_OK)
 ### `vec_set`
 
 ```c
-void vec_set(Vec *v, size_t i, const void *elem);
+void vec_set(vec_t *v, size_t i, const void *elem);
 ```
 
 Overwrite the element at index `i` with a copy of `*elem`. No-op if `i >= len`.
@@ -144,7 +144,7 @@ vec_set(v, 0, &val);
 ### `vec_insert`
 
 ```c
-SeqcStatus vec_insert(Vec *v, size_t i, const void *elem);
+seqc_status_t vec_insert(vec_t *v, size_t i, const void *elem);
 ```
 
 Insert a copy of `*elem` at index `i`, shifting all elements from `i` onward
@@ -161,7 +161,7 @@ vec_insert(v, 0, &zero);  /* prepend */
 ### `vec_remove`
 
 ```c
-void vec_remove(Vec *v, size_t i);
+void vec_remove(vec_t *v, size_t i);
 ```
 
 Remove the element at index `i`, shifting elements from `i+1` onward one
@@ -176,10 +176,10 @@ vec_remove(v, 0);  /* remove first element */
 ### `vec_reserve`
 
 ```c
-SeqcStatus vec_reserve(Vec *v, size_t capacity);
+seqc_status_t vec_reserve(vec_t *v, size_t capacity);
 ```
 
-Ensure the Vec has room for at least `capacity` elements without reallocating.
+Ensure the vec_t has room for at least `capacity` elements without reallocating.
 Does nothing and returns `SEQC_OK` if `cap` is already sufficient.
 Returns `SEQC_OOM` if the reallocation fails.
 
@@ -194,14 +194,14 @@ if (vec_reserve(v, 1024) == SEQC_OK) {
 ### `vec_as_slice`
 
 ```c
-Slice vec_as_slice(const Vec *v);
+slice_t vec_as_slice(const vec_t *v);
 ```
 
-Return a non-owning [`Slice`](slice.md) view of the entire Vec buffer.
+Return a non-owning [`slice_t`](slice.md) view of the entire vec_t buffer.
 
 ```c
-Slice s = vec_as_slice(v);
-Slice sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp, arena_allocator(a));
+slice_t s = vec_as_slice(v);
+slice_t sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp, arena_allocator(a));
 ```
 
 ---
@@ -209,25 +209,25 @@ Slice sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp, arena_
 ### `vec_iter`
 
 ```c
-Iter vec_iter(const Vec *v);
+iter_t vec_iter(const vec_t *v);
 ```
 
-Create a forward [`Iter`](iter.md) over the Vec.
+Create a forward [`iter_t`](iter.md) over the vec_t.
 
 ### `vec_iter_rev`
 
 ```c
-Iter vec_iter_rev(const Vec *v);
+iter_t vec_iter_rev(const vec_t *v);
 ```
 
-Create a reverse [`Iter`](iter.md) over the Vec (last element first).
+Create a reverse [`iter_t`](iter.md) over the vec_t (last element first).
 
 ---
 
 ### `vec_find`
 
 ```c
-void *vec_find(const Vec *v, pred_fn pred, void *ctx);
+void *vec_find(const vec_t *v, pred_fn pred, void *ctx);
 ```
 
 Return a pointer to the first element for which `pred` returns `true`, or
@@ -246,7 +246,7 @@ if (p) printf("first negative: %d\n", *p);
 ### `vec_contains`
 
 ```c
-bool vec_contains(const Vec *v, pred_fn pred, void *ctx);
+bool vec_contains(const vec_t *v, pred_fn pred, void *ctx);
 ```
 
 Return `true` if any element satisfies `pred`. Equivalent to
@@ -257,7 +257,7 @@ Return `true` if any element satisfies `pred`. Equivalent to
 ### `vec_clear`
 
 ```c
-void vec_clear(Vec *v);
+void vec_clear(vec_t *v);
 ```
 
 Reset `len` to zero. The allocated buffer is retained, so subsequent pushes
@@ -268,10 +268,10 @@ will not reallocate until capacity is exhausted again.
 ### `vec_free`
 
 ```c
-void vec_free(Vec *v);
+void vec_free(vec_t *v);
 ```
 
-Free the Vec's buffer and then the Vec struct itself. Do not use `v` after
+Free the vec_t's buffer and then the vec_t struct itself. Do not use `v` after
 calling this.
 
 ---
@@ -279,7 +279,7 @@ calling this.
 ### `vec_extend`
 
 ```c
-SeqcStatus vec_extend(Vec *v, Iter it);
+seqc_status_t vec_extend(vec_t *v, iter_t it);
 ```
 
 Drain `it`, pushing each element into `v`. Stops and returns `SEQC_OOM` on
@@ -287,8 +287,8 @@ the first allocation failure; all elements pushed before the failure remain.
 The iterator is always dropped before returning.
 
 ```c
-Vec *src = /* ... */;
-Vec *dst = vec_create(sizeof(int), arena_allocator(a));
+vec_t *src = /* ... */;
+vec_t *dst = vec_create(sizeof(int), arena_allocator(a));
 vec_extend(dst, vec_iter(src));  /* copy all elements from src */
 ```
 
@@ -297,7 +297,7 @@ vec_extend(dst, vec_iter(src));  /* copy all elements from src */
 ### `vec_sort`
 
 ```c
-void vec_sort(Vec *v, compare_fn cmp);
+void vec_sort(vec_t *v, compare_fn cmp);
 ```
 
 Sort the elements of `v` in-place using `qsort`. No allocation. `cmp` follows
@@ -314,19 +314,19 @@ vec_sort(v, int_cmp);  /* sort in-place; vec's buffer is modified directly */
 
 ```c
 Arena *a = arena_create(4096);
-Vec   *v = vec_create(sizeof(int), arena_allocator(a));
+vec_t   *v = vec_create(sizeof(int), arena_allocator(a));
 
 for (int i = 0; i < 10; i++)
     vec_push(v, &i);
 
 // forward
-Iter fwd = vec_iter(v);
+iter_t fwd = vec_iter(v);
 int x;
 while (fwd.next(&fwd, &x)) printf("%d ", x);
 iter_drop(&fwd);
 
 // reverse
-Iter rev = vec_iter_rev(v);
+iter_t rev = vec_iter_rev(v);
 while (rev.next(&rev, &x)) printf("%d ", x);
 iter_drop(&rev);
 

@@ -9,11 +9,11 @@ Doubly-linked list. O(1) push and pop at both ends.
 
 ## Types
 
-### `DListNode` / `DList`
+### `dlist_node_t` / `dlist_t`
 
 ```c
-typedef struct DListNode DListNode;
-typedef struct DList DList;
+typedef struct dlist_node_t dlist_node_t;
+typedef struct dlist_t dlist_t;
 ```
 
 Both are opaque handles. Element data is stored inline immediately after each
@@ -26,14 +26,14 @@ node header, aligned to `max_align_t`.
 ### `dlist_create`
 
 ```c
-DList *dlist_create(size_t elem_size, Allocator allocator);
+dlist_t *dlist_create(size_t elem_size, allocator_t allocator);
 ```
 
 Create an empty doubly-linked list. Returns `NULL` if `elem_size` is zero.
 
 ```c
 Arena *a = arena_create(4096);
-DList *l = dlist_create(sizeof(int), arena_allocator(a));
+dlist_t *l = dlist_create(sizeof(int), arena_allocator(a));
 ```
 
 ---
@@ -41,8 +41,8 @@ DList *l = dlist_create(sizeof(int), arena_allocator(a));
 ### `dlist_push_front` / `dlist_push_back`
 
 ```c
-SeqcStatus dlist_push_front(DList *l, const void *elem);
-SeqcStatus dlist_push_back(DList *l, const void *elem);
+seqc_status_t dlist_push_front(dlist_t *l, const void *elem);
+seqc_status_t dlist_push_back(dlist_t *l, const void *elem);
 ```
 
 O(1) prepend / append. Return `SEQC_OOM` on allocation failure; `SEQC_OK` otherwise.
@@ -52,8 +52,8 @@ O(1) prepend / append. Return `SEQC_OOM` on allocation failure; `SEQC_OK` otherw
 ### `dlist_pop_front` / `dlist_pop_back`
 
 ```c
-SeqcStatus dlist_pop_front(DList *l, void *out);
-SeqcStatus dlist_pop_back(DList *l, void *out);
+seqc_status_t dlist_pop_front(dlist_t *l, void *out);
+seqc_status_t dlist_pop_back(dlist_t *l, void *out);
 ```
 
 Remove from front or back. Copies into `*out` if not `NULL`.
@@ -70,8 +70,8 @@ dlist_pop_front(l, &out);
 ### `dlist_front` / `dlist_back`
 
 ```c
-void *dlist_front(const DList *l);
-void *dlist_back(const DList *l);
+void *dlist_front(const dlist_t *l);
+void *dlist_back(const dlist_t *l);
 ```
 
 Pointer to head / tail data. Returns `NULL` if empty.
@@ -81,8 +81,8 @@ Pointer to head / tail data. Returns `NULL` if empty.
 ### `dlist_is_empty` / `dlist_len`
 
 ```c
-bool   dlist_is_empty(const DList *l);
-size_t dlist_len(const DList *l);
+bool   dlist_is_empty(const dlist_t *l);
+size_t dlist_len(const dlist_t *l);
 ```
 
 ---
@@ -90,25 +90,25 @@ size_t dlist_len(const DList *l);
 ### `dlist_iter`
 
 ```c
-Iter dlist_iter(const DList *l);
+iter_t dlist_iter(const dlist_t *l);
 ```
 
-Forward [`Iter`](iter.md) from front to back.
+Forward [`iter_t`](iter.md) from front to back.
 
 ### `dlist_iter_rev`
 
 ```c
-Iter dlist_iter_rev(const DList *l);
+iter_t dlist_iter_rev(const dlist_t *l);
 ```
 
-Reverse [`Iter`](iter.md) from back to front.
+Reverse [`iter_t`](iter.md) from back to front.
 
 ---
 
 ### `dlist_clear`
 
 ```c
-void dlist_clear(DList *l);
+void dlist_clear(dlist_t *l);
 ```
 
 Remove all nodes. Each node's memory is returned to the allocator (a no-op for
@@ -119,10 +119,10 @@ arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
 ### `dlist_free`
 
 ```c
-void dlist_free(DList *l);
+void dlist_free(dlist_t *l);
 ```
 
-Free all nodes and then the DList struct itself. Do not use `l` after calling this.
+Free all nodes and then the dlist_t struct itself. Do not use `l` after calling this.
 
 ---
 
@@ -130,19 +130,19 @@ Free all nodes and then the DList struct itself. Do not use `l` after calling th
 
 ```c
 Arena *a = arena_create(4096);
-DList *l = dlist_create(sizeof(int), arena_allocator(a));
+dlist_t *l = dlist_create(sizeof(int), arena_allocator(a));
 
 for (int i = 1; i <= 5; i++)
     dlist_push_back(l, &i);
 
 // forward: 1 2 3 4 5
-Iter fwd = dlist_iter(l);
+iter_t fwd = dlist_iter(l);
 int v;
 while (fwd.next(&fwd, &v)) printf("%d ", v);
 iter_drop(&fwd);
 
 // reverse: 5 4 3 2 1
-Iter rev = dlist_iter_rev(l);
+iter_t rev = dlist_iter_rev(l);
 while (rev.next(&rev, &v)) printf("%d ", v);
 iter_drop(&rev);
 

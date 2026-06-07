@@ -10,13 +10,13 @@ iterator sources for character-level and token-level iteration.
 
 ## Type
 
-### `String`
+### `string_t`
 
 ```c
 typedef struct {
   const char *ptr;
   size_t      len;
-} String;
+} string_t;
 ```
 
 A non-owning view. `ptr` need not be null-terminated.
@@ -24,13 +24,13 @@ A non-owning view. `ptr` need not be null-terminated.
 ### `STRING_LIT(s)`
 
 ```c
-#define STRING_LIT(s) ((String){(s), sizeof(s) - 1})
+#define STRING_LIT(s) ((string_t){(s), sizeof(s) - 1})
 ```
 
-Wrap a C string literal as a `String` at zero cost.
+Wrap a C string literal as a `string_t` at zero cost.
 
 ```c
-String hello = STRING_LIT("hello");
+string_t hello = STRING_LIT("hello");
 ```
 
 ### `STRING_NOT_FOUND`
@@ -43,7 +43,7 @@ Sentinel returned by `string_find` when no match is found.
 
 ### `STRING_FMT` / `STRING_ARG`
 
-Macros for printing a `String` with the `printf` family without allocating —
+Macros for printing a `string_t` with the `printf` family without allocating —
 see [Printing & stdio interop](#printing--stdio-interop).
 
 ---
@@ -53,33 +53,33 @@ see [Printing & stdio interop](#printing--stdio-interop).
 ### `string_view_cstr`
 
 ```c
-String string_view_cstr(const char *s);
+string_t string_view_cstr(const char *s);
 ```
 
-Wrap a null-terminated C string as a non-owning `String` view. No copy is
-made — the returned `String` must not outlive `s`. Prefer `STRING_LIT` for
+Wrap a null-terminated C string as a non-owning `string_t` view. No copy is
+made — the returned `string_t` must not outlive `s`. Prefer `STRING_LIT` for
 string literals and `string_from_cstr` when the cstr lifetime is uncertain.
 
 ### `string_from_cstr`
 
 ```c
-String string_from_cstr(const char *s, Allocator allocator);
+string_t string_from_cstr(const char *s, allocator_t allocator);
 ```
 
-Copy `s` into allocator-owned memory and return an owning `String`. Safe to
+Copy `s` into allocator-owned memory and return an owning `string_t`. Safe to
 use when you cannot guarantee that the original cstr will remain valid.
 
 ```c
 Arena  *a = arena_create(256);
 char    buf[] = "hello";
-String  s = string_from_cstr(buf, arena_allocator(a));
+string_t  s = string_from_cstr(buf, arena_allocator(a));
 buf[0] = 'X'; /* s.ptr[0] is still 'h' — independent copy */
 ```
 
 ### `string_copy`
 
 ```c
-String string_copy(String s, Allocator allocator);
+string_t string_copy(string_t s, allocator_t allocator);
 ```
 
 Allocate an arena-owned copy of `s`.
@@ -87,16 +87,16 @@ Allocate an arena-owned copy of `s`.
 ### `string_to_cstr`
 
 ```c
-const char *string_to_cstr(String s, Allocator allocator);
+const char *string_to_cstr(string_t s, allocator_t allocator);
 ```
 
 Allocate an arena-owned null-terminated copy. Use when you need to pass a
-`String` to a C API that expects `char *` and the copy must outlive the call.
+`string_t` to a C API that expects `char *` and the copy must outlive the call.
 
 ### `string_to_cstr_buf`
 
 ```c
-const char *string_to_cstr_buf(String s, char *buf, size_t bufsize);
+const char *string_to_cstr_buf(string_t s, char *buf, size_t bufsize);
 ```
 
 Copy `s` into a caller-supplied buffer and null-terminate it — for passing to
@@ -113,7 +113,7 @@ FILE *f = fopen(string_to_cstr_buf(p, path, sizeof path), "r");
 
 ## Printing & stdio interop
 
-`String` is length-delimited and not null-terminated, so it cannot be passed
+`string_t` is length-delimited and not null-terminated, so it cannot be passed
 directly to `printf("%s", ...)`. These helpers bridge to standard I/O without
 forcing an allocation.
 
@@ -124,7 +124,7 @@ forcing an allocation.
 #define STRING_ARG(s)  (int)(s).len, (s).ptr
 ```
 
-Print a `String` with the `printf` family using the precision form `"%.*s"`,
+Print a `string_t` with the `printf` family using the precision form `"%.*s"`,
 which reads exactly `len` bytes and needs no terminator. Zero allocation.
 
 ```c
@@ -132,7 +132,7 @@ printf("hello, " STRING_FMT "!\n", STRING_ARG(name));
 fprintf(stderr, "bad token " STRING_FMT " at %zu\n", STRING_ARG(tok), pos);
 ```
 
-Caveats: the precision argument is an `int`, so a `String` longer than
+Caveats: the precision argument is an `int`, so a `string_t` longer than
 `INT_MAX` is truncated; `STRING_ARG(s)` evaluates `s` twice (avoid arguments
 with side effects); and `"%.*s"` stops at an embedded NUL. For binary-safe
 output, use the `string_io.h` helpers below.
@@ -143,9 +143,9 @@ output, use the `string_io.h` helpers below.
 core string type carries no `<stdio.h>` dependency.
 
 ```c
-size_t string_fwrite(String s, FILE *f);  /* write s.len bytes to f   */
-size_t string_print(String s);            /* write s to stdout        */
-size_t string_println(String s);          /* write s + '\n' to stdout */
+size_t string_fwrite(string_t s, FILE *f);  /* write s.len bytes to f   */
+size_t string_print(string_t s);            /* write s to stdout        */
+size_t string_println(string_t s);          /* write s + '\n' to stdout */
 ```
 
 Each writes exactly `s.len` bytes and is binary-safe — embedded NULs are
@@ -167,7 +167,7 @@ size_t n = string_fwrite(body, logfile);  /* exact bytes, NUL-safe     */
 ### `string_equals`
 
 ```c
-bool string_equals(String a, String b);
+bool string_equals(string_t a, string_t b);
 ```
 
 Return `true` if `a` and `b` have the same length and byte content.
@@ -175,17 +175,17 @@ Return `true` if `a` and `b` have the same length and byte content.
 ### `string_compare`
 
 ```c
-int string_compare(String a, String b);
+int string_compare(string_t a, string_t b);
 ```
 
 Lexicographic comparison. Returns negative, zero, or positive (like `strcmp`).
-Note: signature is `(String, String)`, not `(const void *, const void *)` — it
+Note: signature is `(string_t, string_t)`, not `(const void *, const void *)` — it
 cannot be passed directly as a [`compare_fn`](iter.md#function-pointer-types).
 Wrap it:
 
 ```c
 static int string_cmp(const void *a, const void *b) {
-    return string_compare(*(const String *)a, *(const String *)b);
+    return string_compare(*(const string_t *)a, *(const string_t *)b);
 }
 ```
 
@@ -196,20 +196,20 @@ static int string_cmp(const void *a, const void *b) {
 ### `string_starts_with` / `string_ends_with`
 
 ```c
-bool string_starts_with(String s, String prefix);
-bool string_ends_with(String s, String suffix);
+bool string_starts_with(string_t s, string_t prefix);
+bool string_ends_with(string_t s, string_t suffix);
 ```
 
 ### `string_contains`
 
 ```c
-bool string_contains(String s, String needle);
+bool string_contains(string_t s, string_t needle);
 ```
 
 ### `string_find`
 
 ```c
-size_t string_find(String s, String needle);
+size_t string_find(string_t s, string_t needle);
 ```
 
 Return the byte offset of the first occurrence of `needle`, or
@@ -227,17 +227,17 @@ size_t pos = string_find(STRING_LIT("hello world"), STRING_LIT("world"));
 ### `string_replace`
 
 ```c
-String string_replace(String s, String needle, String replacement,
-                      Allocator allocator);
+string_t string_replace(string_t s, string_t needle, string_t replacement,
+                      allocator_t allocator);
 ```
 
-Return a new arena-allocated `String` with all non-overlapping occurrences of
+Return a new arena-allocated `string_t` with all non-overlapping occurrences of
 `needle` replaced by `replacement`. Replacements proceed left-to-right. If
 `needle` is empty the original string is returned as a copy unchanged.
 
 ```c
 Arena  *a   = arena_create(4096);
-String  res = string_replace(STRING_LIT("a,b,c"), STRING_LIT(","),
+string_t  res = string_replace(STRING_LIT("a,b,c"), STRING_LIT(","),
                              STRING_LIT(" | "), arena_allocator(a));
 // res == "a | b | c"
 arena_free(a);
@@ -246,16 +246,16 @@ arena_free(a);
 ### `string_to_uppercase` / `string_to_lowercase`
 
 ```c
-String string_to_uppercase(String s, Allocator allocator);
-String string_to_lowercase(String s, Allocator allocator);
+string_t string_to_uppercase(string_t s, allocator_t allocator);
+string_t string_to_lowercase(string_t s, allocator_t allocator);
 ```
 
-Return a new arena-allocated `String` with every ASCII letter converted to
+Return a new arena-allocated `string_t` with every ASCII letter converted to
 upper or lower case. Non-letter bytes are copied unchanged.
 
 ```c
 Arena  *a = arena_create(256);
-String  u = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+string_t  u = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
 // u == "HELLO WORLD!"
 arena_free(a);
 ```
@@ -263,18 +263,18 @@ arena_free(a);
 ### `string_join`
 
 ```c
-String string_join(Iter it, String sep, Allocator allocator);
+string_t string_join(iter_t it, string_t sep, allocator_t allocator);
 ```
 
-Consume `it` (an iterator that yields `String` values), concatenate every
+Consume `it` (an iterator that yields `string_t` values), concatenate every
 token with `sep` inserted between consecutive tokens, and return the result as
-a new arena-allocated `String`. The iterator is dropped after the call.
+a new arena-allocated `string_t`. The iterator is dropped after the call.
 
 ```c
 Arena  *a   = arena_create(512);
-Iter    it  = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
-                           arena_allocator(a));
-String  res = string_join(it, STRING_LIT(" | "), arena_allocator(a));
+iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
+                                  arena_allocator(a));
+string_t  res = string_join(it, STRING_LIT(" | "), arena_allocator(a));
 // res == "a | b | c"
 arena_free(a);
 ```
@@ -282,7 +282,7 @@ arena_free(a);
 ### `string_to_int`
 
 ```c
-bool string_to_int(String s, long long *out);
+bool string_to_int(string_t s, long long *out);
 ```
 
 Parse `s` as a base-10 integer. On success writes the result to `*out` and
@@ -299,7 +299,7 @@ if (string_to_int(STRING_LIT("-42"), &val))
 ### `string_to_double`
 
 ```c
-bool string_to_double(String s, double *out);
+bool string_to_double(string_t s, double *out);
 ```
 
 Parse `s` as a floating-point number (same syntax accepted by `strtod`). On
@@ -320,7 +320,7 @@ if (string_to_double(STRING_LIT("3.14"), &val))
 ### `string_slice`
 
 ```c
-String string_slice(String s, size_t start, size_t end);
+string_t string_slice(string_t s, size_t start, size_t end);
 ```
 
 Return a sub-string view `s[start..end)`. No allocation.
@@ -328,87 +328,87 @@ Return a sub-string view `s[start..end)`. No allocation.
 ### `string_trim` / `string_trim_left` / `string_trim_right`
 
 ```c
-String string_trim(String s);
-String string_trim_left(String s);
-String string_trim_right(String s);
+string_t string_trim(string_t s);
+string_t string_trim_left(string_t s);
+string_t string_trim_right(string_t s);
 ```
 
 Return views with leading / trailing / both ASCII whitespace removed. No
 allocation.
 
 ```c
-String t = string_trim(STRING_LIT("  hello  "));
+string_t t = string_trim(STRING_LIT("  hello  "));
 // t.ptr points into the original buffer
 ```
 
 ---
 
-## StringBuilder
+## strbuf_t
 
-Builds a `String` incrementally using a [`Vec`](vec.md) of `char`.
+Builds a `string_t` incrementally using a [`vec_t`](vec.md) of `char`.
 
-### `sb_create`
+### `strbuf_create`
 
 ```c
-StringBuilder *sb_create(Allocator allocator);
+strbuf_t *strbuf_create(allocator_t allocator);
 ```
 
-### `sb_append`
+### `strbuf_append`
 
 ```c
-SeqcStatus sb_append(StringBuilder *sb, String s);
+seqc_status_t strbuf_append(strbuf_t *sb, string_t s);
 ```
 
-Returns `SEQC_OOM` if the underlying Vec fails to grow; `SEQC_OK` otherwise.
+Returns `SEQC_OOM` if the underlying vec_t fails to grow; `SEQC_OK` otherwise.
 
-### `sb_append_char`
+### `strbuf_append_char`
 
 ```c
-SeqcStatus sb_append_char(StringBuilder *sb, char c);
+seqc_status_t strbuf_append_char(strbuf_t *sb, char c);
 ```
 
-### `sb_append_cstr`
+### `strbuf_append_cstr`
 
 ```c
-SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s);
+seqc_status_t strbuf_append_cstr(strbuf_t *sb, const char *s);
 ```
 
-### `sb_append_int`
+### `strbuf_append_int`
 
 ```c
-SeqcStatus sb_append_int(StringBuilder *sb, long long value);
+seqc_status_t strbuf_append_int(strbuf_t *sb, long long value);
 ```
 
 Format `value` with `snprintf` and append. Returns `SEQC_OOM` on failure.
 
-### `sb_append_fmt`
+### `strbuf_append_fmt`
 
 ```c
-SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...);
+seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
 ```
 
 `printf`-style formatting. Uses a 256-byte stack buffer for short results;
 falls back to an arena allocation for longer output. Returns `SEQC_OOM` on
 allocation failure.
 
-### `sb_finish`
+### `strbuf_finish`
 
 ```c
-String sb_finish(const StringBuilder *sb);
+string_t strbuf_finish(const strbuf_t *sb);
 ```
 
-Return a `String` view over the builder's buffer. The view is valid as long as
+Return a `string_t` view over the builder's buffer. The view is valid as long as
 the arena that backs the builder is alive. No copy is made.
 
 ```c
 Arena         *a  = arena_create(4096);
-StringBuilder *sb = sb_create(arena_allocator(a));
+strbuf_t *sb = strbuf_create(arena_allocator(a));
 
-sb_append_cstr(sb, "x=");
-sb_append_int(sb, 42);
-sb_append_fmt(sb, ", pi=%.4f", 3.14159);
+strbuf_append_cstr(sb, "x=");
+strbuf_append_int(sb, 42);
+strbuf_append_fmt(sb, ", pi=%.4f", 3.14159);
 
-String result = sb_finish(sb);
+string_t result = strbuf_finish(sb);
 // result == "x=42, pi=3.1416"
 
 arena_free(a);
@@ -424,13 +424,13 @@ int    string_key_eq(const void *a, const void *b, size_t key_size);
 ```
 
 Pass these as `hash_fn` / `eq_fn` when the key type of a
-[`HashMap`](hashmap.md) or [`Set`](set.md) is `String`.
+[`hashmap_t`](hashmap.md) or [`set_t`](set.md) is `string_t`.
 
 ```c
-HashMap *m = hashmap_create(sizeof(String), sizeof(int),
+hashmap_t *m = hashmap_create(sizeof(string_t), sizeof(int),
                              string_hash, string_key_eq,
                              arena_allocator(a));
-String k = STRING_LIT("count");
+string_t k = STRING_LIT("count");
 int    v = 7;
 hashmap_set(m, &k, &v);
 ```
@@ -442,7 +442,7 @@ hashmap_set(m, &k, &v);
 ### `string_chars`
 
 ```c
-Iter string_chars(String s, Allocator allocator);
+iter_t string_chars(string_t s, allocator_t allocator);
 ```
 
 Yield each `char` in order.
@@ -450,26 +450,57 @@ Yield each `char` in order.
 ### `string_chars_rev`
 
 ```c
-Iter string_chars_rev(String s, Allocator allocator);
+iter_t string_chars_rev(string_t s, allocator_t allocator);
 ```
 
 Yield each `char` in reverse order.
 
-### `string_split`
+### `string_split_substr`
 
 ```c
-Iter string_split(String s, String delim, Allocator allocator);
+iter_t string_split_substr(string_t s, string_t delim, allocator_t allocator);
 ```
 
-Yield `String` tokens separated by `delim`. Adjacent delimiters produce empty
-tokens.
+Yield `string_t` tokens separated by every non-overlapping occurrence of the
+substring `delim`. Empty tokens are kept (adjacent or trailing delimiters
+produce empty tokens), so the split round-trips:
+`string_join(string_split_substr(s, d, a), d, a) == s`. An empty `delim`
+matches nowhere and yields `s` as a single token — use `string_chars` for
+per-character iteration.
 
 ```c
-Iter    it  = string_split(STRING_LIT("a,b,c"), STRING_LIT(","),
-                           arena_allocator(a));
-String  tok;
+iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
+                                  arena_allocator(a));
+string_t  tok;
 while (it.next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
 iter_drop(&it);
 // prints: a / b / c
 ```
+
+### `string_split_any`
+
+```c
+iter_t string_split_any(string_t s, string_t set, allocator_t allocator);
+```
+
+Split `s` on **any** single character contained in `set`; each matching
+character is its own boundary. Like `string_split_substr`, empty tokens are
+kept — so leading/trailing separators and runs of delimiter characters yield
+empty tokens. For whitespace-style tokenisation, compose with `iter_filter` to
+drop the empties:
+
+```c
+// keep-empty split on any whitespace char
+iter_t    raw = string_split_any(STRING_LIT("  the\tquick \n"),
+                               STRING_LIT(" \t\n"), arena_allocator(a));
+// skip-empty tokenisation = split + filter
+iter_t    it  = iter_filter(raw, non_empty_str, NULL);
+string_t  tok;
+while (it.next(&it, &tok))
+    printf(STRING_FMT "\n", STRING_ARG(tok));
+iter_drop(&it);
+// prints: the / quick
+```
+
+An empty `set` matches nowhere and yields `s` as a single token.

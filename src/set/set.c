@@ -9,11 +9,11 @@ typedef struct
 {
     void *key;
     uint8_t psl; /* probe-sequence length; 0 = empty */
-} SetBucket;
+} set_bucket_t;
 
-struct Set
+struct set_t
 {
-    SetBucket *buckets;
+    set_bucket_t *buckets;
     size_t cap; /* always a power of 2 */
     size_t len;
     size_t elem_size;
@@ -26,7 +26,7 @@ struct Set
 
 /* ---- internal helpers -------------------------------------------------- */
 
-static size_t set_slot(const Set *s, const void *key)
+static size_t set_slot(const set_t *s, const void *key)
 {
     return s->hash(key, s->elem_size) & (s->cap - 1);
 }
@@ -34,13 +34,13 @@ static size_t set_slot(const Set *s, const void *key)
 /* Insert a bucket whose key is already allocated.  Does not touch s->len.
  * Returns true if inserted, false if a duplicate was found (incoming.key
  * is freed on duplicate so the caller does not need to). */
-static bool set_insert_raw(Set *s, SetBucket incoming)
+static bool set_insert_raw(set_t *s, set_bucket_t incoming)
 {
     size_t slot = set_slot(s, incoming.key);
     incoming.psl = 1;
     for (;;)
     {
-        SetBucket *cur = &s->buckets[slot];
+        set_bucket_t *cur = &s->buckets[slot];
         if (cur->psl == 0)
         {
             *cur = incoming;
@@ -56,7 +56,7 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
         /* Robin Hood: steal the slot from the "rich" (low psl) bucket */
         if (cur->psl < incoming.psl)
         {
-            SetBucket tmp = *cur;
+            set_bucket_t tmp = *cur;
             *cur = incoming;
             if (incoming.psl > s->max_psl)
                 s->max_psl = incoming.psl;
@@ -69,16 +69,16 @@ static bool set_insert_raw(Set *s, SetBucket incoming)
     }
 }
 
-static SeqcStatus set_resize(Set *s)
+static seqc_status_t set_resize(set_t *s)
 {
     size_t new_cap = s->cap * 2;
-    SetBucket *nb = mem_alloc(
-        s->allocator, new_cap * sizeof(SetBucket), _Alignof(SetBucket));
+    set_bucket_t *nb = mem_alloc(
+        s->allocator, new_cap * sizeof(set_bucket_t), _Alignof(set_bucket_t));
     if (!nb)
         return SEQC_OOM;
-    memset(nb, 0, new_cap * sizeof(SetBucket));
+    memset(nb, 0, new_cap * sizeof(set_bucket_t));
 
-    SetBucket *old = s->buckets;
+    set_bucket_t *old = s->buckets;
     size_t old_cap = s->cap;
     s->buckets = nb;
     s->cap = new_cap;
@@ -86,20 +86,20 @@ static SeqcStatus set_resize(Set *s)
 
     for (size_t i = 0; i < old_cap; i++)
         if (old[i].psl > 0)
-            set_insert_raw(s, (SetBucket){old[i].key, 0});
+            set_insert_raw(s, (set_bucket_t){old[i].key, 0});
 
-    mem_free(s->allocator, old, old_cap * sizeof(SetBucket));
+    mem_free(s->allocator, old, old_cap * sizeof(set_bucket_t));
     return SEQC_OK;
 }
 
 /* ---- public API -------------------------------------------------------- */
 
-Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator)
+set_t *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator)
 {
-    Set *s = mem_alloc(allocator, sizeof(Set), _Alignof(Set));
+    set_t *s = mem_alloc(allocator, sizeof(set_t), _Alignof(set_t));
     if (!s)
         return NULL;
-    *s = (Set){.buckets = NULL,
+    *s = (set_t){.buckets = NULL,
                .cap = 0,
                .len = 0,
                .elem_size = elem_size,
@@ -109,7 +109,7 @@ Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator)
     return s;
 }
 
-bool set_contains(const Set *s, const void *elem)
+bool set_contains(const set_t *s, const void *elem)
 {
     if (!s || !elem || s->len == 0)
         return false;
@@ -117,7 +117,7 @@ bool set_contains(const Set *s, const void *elem)
     uint8_t probe = 1;
     while (1)
     {
-        const SetBucket *b = &s->buckets[slot];
+        const set_bucket_t *b = &s->buckets[slot];
         if (b->psl == 0 || b->psl < probe)
             return false;
         if (s->eq(b->key, elem, s->elem_size))
@@ -127,7 +127,7 @@ bool set_contains(const Set *s, const void *elem)
     }
 }
 
-SeqcStatus set_add(Set *s, const void *elem)
+seqc_status_t set_add(set_t *s, const void *elem)
 {
     if (!s || !elem)
         return SEQC_INVALID;
@@ -136,16 +136,16 @@ SeqcStatus set_add(Set *s, const void *elem)
         s->buckets = mem_alloc(
             s->allocator,
 
-            SET_INITIAL_CAP * sizeof(SetBucket),
-            _Alignof(SetBucket));
+            SET_INITIAL_CAP * sizeof(set_bucket_t),
+            _Alignof(set_bucket_t));
         if (!s->buckets)
             return SEQC_OOM;
-        memset(s->buckets, 0, SET_INITIAL_CAP * sizeof(SetBucket));
+        memset(s->buckets, 0, SET_INITIAL_CAP * sizeof(set_bucket_t));
         s->cap = SET_INITIAL_CAP;
     }
     if (s->len * 4 >= s->cap * 3 || s->max_psl >= SET_PSL_THRESHOLD)
     {
-        SeqcStatus rs = set_resize(s);
+        seqc_status_t rs = set_resize(s);
         if (rs != SEQC_OK)
             return rs;
     }
@@ -153,13 +153,13 @@ SeqcStatus set_add(Set *s, const void *elem)
     if (!key)
         return SEQC_OOM;
     memcpy(key, elem, s->elem_size);
-    if (!set_insert_raw(s, (SetBucket){key, 0}))
+    if (!set_insert_raw(s, (set_bucket_t){key, 0}))
         return SEQC_DUPLICATE; /* key freed inside set_insert_raw */
     s->len++;
     return SEQC_OK;
 }
 
-SeqcStatus set_remove(Set *s, const void *elem)
+seqc_status_t set_remove(set_t *s, const void *elem)
 {
     if (!s || !elem || s->len == 0)
         return SEQC_NOT_FOUND;
@@ -167,7 +167,7 @@ SeqcStatus set_remove(Set *s, const void *elem)
     uint8_t probe = 1;
     while (1)
     {
-        SetBucket *b = &s->buckets[slot];
+        set_bucket_t *b = &s->buckets[slot];
         if (b->psl == 0 || b->psl < probe)
             return SEQC_NOT_FOUND;
         if (s->eq(b->key, elem, s->elem_size))
@@ -177,10 +177,10 @@ SeqcStatus set_remove(Set *s, const void *elem)
             for (;;)
             {
                 size_t next = (slot + 1) & (s->cap - 1);
-                SetBucket *nb = &s->buckets[next];
+                set_bucket_t *nb = &s->buckets[next];
                 if (nb->psl <= 1)
                 {
-                    s->buckets[slot] = (SetBucket){NULL, 0};
+                    s->buckets[slot] = (set_bucket_t){NULL, 0};
                     break;
                 }
                 s->buckets[slot] = *nb;
@@ -195,17 +195,17 @@ SeqcStatus set_remove(Set *s, const void *elem)
     }
 }
 
-size_t set_len(const Set *s)
+size_t set_len(const set_t *s)
 {
     return s ? s->len : 0;
 }
 
-bool set_is_empty(const Set *s)
+bool set_is_empty(const set_t *s)
 {
     return set_len(s) == 0;
 }
 
-void set_free(Set *s)
+void set_free(set_t *s)
 {
     if (!s)
         return;
@@ -214,35 +214,35 @@ void set_free(Set *s)
         for (size_t i = 0; i < s->cap; i++)
             if (s->buckets[i].psl > 0)
                 mem_free(s->allocator, s->buckets[i].key, s->elem_size);
-        mem_free(s->allocator, s->buckets, s->cap * sizeof(SetBucket));
+        mem_free(s->allocator, s->buckets, s->cap * sizeof(set_bucket_t));
     }
     allocator_t al = s->allocator;
-    mem_free(al, s, sizeof(Set));
+    mem_free(al, s, sizeof(set_t));
 }
 
-void set_clear(Set *s)
+void set_clear(set_t *s)
 {
     if (!s || !s->buckets)
         return;
     for (size_t i = 0; i < s->cap; i++)
         if (s->buckets[i].psl > 0)
             mem_free(s->allocator, s->buckets[i].key, s->elem_size);
-    memset(s->buckets, 0, s->cap * sizeof(SetBucket));
+    memset(s->buckets, 0, s->cap * sizeof(set_bucket_t));
     s->len = 0;
     s->max_psl = 0;
 }
 
 /* ---- health / diagnostics ---------------------------------------------- */
 
-bool set_is_healthy(const Set *s)
+bool set_is_healthy(const set_t *s)
 {
     return s && s->max_psl <= SET_PSL_THRESHOLD / 2;
 }
 
-SetStats set_audit(const Set *s)
+set_stats_t set_audit(const set_t *s)
 {
     if (!s)
-        return (SetStats){0};
+        return (set_stats_t){0};
     double sum_psl = 0;
     uint8_t max_psl = 0;
     for (size_t i = 0; i < s->cap; i++)
@@ -257,7 +257,7 @@ SetStats set_audit(const Set *s)
     }
     double load_factor = s->cap > 0 ? (double)s->len / s->cap : 0.0;
     double mean_psl = s->len > 0 ? sum_psl / (double)s->len : 0.0;
-    return (SetStats){
+    return (set_stats_t){
         .len = s->len,
         .cap = s->cap,
         .load_factor = load_factor,
@@ -271,18 +271,18 @@ SetStats set_audit(const Set *s)
 
 typedef struct
 {
-    const SetBucket *buckets;
+    const set_bucket_t *buckets;
     size_t cap;
     size_t pos;
     size_t elem_size;
-} SetIterState;
+} set_iter_state_t;
 
-static bool set_iter_next(Iter *it, void *out)
+static bool set_iter_next(iter_t *it, void *out)
 {
-    SetIterState *s = it->state;
+    set_iter_state_t *s = it->state;
     while (s->pos < s->cap)
     {
-        const SetBucket *b = &s->buckets[s->pos++];
+        const set_bucket_t *b = &s->buckets[s->pos++];
         if (b->psl > 0)
         {
             memcpy(out, b->key, s->elem_size);
@@ -292,21 +292,21 @@ static bool set_iter_next(Iter *it, void *out)
     return false;
 }
 
-static void set_iter_drop(Iter *it)
+static void set_iter_drop(iter_t *it)
 {
-    mem_free(it->allocator, it->state, sizeof(SetIterState));
+    mem_free(it->allocator, it->state, sizeof(set_iter_state_t));
 }
 
-Iter set_iter(const Set *s)
+iter_t set_iter(const set_t *s)
 {
     if (!s)
-        return (Iter){0};
-    SetIterState *state =
-        mem_alloc(s->allocator, sizeof *state, _Alignof(SetIterState));
+        return (iter_t){0};
+    set_iter_state_t *state =
+        mem_alloc(s->allocator, sizeof *state, _Alignof(set_iter_state_t));
     if (!state)
-        return (Iter){0};
-    *state = (SetIterState){s->buckets, s->cap, 0, s->elem_size};
-    return (Iter){.next = set_iter_next,
+        return (iter_t){0};
+    *state = (set_iter_state_t){s->buckets, s->cap, 0, s->elem_size};
+    return (iter_t){.next = set_iter_next,
                   .drop = set_iter_drop,
                   .state = state,
                   .elem_size = s->elem_size,
@@ -315,18 +315,18 @@ Iter set_iter(const Set *s)
 
 typedef struct
 {
-    const SetBucket *buckets;
+    const set_bucket_t *buckets;
     size_t cap;
     size_t pos; /* counts down from cap */
     size_t elem_size;
-} SetIterRevState;
+} set_iter_rev_state_t;
 
-static bool set_iter_rev_next(Iter *it, void *out)
+static bool set_iter_rev_next(iter_t *it, void *out)
 {
-    SetIterRevState *s = it->state;
+    set_iter_rev_state_t *s = it->state;
     while (s->pos > 0)
     {
-        const SetBucket *b = &s->buckets[--s->pos];
+        const set_bucket_t *b = &s->buckets[--s->pos];
         if (b->psl > 0)
         {
             memcpy(out, b->key, s->elem_size);
@@ -336,21 +336,21 @@ static bool set_iter_rev_next(Iter *it, void *out)
     return false;
 }
 
-static void set_iter_rev_drop(Iter *it)
+static void set_iter_rev_drop(iter_t *it)
 {
-    mem_free(it->allocator, it->state, sizeof(SetIterRevState));
+    mem_free(it->allocator, it->state, sizeof(set_iter_rev_state_t));
 }
 
-Iter set_iter_rev(const Set *s)
+iter_t set_iter_rev(const set_t *s)
 {
     if (!s)
-        return (Iter){0};
-    SetIterRevState *state =
-        mem_alloc(s->allocator, sizeof *state, _Alignof(SetIterRevState));
+        return (iter_t){0};
+    set_iter_rev_state_t *state =
+        mem_alloc(s->allocator, sizeof *state, _Alignof(set_iter_rev_state_t));
     if (!state)
-        return (Iter){0};
-    *state = (SetIterRevState){s->buckets, s->cap, s->cap, s->elem_size};
-    return (Iter){.next = set_iter_rev_next,
+        return (iter_t){0};
+    *state = (set_iter_rev_state_t){s->buckets, s->cap, s->cap, s->elem_size};
+    return (iter_t){.next = set_iter_rev_next,
                   .drop = set_iter_rev_drop,
                   .state = state,
                   .elem_size = s->elem_size,
@@ -359,7 +359,7 @@ Iter set_iter_rev(const Set *s)
 
 /* ---- set algebra ------------------------------------------------------- */
 
-SeqcStatus set_union(Set *dest, const Set *a, const Set *b)
+seqc_status_t set_union(set_t *dest, const set_t *a, const set_t *b)
 {
     if (!dest || !a || !b)
         return SEQC_INVALID;
@@ -368,7 +368,7 @@ SeqcStatus set_union(Set *dest, const Set *a, const Set *b)
     {
         if (a->buckets[i].psl == 0)
             continue;
-        SeqcStatus st = set_add(dest, a->buckets[i].key);
+        seqc_status_t st = set_add(dest, a->buckets[i].key);
         if (st != SEQC_OK && st != SEQC_DUPLICATE)
             return st;
     }
@@ -377,34 +377,34 @@ SeqcStatus set_union(Set *dest, const Set *a, const Set *b)
     {
         if (b->buckets[i].psl == 0)
             continue;
-        SeqcStatus st = set_add(dest, b->buckets[i].key);
+        seqc_status_t st = set_add(dest, b->buckets[i].key);
         if (st != SEQC_OK && st != SEQC_DUPLICATE)
             return st;
     }
     return SEQC_OK;
 }
 
-SeqcStatus set_intersection(Set *dest, const Set *a, const Set *b)
+seqc_status_t set_intersection(set_t *dest, const set_t *a, const set_t *b)
 {
     if (!dest || !a || !b)
         return SEQC_INVALID;
     /* iterate the smaller set for efficiency */
-    const Set *src = a->len <= b->len ? a : b;
-    const Set *other = a->len <= b->len ? b : a;
+    const set_t *src = a->len <= b->len ? a : b;
+    const set_t *other = a->len <= b->len ? b : a;
     for (size_t i = 0; i < src->cap; i++)
     {
         if (src->buckets[i].psl == 0)
             continue;
         if (!set_contains(other, src->buckets[i].key))
             continue;
-        SeqcStatus st = set_add(dest, src->buckets[i].key);
+        seqc_status_t st = set_add(dest, src->buckets[i].key);
         if (st != SEQC_OK && st != SEQC_DUPLICATE)
             return st;
     }
     return SEQC_OK;
 }
 
-SeqcStatus set_difference(Set *dest, const Set *a, const Set *b)
+seqc_status_t set_difference(set_t *dest, const set_t *a, const set_t *b)
 {
     if (!dest || !a || !b)
         return SEQC_INVALID;
@@ -414,14 +414,14 @@ SeqcStatus set_difference(Set *dest, const Set *a, const Set *b)
             continue;
         if (set_contains(b, a->buckets[i].key))
             continue;
-        SeqcStatus st = set_add(dest, a->buckets[i].key);
+        seqc_status_t st = set_add(dest, a->buckets[i].key);
         if (st != SEQC_OK && st != SEQC_DUPLICATE)
             return st;
     }
     return SEQC_OK;
 }
 
-SeqcStatus set_add_all(Set *s, Iter it)
+seqc_status_t set_add_all(set_t *s, iter_t it)
 {
     if (!s)
     {
@@ -434,7 +434,7 @@ SeqcStatus set_add_all(Set *s, Iter it)
         iter_drop(&it);
         return SEQC_OOM;
     }
-    SeqcStatus st = SEQC_OK;
+    seqc_status_t st = SEQC_OK;
     while (it.next(&it, elem))
     {
         st = set_add(s, elem);

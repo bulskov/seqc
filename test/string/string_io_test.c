@@ -26,7 +26,7 @@ TEST(string_io, fwrite_is_binary_safe_with_embedded_nul)
     FILE *f = tmpfile();
     ASSERT_NE(f, nullptr);
     const char data[] = {'a', '\0', 'b'};
-    String s = {data, 3};
+    string_t s = {data, 3};
     EXPECT_EQ(string_fwrite(s, f), 3u);
     rewind(f);
     char buf[8] = {0};
@@ -46,7 +46,7 @@ TEST(string_io, fwrite_empty_string_returns_zero)
 {
     FILE *f = tmpfile();
     ASSERT_NE(f, nullptr);
-    EXPECT_EQ(string_fwrite((String){NULL, 0}, f), 0u);
+    EXPECT_EQ(string_fwrite((string_t){NULL, 0}, f), 0u);
     fclose(f);
 }
 

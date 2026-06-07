@@ -123,7 +123,7 @@ growing_arena_t arena;
 growing_arena_init(&arena, 4096);
 allocator_t al = growing_arena_allocator(&arena);
 
-Vec *v = vec_create(sizeof(int), al);
+vec_t *v = vec_create(sizeof(int), al);
 ```
 
 ---
@@ -168,8 +168,8 @@ growing_arena_t arena;
 growing_arena_init(&arena, 1 << 20);
 allocator_t al = growing_arena_allocator(&arena);
 
-Vec    *v = vec_create(sizeof(int), al);
-HashMap *m = hashmap_create(sizeof(int), sizeof(int),
+vec_t    *v = vec_create(sizeof(int), al);
+hashmap_t *m = hashmap_create(sizeof(int), sizeof(int),
                             hash_fnv1a_int, hash_eq_int, al);
 // all collections share the arena lifetime
 growing_arena_destroy(&arena); // frees everything at once
@@ -186,7 +186,7 @@ growing_arena_scratch_begin(&sc, &arena);
 allocator_t tmp = scratch_allocator(&sc);
 
 // sort needs temporary space
-Slice sorted = iter_sort(vec_iter(v), int_cmp, tmp);
+slice_t sorted = iter_sort(vec_iter(v), int_cmp, tmp);
 use(sorted);
 
 scratch_end(&sc); // scratch memory released; sorted is now invalid

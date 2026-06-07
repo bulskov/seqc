@@ -31,7 +31,7 @@ static int log2_ceil(int n)
 TEST(avl, empty_on_create)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     EXPECT_EQ(avl_len(t), 0);
     EXPECT_EQ(avl_height(t), 0);
     EXPECT_EQ(avl_min(t), nullptr);
@@ -42,7 +42,7 @@ TEST(avl, empty_on_create)
 TEST(avl, insert_and_contains)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
         EXPECT_EQ(avl_insert(t, &vals[i]), SEQC_OK);
@@ -57,7 +57,7 @@ TEST(avl, insert_and_contains)
 TEST(avl, insert_duplicate_returns_0)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 10;
     EXPECT_EQ(avl_insert(t, &v), SEQC_OK);
     EXPECT_NE(avl_insert(t, &v), SEQC_OK);
@@ -68,7 +68,7 @@ TEST(avl, insert_duplicate_returns_0)
 TEST(avl, min_max)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 1, 8, 3, 9, 2};
     for (int i = 0; i < 6; i++)
         avl_insert(t, &vals[i]);
@@ -83,7 +83,7 @@ TEST(avl, ll_rotation)
 {
     /* Insert 3,2,1 → triggers LL (right rotation at 3) → balanced root = 2 */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {3, 2, 1};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -97,7 +97,7 @@ TEST(avl, rr_rotation)
 {
     /* Insert 1,2,3 → triggers RR (left rotation at 1) → balanced root = 2 */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -109,7 +109,7 @@ TEST(avl, lr_rotation)
 {
     /* Insert 3,1,2 → triggers LR (left-right double rotation) */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {3, 1, 2};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -121,7 +121,7 @@ TEST(avl, rl_rotation)
 {
     /* Insert 1,3,2 → triggers RL (right-left double rotation) */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 3, 2};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -134,12 +134,12 @@ TEST(avl, rl_rotation)
 TEST(avl, iter_in_order)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
         avl_insert(t, &vals[i]);
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = avl_iter(t);
+    iter_t it = avl_iter(t);
     int got[7];
     size_t n = 0;
     while (it.next(&it, &got[n]))
@@ -155,7 +155,7 @@ TEST(avl, iter_in_order)
 TEST(avl, iter_empty)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
     EXPECT_EQ(iter_count(avl_iter(t)), 0);
     scratch_end(&sc);
@@ -167,7 +167,7 @@ TEST(avl, iter_empty)
 TEST(avl, remove_leaf)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -181,7 +181,7 @@ TEST(avl, remove_leaf)
 TEST(avl, remove_root_two_children)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
         avl_insert(t, &vals[i]);
@@ -191,7 +191,7 @@ TEST(avl, remove_root_two_children)
     EXPECT_EQ(avl_len(t), 6);
     /* tree must remain sorted */
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = avl_iter(t);
+    iter_t it = avl_iter(t);
     int prev, cur;
     EXPECT_TRUE(it.next(&it, &prev));
     while (it.next(&it, &cur))
@@ -208,7 +208,7 @@ TEST(avl, remove_rebalances)
 {
     /* Insert ascending 1..7, remove the root repeatedly and verify balance */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 1; i <= 7; i++)
         avl_insert(t, &i);
     for (int i = 1; i <= 6; i++)
@@ -223,7 +223,7 @@ TEST(avl, remove_rebalances)
 TEST(avl, remove_nonexistent_returns_0)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 42;
     EXPECT_NE(avl_remove(t, &v), SEQC_OK);
     growing_arena_destroy(a);
@@ -236,7 +236,7 @@ TEST(avl, height_stays_logarithmic)
     /* Insert 1000 ascending integers — worst case for an unbalanced BST
      * (would be height 1000); AVL must keep it at ~log2(1000) ≈ 10. */
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 65536);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 0; i < 1000; i++)
         avl_insert(t, &i);
     EXPECT_EQ(avl_len(t), 1000);
@@ -249,7 +249,7 @@ TEST(avl, height_stays_logarithmic)
 TEST(avl, many_inserts_sorted_output)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 8192);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int order[] = {24, 12, 36, 6,  18, 30, 42, 3,  9,  15, 21, 27, 33,
                    39, 45, 1,  4,  7,  10, 13, 16, 19, 22, 25, 28, 31,
                    34, 37, 40, 43, 46, 0,  2,  5,  8,  11, 14, 17, 20,
@@ -260,7 +260,7 @@ TEST(avl, many_inserts_sorted_output)
     EXPECT_EQ(*(int *)avl_min(t), 0);
     EXPECT_EQ(*(int *)avl_max(t), 49);
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = avl_iter(t);
+    iter_t it = avl_iter(t);
     int prev, cur;
     EXPECT_TRUE(it.next(&it, &prev));
     EXPECT_EQ(prev, 0);
@@ -280,12 +280,12 @@ TEST(avl, many_inserts_sorted_output)
 TEST(avl, iter_rev_descending)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {4, 2, 6, 1, 3, 5, 7};
     for (int i = 0; i < 7; i++)
         avl_insert(t, &vals[i]);
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    Iter it = avl_iter_rev(t);
+    iter_t it = avl_iter_rev(t);
     int prev, cur;
     EXPECT_TRUE(it.next(&it, &prev));
     EXPECT_EQ(prev, 7);
@@ -305,12 +305,12 @@ TEST(avl, iter_rev_descending)
 TEST(avl, iter_range_mid)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     for (int i = 0; i < 10; i++)
         avl_insert(t, &vals[i]);
     int lo = 3, hi = 7;
-    Iter it = avl_iter_range(t, &lo, &hi);
+    iter_t it = avl_iter_range(t, &lo, &hi);
     int collected[10];
     int n = 0;
     while (it.next(&it, &collected[n]))
@@ -325,12 +325,12 @@ TEST(avl, iter_range_mid)
 TEST(avl, iter_range_no_lo)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
         avl_insert(t, &vals[i]);
     int hi = 3;
-    Iter it = avl_iter_range(t, NULL, &hi);
+    iter_t it = avl_iter_range(t, NULL, &hi);
     int v;
     int n = 0;
     while (it.next(&it, &v))
@@ -343,12 +343,12 @@ TEST(avl, iter_range_no_lo)
 TEST(avl, iter_range_no_hi)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
         avl_insert(t, &vals[i]);
     int lo = 3;
-    Iter it = avl_iter_range(t, &lo, NULL);
+    iter_t it = avl_iter_range(t, &lo, NULL);
     int v;
     int n = 0;
     while (it.next(&it, &v))
@@ -361,12 +361,12 @@ TEST(avl, iter_range_no_hi)
 TEST(avl, iter_range_empty_result)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {1, 5, 10};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
     int lo = 6, hi = 9;
-    Iter it = avl_iter_range(t, &lo, &hi);
+    iter_t it = avl_iter_range(t, &lo, &hi);
     int v;
     EXPECT_TRUE(!it.next(&it, &v));
     iter_drop(&it);
@@ -378,7 +378,7 @@ TEST(avl, iter_range_empty_result)
 TEST(avl, clear_empties_tree)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {3, 1, 5, 2, 4};
     for (int i = 0; i < 5; i++)
         avl_insert(t, &vals[i]);
@@ -392,7 +392,7 @@ TEST(avl, clear_empties_tree)
 TEST(avl, clear_allows_reuse)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
+    avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {3, 1, 5};
     for (int i = 0; i < 3; i++)
         avl_insert(t, &vals[i]);
@@ -408,14 +408,14 @@ TEST(avl, clear_allows_reuse)
 
 TEST(avl, iter_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    avl_t *t = avl_create(sizeof(int), int_cmp, al);
     ASSERT_NE(t, nullptr);
     for (int i = 0; i < 3; i++)
         avl_insert(t, &i);
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
-    Iter it = avl_iter(t);
+    iter_t it = avl_iter(t);
     EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
     iter_drop(&it);
     avl_free(t);
@@ -423,14 +423,14 @@ TEST(avl, iter_oom_returns_empty)
 
 TEST(avl, iter_rev_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    avl_t *t = avl_create(sizeof(int), int_cmp, al);
     ASSERT_NE(t, nullptr);
     for (int i = 0; i < 3; i++)
         avl_insert(t, &i);
     ctx.remaining = 0;
-    Iter it = avl_iter_rev(t);
+    iter_t it = avl_iter_rev(t);
     EXPECT_EQ(it.next, nullptr);
     iter_drop(&it);
     avl_free(t);
@@ -438,15 +438,15 @@ TEST(avl, iter_rev_oom_returns_empty)
 
 TEST(avl, iter_range_oom_returns_empty)
 {
-    OomCtx ctx;
+    oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
-    AVLTree *t = avl_create(sizeof(int), int_cmp, al);
+    avl_t *t = avl_create(sizeof(int), int_cmp, al);
     ASSERT_NE(t, nullptr);
     for (int i = 0; i < 5; i++)
         avl_insert(t, &i);
     int lo = 1, hi = 3;
     ctx.remaining = 0;
-    Iter it = avl_iter_range(t, &lo, &hi);
+    iter_t it = avl_iter_range(t, &lo, &hi);
     EXPECT_EQ(it.next, nullptr);
     iter_drop(&it);
     avl_free(t);

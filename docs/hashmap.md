@@ -18,21 +18,21 @@ typedef bool   (*eq_fn)(const void *a, const void *b, size_t key_size);
 
 Defined in `iter/iter.h` (included transitively). Shared with [`set`](set.md).
 
-### `HashMap`
+### `hashmap_t`
 
 ```c
-typedef struct HashMap HashMap;
+typedef struct hashmap_t hashmap_t;
 ```
 
 Opaque handle.
 
-### `HashMapEntry`
+### `hashmap_entry_t`
 
 ```c
-typedef MapEntry HashMapEntry;
+typedef map_entry_t hashmap_entry_t;
 ```
 
-Alias for [`MapEntry`](iter.md#mapentry) (defined in `iter/iter.h`).
+Alias for [`map_entry_t`](iter.md#mapentry) (defined in `iter/iter.h`).
 Yielded by [`hashmap_iter`](#hashmap_iter). Both pointers point
 directly into live bucket storage — do not modify the map while iterating.
 
@@ -76,7 +76,7 @@ bool hash_eq_str(const void *a, const void *b, size_t key_size);
 
 `strcmp`-based equality for `char *` keys.
 
-> For [`String`](string.md) keys use `string_hash` and `string_key_eq` from
+> For [`string_t`](string.md) keys use `string_hash` and `string_key_eq` from
 > `string/string.h`.
 
 ---
@@ -86,16 +86,16 @@ bool hash_eq_str(const void *a, const void *b, size_t key_size);
 ### `hashmap_create`
 
 ```c
-HashMap *hashmap_create(size_t key_size, size_t val_size,
+hashmap_t *hashmap_create(size_t key_size, size_t val_size,
                         hash_fn hash, eq_fn eq,
-                        Allocator allocator);
+                        allocator_t allocator);
 ```
 
 Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero, if `hash` or `eq` is `NULL`, if `allocator.alloc` is `NULL`, or if an allocation fails.
 
 ```c
 Arena   *a = arena_create(4096);
-HashMap *m = hashmap_create(sizeof(int), sizeof(double),
+hashmap_t *m = hashmap_create(sizeof(int), sizeof(double),
                              hash_fnv1a, hash_eq_bytes,
                              arena_allocator(a));
 ```
@@ -105,7 +105,7 @@ HashMap *m = hashmap_create(sizeof(int), sizeof(double),
 ### `hashmap_set`
 
 ```c
-SeqcStatus hashmap_set(HashMap *map, const void *key, const void *value);
+seqc_status_t hashmap_set(hashmap_t *map, const void *key, const void *value);
 ```
 
 Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
@@ -123,7 +123,7 @@ hashmap_set(m, &k, &v);
 ### `hashmap_get`
 
 ```c
-SeqcStatus hashmap_get(const HashMap *map, const void *key, void *out);
+seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out);
 ```
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
@@ -141,7 +141,7 @@ if (hashmap_get(m, &k, &val) == SEQC_OK)
 ### `hashmap_delete`
 
 ```c
-SeqcStatus hashmap_delete(HashMap *map, const void *key);
+seqc_status_t hashmap_delete(hashmap_t *map, const void *key);
 ```
 
 Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
@@ -152,7 +152,7 @@ Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
 ### `hashmap_contains`
 
 ```c
-bool hashmap_contains(const HashMap *map, const void *key);
+bool hashmap_contains(const hashmap_t *map, const void *key);
 ```
 
 Return `true` if `key` is present in the map. Equivalent to
@@ -168,7 +168,7 @@ if (hashmap_contains(m, &k))
 ### `hashmap_len`
 
 ```c
-size_t hashmap_len(const HashMap *map);
+size_t hashmap_len(const hashmap_t *map);
 ```
 
 ---
@@ -176,7 +176,7 @@ size_t hashmap_len(const HashMap *map);
 ### `hashmap_is_empty`
 
 ```c
-bool hashmap_is_empty(const HashMap *map);
+bool hashmap_is_empty(const hashmap_t *map);
 ```
 
 Returns `true` if the map contains no entries. Equivalent to
@@ -187,16 +187,16 @@ Returns `true` if the map contains no entries. Equivalent to
 ### `hashmap_iter` {#hashmap_iter}
 
 ```c
-Iter hashmap_iter(const HashMap *map);
+iter_t hashmap_iter(const hashmap_t *map);
 ```
 
 Iterate over all key-value pairs in unspecified order. Each element is a
-[`HashMapEntry`](#hashmapentry) — both `key` and `value` are pointers into
+[`hashmap_entry_t`](#hashmapentry) — both `key` and `value` are pointers into
 live bucket storage. Do not modify the map while iterating.
 
 ```c
-Iter         it = hashmap_iter(m);
-HashMapEntry e;
+iter_t         it = hashmap_iter(m);
+hashmap_entry_t e;
 while (it.next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 }
@@ -208,7 +208,7 @@ iter_drop(&it);
 ### `hashmap_iter_rev`
 
 ```c
-Iter hashmap_iter_rev(const HashMap *map);
+iter_t hashmap_iter_rev(const hashmap_t *map);
 ```
 
 Iterate over all key-value pairs in reverse bucket-storage order.
@@ -218,10 +218,10 @@ Iterate over all key-value pairs in reverse bucket-storage order.
 ### `hashmap_set_all`
 
 ```c
-SeqcStatus hashmap_set_all(HashMap *map, Iter it);
+seqc_status_t hashmap_set_all(hashmap_t *map, iter_t it);
 ```
 
-Drain `it` (which must yield `HashMapEntry` values), inserting each key-value
+Drain `it` (which must yield `hashmap_entry_t` values), inserting each key-value
 pair into `map`. Returns `SEQC_OOM` on the first allocation failure.
 Returns `SEQC_INVALID` if `map` is `NULL`. The iterator is always dropped.
 
@@ -235,7 +235,7 @@ hashmap_set_all(a, hashmap_iter(b));
 ### `hashmap_clear`
 
 ```c
-void hashmap_clear(HashMap *map);
+void hashmap_clear(hashmap_t *map);
 ```
 
 Remove all entries. Key and value copies are freed (no-op for arena
@@ -248,10 +248,10 @@ threshold is reached again.
 ### `hashmap_free`
 
 ```c
-void hashmap_free(HashMap *map);
+void hashmap_free(hashmap_t *map);
 ```
 
-Free all key/value copies, the bucket array, and the HashMap struct itself.
+Free all key/value copies, the bucket array, and the hashmap_t struct itself.
 Do not use `map` after calling this.
 
 ---
@@ -272,7 +272,7 @@ Defined in `iter/hash.h`. When `max_psl` reaches this value during an insert
 the table is resized and rehashed immediately — well before the `uint8_t` PSL
 field could wrap to 0 and silently corrupt the table.
 
-### `HashMapStats`
+### `hashmap_stats_t`
 
 ```c
 typedef struct {
@@ -282,13 +282,13 @@ typedef struct {
     uint8_t max_psl;    /* worst-case probe length over all stored buckets */
     double  mean_psl;   /* average probe length over occupied buckets */
     bool    is_healthy; /* mean_psl < 3.0 and max_psl <= HASH_PSL_THRESHOLD/2 */
-} HashMapStats;
+} hashmap_stats_t;
 ```
 
 ### `hashmap_is_healthy`
 
 ```c
-bool hashmap_is_healthy(const HashMap *map);
+bool hashmap_is_healthy(const hashmap_t *map);
 ```
 
 O(1) check. Returns `false` when `max_psl > HASH_PSL_THRESHOLD / 2` (64),
@@ -303,16 +303,16 @@ if (!hashmap_is_healthy(m))
 ### `hashmap_audit`
 
 ```c
-HashMapStats hashmap_audit(const HashMap *map);
+hashmap_stats_t hashmap_audit(const hashmap_t *map);
 ```
 
-O(n) full scan. Returns a [`HashMapStats`](#hashmapstats) struct with a
+O(n) full scan. Returns a [`hashmap_stats_t`](#hashmapstats) struct with a
 complete picture of the table's internal state. `mean_psl` is the most
 useful signal: with a good hash at 75% load it should be close to 1.5;
 a degenerate all-same hash pushes it toward `len / 2`.
 
 ```c
-HashMapStats s = hashmap_audit(m);
+hashmap_stats_t s = hashmap_audit(m);
 printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
        s.load_factor, s.max_psl, s.mean_psl,
        s.is_healthy ? "yes" : "no");
@@ -326,7 +326,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 #include "seqc/hashmap.h"
 
 Arena   *a = arena_create(4096);
-HashMap *m = hashmap_create(sizeof(char *), sizeof(int),
+hashmap_t *m = hashmap_create(sizeof(char *), sizeof(int),
                              hash_fnv1a_str, hash_eq_str,
                              arena_allocator(a));
 

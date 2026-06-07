@@ -7,32 +7,32 @@
 #include "arena/allocator.h"
 #include "seqc/iter.h"
 
-typedef struct Set Set;
+typedef struct set_t set_t;
 
-Set *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator);
+set_t *set_create(size_t elem_size, hash_fn hash, eq_fn eq, allocator_t allocator);
 /* SEQC_OK=added, SEQC_DUPLICATE=already present, SEQC_OOM=alloc failure */
-SeqcStatus set_add(Set *s, const void *elem);
-bool set_contains(const Set *s, const void *elem);
+seqc_status_t set_add(set_t *s, const void *elem);
+bool set_contains(const set_t *s, const void *elem);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
-SeqcStatus set_remove(Set *s, const void *elem);
-size_t set_len(const Set *s);
-bool set_is_empty(const Set *s);
-void set_free(Set *s);
-void set_clear(Set *s);
-Iter set_iter(const Set *s);     /* order unspecified */
-Iter set_iter_rev(const Set *s); /* reverse bucket-storage order */
+seqc_status_t set_remove(set_t *s, const void *elem);
+size_t set_len(const set_t *s);
+bool set_is_empty(const set_t *s);
+void set_free(set_t *s);
+void set_clear(set_t *s);
+iter_t set_iter(const set_t *s);     /* order unspecified */
+iter_t set_iter_rev(const set_t *s); /* reverse bucket-storage order */
 /* Drain iter, adding each element into s; SEQC_DUPLICATE is silently skipped.
  */
-SeqcStatus set_add_all(Set *s, Iter it);
+seqc_status_t set_add_all(set_t *s, iter_t it);
 
-/* --- Set algebra -------------------------------------------------------- */
+/* --- set_t algebra -------------------------------------------------------- */
 
 /* dest = a ∪ b  (all elements in a or b; dest must be empty or NULL) */
-SeqcStatus set_union(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_union(set_t *dest, const set_t *a, const set_t *b);
 /* dest = a ∩ b  (elements present in both; dest must be empty or NULL) */
-SeqcStatus set_intersection(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_intersection(set_t *dest, const set_t *a, const set_t *b);
 /* dest = a \ b  (elements in a but not in b; dest must be empty or NULL) */
-SeqcStatus set_difference(Set *dest, const Set *a, const Set *b);
+seqc_status_t set_difference(set_t *dest, const set_t *a, const set_t *b);
 
 /* --- Health / diagnostics ----------------------------------------------- */
 
@@ -46,10 +46,10 @@ typedef struct
     uint8_t max_psl; /* highest probe-sequence length of any stored bucket */
     double mean_psl; /* average PSL over occupied buckets */
     bool is_healthy; /* mean_psl < 3.0 and max_psl <= SET_PSL_THRESHOLD/2 */
-} SetStats;
+} set_stats_t;
 
 /* O(1) — returns false when max_psl has exceeded SET_PSL_THRESHOLD/2. */
-bool set_is_healthy(const Set *s);
+bool set_is_healthy(const set_t *s);
 
 /* O(n) — full diagnostic scan; returns per-bucket statistics. */
-SetStats set_audit(const Set *s);
+set_stats_t set_audit(const set_t *s);

@@ -10,20 +10,20 @@ supplied comparator. All operations are O(log n).
 
 ## Types
 
-### `OMapEntry`
+### `omap_entry_t`
 
 ```c
-typedef MapEntry OMapEntry;
+typedef map_entry_t omap_entry_t;
 ```
 
-Alias for [`MapEntry`](iter.md#mapentry) (defined in `iter/iter.h`).
+Alias for [`map_entry_t`](iter.md#mapentry) (defined in `iter/iter.h`).
 Yielded by the iterators. Both pointers point directly into live node storage —
 do not modify the map while iterating.
 
-### `OMap`
+### `omap_t`
 
 ```c
-typedef struct OMap OMap;
+typedef struct omap_t omap_t;
 ```
 
 Opaque handle.
@@ -35,8 +35,8 @@ Opaque handle.
 ### `omap_create`
 
 ```c
-OMap *omap_create(size_t key_size, size_t val_size,
-                  compare_fn cmp, Allocator allocator);
+omap_t *omap_create(size_t key_size, size_t val_size,
+                  compare_fn cmp, allocator_t allocator);
 ```
 
 Create an empty ordered map. Returns `NULL` if allocation fails.
@@ -47,7 +47,7 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 Arena *a = arena_create(4096);
-OMap  *m = omap_create(sizeof(int), sizeof(double),
+omap_t  *m = omap_create(sizeof(int), sizeof(double),
                         int_cmp, arena_allocator(a));
 ```
 
@@ -56,7 +56,7 @@ OMap  *m = omap_create(sizeof(int), sizeof(double),
 ### `omap_set`
 
 ```c
-SeqcStatus omap_set(OMap *m, const void *key, const void *value);
+seqc_status_t omap_set(omap_t *m, const void *key, const void *value);
 ```
 
 Insert or update. Returns `SEQC_OK` whether inserting a new key or updating
@@ -74,7 +74,7 @@ omap_set(m, &k, &v);
 ### `omap_get`
 
 ```c
-SeqcStatus omap_get(const OMap *m, const void *key, void *out);
+seqc_status_t omap_get(const omap_t *m, const void *key, void *out);
 ```
 
 Copy the value for `key` into `*out`. `out` may be `NULL` to test for
@@ -92,7 +92,7 @@ if (omap_get(m, &(int){1}, &val) == SEQC_OK)
 ### `omap_contains`
 
 ```c
-bool omap_contains(const OMap *m, const void *key);
+bool omap_contains(const omap_t *m, const void *key);
 ```
 
 ---
@@ -100,7 +100,7 @@ bool omap_contains(const OMap *m, const void *key);
 ### `omap_remove`
 
 ```c
-SeqcStatus omap_remove(OMap *m, const void *key);
+seqc_status_t omap_remove(omap_t *m, const void *key);
 ```
 
 Remove by key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
@@ -111,8 +111,8 @@ Remove by key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
 ### `omap_min_key` / `omap_max_key`
 
 ```c
-SeqcStatus omap_min_key(const OMap *m, void *out);
-SeqcStatus omap_max_key(const OMap *m, void *out);
+seqc_status_t omap_min_key(const omap_t *m, void *out);
+seqc_status_t omap_max_key(const omap_t *m, void *out);
 ```
 
 Copy the smallest / largest key into `*out`. Returns `SEQC_NOT_FOUND` if the
@@ -124,8 +124,8 @@ map is empty; `out` may be `NULL` to test for non-emptiness. Returns
 ### `omap_min_entry` / `omap_max_entry`
 
 ```c
-SeqcStatus omap_min_entry(const OMap *m, void *key_out, void *val_out);
-SeqcStatus omap_max_entry(const OMap *m, void *key_out, void *val_out);
+seqc_status_t omap_min_entry(const omap_t *m, void *key_out, void *val_out);
+seqc_status_t omap_max_entry(const omap_t *m, void *key_out, void *val_out);
 ```
 
 Copy both the key and value at the minimum / maximum position into
@@ -148,8 +148,8 @@ printf("range [%d, %d]\n", lo_k, hi_k);
 ### `omap_len` / `omap_height`
 
 ```c
-size_t omap_len(const OMap *m);
-int    omap_height(const OMap *m);   /* 0 if empty */
+size_t omap_len(const omap_t *m);
+int    omap_height(const omap_t *m);   /* 0 if empty */
 ```
 
 ---
@@ -157,26 +157,26 @@ int    omap_height(const OMap *m);   /* 0 if empty */
 ### `omap_iter`
 
 ```c
-Iter omap_iter(const OMap *m);
+iter_t omap_iter(const omap_t *m);
 ```
 
-Ascending key-order [`Iter`](iter.md). Each element is an
-[`OMapEntry`](#omapentry) — both `key` and `value` are pointers into live
+Ascending key-order [`iter_t`](iter.md). Each element is an
+[`omap_entry_t`](#omapentry) — both `key` and `value` are pointers into live
 node storage. Do not modify the map while iterating.
 
 ### `omap_iter_rev`
 
 ```c
-Iter omap_iter_rev(const OMap *m);
+iter_t omap_iter_rev(const omap_t *m);
 ```
 
-Descending key-order [`Iter`](iter.md). Same pointer-lifetime rules as
+Descending key-order [`iter_t`](iter.md). Same pointer-lifetime rules as
 `omap_iter`.
 
 ### `omap_iter_range`
 
 ```c
-Iter omap_iter_range(const OMap *m, const void *lo_key, const void *hi_key);
+iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key);
 ```
 
 Ascending key-order iteration over entries where `lo_key <= key <= hi_key`.
@@ -184,8 +184,8 @@ Pass `NULL` for either bound to leave it open.
 
 ```c
 int lo = 10, hi = 20;
-Iter      it = omap_iter_range(m, &lo, &hi);
-OMapEntry e;
+iter_t      it = omap_iter_range(m, &lo, &hi);
+omap_entry_t e;
 while (it.next(&it, &e))
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 iter_drop(&it);
@@ -196,11 +196,11 @@ iter_drop(&it);
 ### `omap_clear`
 
 ```c
-void omap_clear(OMap *m);
+void omap_clear(omap_t *m);
 ```
 
 Remove all key-value pairs. Every node is freed back to the allocator (a no-op
-for arena allocators) and `root` is set to NULL. The `OMap` struct remains
+for arena allocators) and `root` is set to NULL. The `omap_t` struct remains
 valid and can be reused immediately.
 
 ---
@@ -208,10 +208,10 @@ valid and can be reused immediately.
 ### `omap_free`
 
 ```c
-void omap_free(OMap *m);
+void omap_free(omap_t *m);
 ```
 
-Free all nodes and then the OMap struct itself. Do not use `m` after calling this.
+Free all nodes and then the omap_t struct itself. Do not use `m` after calling this.
 
 ---
 
@@ -219,7 +219,7 @@ Free all nodes and then the OMap struct itself. Do not use `m` after calling thi
 
 ```c
 Arena *a = arena_create(4096);
-OMap  *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+omap_t  *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
 
 for (int i = 1; i <= 5; i++) {
     int v = i * 100;
@@ -232,8 +232,8 @@ omap_max_key(m, &max_k);
 printf("min=%d max=%d\n", min_k, max_k);  // 1, 5
 
 // iterate all in ascending order
-Iter      it = omap_iter(m);
-OMapEntry e;
+iter_t      it = omap_iter(m);
+omap_entry_t e;
 while (it.next(&it, &e))
     printf("%d => %d\n", *(int *)e.key, *(int *)e.value);
 iter_drop(&it);

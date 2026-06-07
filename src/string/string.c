@@ -10,37 +10,37 @@
 
 /* --- Construction ------------------------------------------------------- */
 
-String string_view_cstr(const char *s)
+string_t string_view_cstr(const char *s)
 {
     if (!s)
-        return (String){NULL, 0};
-    return (String){s, strlen(s)};
+        return (string_t){NULL, 0};
+    return (string_t){s, strlen(s)};
 }
 
-String string_from_cstr(const char *s, allocator_t allocator)
+string_t string_from_cstr(const char *s, allocator_t allocator)
 {
     if (!s)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     size_t len = strlen(s);
     if (len == 0)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, len, 1);
     if (!buf)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     memcpy(buf, s, len);
-    return (String){buf, len};
+    return (string_t){buf, len};
 }
 
-String string_copy(String s, allocator_t allocator)
+string_t string_copy(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
     memcpy(buf, s.ptr, s.len);
-    return (String){buf, s.len};
+    return (string_t){buf, s.len};
 }
 
-const char *string_to_cstr(String s, allocator_t allocator)
+const char *string_to_cstr(string_t s, allocator_t allocator)
 {
     char *buf = mem_alloc(allocator, s.len + 1, 1);
     if (!buf)
@@ -51,7 +51,7 @@ const char *string_to_cstr(String s, allocator_t allocator)
     return buf;
 }
 
-const char *string_to_cstr_buf(String s, char *buf, size_t bufsize)
+const char *string_to_cstr_buf(string_t s, char *buf, size_t bufsize)
 {
     if (!buf || bufsize == 0)
         return NULL;
@@ -65,12 +65,12 @@ const char *string_to_cstr_buf(String s, char *buf, size_t bufsize)
 
 /* --- Comparison --------------------------------------------------------- */
 
-bool string_equals(String a, String b)
+bool string_equals(string_t a, string_t b)
 {
     return a.len == b.len && memcmp(a.ptr, b.ptr, a.len) == 0;
 }
 
-int string_compare(String a, String b)
+int string_compare(string_t a, string_t b)
 {
     size_t min = a.len < b.len ? a.len : b.len;
     int cmp = memcmp(a.ptr, b.ptr, min);
@@ -81,21 +81,21 @@ int string_compare(String a, String b)
 
 /* --- Query -------------------------------------------------------------- */
 
-bool string_starts_with(String s, String prefix)
+bool string_starts_with(string_t s, string_t prefix)
 {
     if (prefix.len > s.len)
         return false;
     return memcmp(s.ptr, prefix.ptr, prefix.len) == 0;
 }
 
-bool string_ends_with(String s, String suffix)
+bool string_ends_with(string_t s, string_t suffix)
 {
     if (suffix.len > s.len)
         return false;
     return memcmp(s.ptr + s.len - suffix.len, suffix.ptr, suffix.len) == 0;
 }
 
-size_t string_find(String s, String needle)
+size_t string_find(string_t s, string_t needle)
 {
     if (needle.len == 0)
         return 0;
@@ -109,23 +109,23 @@ size_t string_find(String s, String needle)
     return STRING_NOT_FOUND;
 }
 
-bool string_contains(String s, String needle)
+bool string_contains(string_t s, string_t needle)
 {
     return string_find(s, needle) != STRING_NOT_FOUND;
 }
 
 /* --- Views (zero-copy) -------------------------------------------------- */
 
-String string_slice(String s, size_t start, size_t end)
+string_t string_slice(string_t s, size_t start, size_t end)
 {
     if (!s.ptr || start >= s.len || end <= start)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     if (end > s.len)
         end = s.len;
-    return (String){s.ptr + start, end - start};
+    return (string_t){s.ptr + start, end - start};
 }
 
-String string_trim_left(String s)
+string_t string_trim_left(string_t s)
 {
     while (s.len > 0 && isspace((unsigned char)*s.ptr))
     {
@@ -135,81 +135,81 @@ String string_trim_left(String s)
     return s;
 }
 
-String string_trim_right(String s)
+string_t string_trim_right(string_t s)
 {
     while (s.len > 0 && isspace((unsigned char)s.ptr[s.len - 1]))
         s.len--;
     return s;
 }
 
-String string_trim(String s)
+string_t string_trim(string_t s)
 {
     return string_trim_right(string_trim_left(s));
 }
 
 /* --- Transformation ----------------------------------------------------- */
 
-String string_replace(
-    String s, String needle, String replacement, allocator_t allocator)
+string_t string_replace(
+    string_t s, string_t needle, string_t replacement, allocator_t allocator)
 {
-    StringBuilder *sb = sb_create(allocator);
+    strbuf_t *sb = strbuf_create(allocator);
     if (needle.len == 0)
     {
         /* Empty needle: return a copy unchanged */
-        sb_append(sb, s);
-        return sb_finish(sb);
+        strbuf_append(sb, s);
+        return strbuf_finish(sb);
     }
     size_t pos = 0;
     while (pos < s.len)
     {
-        String remaining = string_slice(s, pos, s.len);
+        string_t remaining = string_slice(s, pos, s.len);
         size_t found = string_find(remaining, needle);
         if (found == STRING_NOT_FOUND)
         {
-            sb_append(sb, remaining);
+            strbuf_append(sb, remaining);
             break;
         }
-        sb_append(sb, string_slice(remaining, 0, found));
-        sb_append(sb, replacement);
+        strbuf_append(sb, string_slice(remaining, 0, found));
+        strbuf_append(sb, replacement);
         pos += found + needle.len;
     }
-    return sb_finish(sb);
+    return strbuf_finish(sb);
 }
 
 /* --- Transformation (case / join) --------------------------------------- */
 
-String string_to_uppercase(String s, allocator_t allocator)
+string_t string_to_uppercase(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
     for (size_t i = 0; i < s.len; i++)
         buf[i] = (char)toupper((unsigned char)s.ptr[i]);
-    return (String){buf, s.len};
+    return (string_t){buf, s.len};
 }
 
-String string_to_lowercase(String s, allocator_t allocator)
+string_t string_to_lowercase(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
-        return (String){NULL, 0};
+        return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
     for (size_t i = 0; i < s.len; i++)
         buf[i] = (char)tolower((unsigned char)s.ptr[i]);
-    return (String){buf, s.len};
+    return (string_t){buf, s.len};
 }
 
 /* --- Builder ------------------------------------------------------------ */
 
-struct StringBuilder
+struct strbuf_t
 {
-    Vec *chars;
+    vec_t *chars;
     allocator_t allocator;
 };
 
-StringBuilder *sb_create(allocator_t allocator)
+strbuf_t *strbuf_create(allocator_t allocator)
 {
-    StringBuilder *sb =
-        mem_alloc(allocator, sizeof(StringBuilder), _Alignof(StringBuilder));
+    strbuf_t *sb =
+        mem_alloc(allocator, sizeof(strbuf_t), _Alignof(strbuf_t));
     if (!sb)
         return NULL;
     sb->chars = vec_create(sizeof(char), allocator);
@@ -217,43 +217,43 @@ StringBuilder *sb_create(allocator_t allocator)
     return sb;
 }
 
-SeqcStatus sb_append(StringBuilder *sb, String s)
+seqc_status_t strbuf_append(strbuf_t *sb, string_t s)
 {
     for (size_t i = 0; i < s.len; i++)
     {
-        SeqcStatus st = vec_push(sb->chars, &s.ptr[i]);
+        seqc_status_t st = vec_push(sb->chars, &s.ptr[i]);
         if (st != SEQC_OK)
             return st;
     }
     return SEQC_OK;
 }
 
-SeqcStatus sb_append_char(StringBuilder *sb, char c)
+seqc_status_t strbuf_append_char(strbuf_t *sb, char c)
 {
     return vec_push(sb->chars, &c);
 }
 
-SeqcStatus sb_append_cstr(StringBuilder *sb, const char *s)
+seqc_status_t strbuf_append_cstr(strbuf_t *sb, const char *s)
 {
-    return sb_append(sb, string_view_cstr(s));
+    return strbuf_append(sb, string_view_cstr(s));
 }
 
-String sb_finish(const StringBuilder *sb)
+string_t strbuf_finish(const strbuf_t *sb)
 {
-    Slice s = vec_as_slice(sb->chars);
-    return (String){(const char *)s.ptr, s.len};
+    slice_t s = vec_as_slice(sb->chars);
+    return (string_t){(const char *)s.ptr, s.len};
 }
 
-SeqcStatus sb_append_int(StringBuilder *sb, long long value)
+seqc_status_t strbuf_append_int(strbuf_t *sb, long long value)
 {
     char buf[32];
     int n = snprintf(buf, sizeof buf, "%lld", value);
     if (n > 0)
-        return sb_append_cstr(sb, buf);
+        return strbuf_append_cstr(sb, buf);
     return SEQC_OK;
 }
 
-SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
+seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...)
 {
     /* First pass: measure */
     va_list ap;
@@ -272,10 +272,10 @@ SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, (size_t)n + 1, fmt, ap);
     va_end(ap);
-    SeqcStatus st = SEQC_OK;
+    seqc_status_t st = SEQC_OK;
     for (int i = 0; i < n; i++)
     {
-        st = sb_append_char(sb, buf[i]);
+        st = strbuf_append_char(sb, buf[i]);
         if (st != SEQC_OK)
             break;
     }
@@ -284,26 +284,26 @@ SeqcStatus sb_append_fmt(StringBuilder *sb, const char *fmt, ...)
     return st;
 }
 
-/* string_join is defined after the builder because it uses StringBuilder. */
-String string_join(Iter it, String sep, allocator_t allocator)
+/* string_join is defined after the builder because it uses strbuf_t. */
+string_t string_join(iter_t it, string_t sep, allocator_t allocator)
 {
-    StringBuilder *sb = sb_create(allocator);
-    String token;
+    strbuf_t *sb = strbuf_create(allocator);
+    string_t token;
     bool first = true;
     while (it.next(&it, &token))
     {
         if (!first)
-            sb_append(sb, sep);
-        sb_append(sb, token);
+            strbuf_append(sb, sep);
+        strbuf_append(sb, token);
         first = false;
     }
     iter_drop(&it);
-    return sb_finish(sb);
+    return strbuf_finish(sb);
 }
 
 /* --- string_to_int ------------------------------------------------------ */
 
-bool string_to_int(String s, long long *out)
+bool string_to_int(string_t s, long long *out)
 {
     if (!s.ptr || s.len == 0)
         return false;
@@ -321,7 +321,7 @@ bool string_to_int(String s, long long *out)
     return true;
 }
 
-bool string_to_double(String s, double *out)
+bool string_to_double(string_t s, double *out)
 {
     if (!s.ptr || s.len == 0)
         return false;
@@ -339,99 +339,120 @@ bool string_to_double(String s, double *out)
     return true;
 }
 
-/* --- Iter sources ------------------------------------------------------- */
+/* --- iter_t sources ------------------------------------------------------- */
 
-Iter string_chars(String s, allocator_t allocator)
+iter_t string_chars(string_t s, allocator_t allocator)
 {
-    Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
+    slice_t sl = {(void *)s.ptr, s.len, sizeof(char)};
     return iter_from_slice(sl, allocator);
 }
 
-Iter string_chars_rev(String s, allocator_t allocator)
+iter_t string_chars_rev(string_t s, allocator_t allocator)
 {
-    Slice sl = {(void *)s.ptr, s.len, sizeof(char)};
+    slice_t sl = {(void *)s.ptr, s.len, sizeof(char)};
     return iter_from_slice_rev(sl, allocator);
 }
 
-/* ---- string_split ------------------------------------------------------ */
+/* ---- string_split_substr / string_split_any ---------------------------- */
 
 typedef struct
 {
-    String src;
-    String delim;
+    string_t src;
+    string_t delim;   /* the substring to match, or the char set         */
     size_t pos;
-} SplitState;
+    bool   anychar; /* true: delim is a set, every matching char splits */
+} split_state_t;
 
-static bool split_next(Iter *it, void *out)
+/* Index of the first byte of s that appears in set, or STRING_NOT_FOUND. */
+static size_t charset_find(string_t s, string_t set)
 {
-    SplitState *s = it->state;
+    for (size_t i = 0; i < s.len; i++)
+        for (size_t j = 0; j < set.len; j++)
+            if (s.ptr[i] == set.ptr[j])
+                return i;
+    return STRING_NOT_FOUND;
+}
+
+static bool split_next(iter_t *it, void *out)
+{
+    split_state_t *s = it->state;
     if (s->pos > s->src.len)
         return false;
 
-    String remaining = {s->src.ptr + s->pos, s->src.len - s->pos};
-    size_t found = string_find(remaining, s->delim);
+    string_t remaining = {s->src.ptr + s->pos, s->src.len - s->pos};
 
-    String token;
-    if (found == STRING_NOT_FOUND)
+    /* Locate the next boundary.  An empty delim/set matches nowhere, so the
+     * whole remaining string becomes a single token (use string_chars for
+     * per-character iteration). */
+    size_t off  = STRING_NOT_FOUND;
+    size_t blen = s->delim.len;
+    if (s->delim.len > 0)
     {
-        token = remaining;
+        if (s->anychar)
+        {
+            off  = charset_find(remaining, s->delim);
+            blen = 1; /* each matching char is its own boundary */
+        }
+        else
+        {
+            off = string_find(remaining, s->delim);
+        }
+    }
+
+    string_t token;
+    if (off == STRING_NOT_FOUND)
+    {
+        token  = remaining;
         s->pos = s->src.len + 1; /* mark exhausted */
     }
     else
     {
-        token = (String){remaining.ptr, found};
-        s->pos += found + s->delim.len;
+        token = (string_t){remaining.ptr, off};
+        s->pos += off + blen;
     }
 
-    memcpy(out, &token, sizeof(String));
+    memcpy(out, &token, sizeof(string_t));
     return true;
 }
 
-static void split_drop(Iter *it)
+static void split_drop(iter_t *it)
 {
-    mem_free(it->allocator, it->state, sizeof(SplitState));
+    mem_free(it->allocator, it->state, sizeof(split_state_t));
 }
 
-Iter string_split(String s, String delim, allocator_t allocator)
+static iter_t split_make(string_t s, string_t delim, bool anychar,
+                       allocator_t allocator)
 {
-    if (s.ptr == NULL)
-    {
-        /* Edge case: split on NULL string → emit one empty token.  The token
-         * must outlive this call, so it is allocator-owned, not a stack local
-         * (the iterator is consumed after string_split returns). */
-        String *empty = mem_alloc(allocator, sizeof(String), _Alignof(String));
-        if (!empty)
-            return (Iter){0};
-        *empty = (String){NULL, 0};
-        return iter_from_slice((Slice){empty, 1, sizeof(String)}, allocator);
-    }
-
-    if (!delim.ptr || delim.len == 0)
-    {
-        /* Edge case: split on empty delimiter → emit each character */
-        return string_chars(s, allocator);
-    }
-
-    SplitState *state =
-        mem_alloc(allocator, sizeof(SplitState), _Alignof(SplitState));
+    split_state_t *state =
+        mem_alloc(allocator, sizeof(split_state_t), _Alignof(split_state_t));
     if (!state)
-        return (Iter){0};
-    *state = (SplitState){s, delim, 0};
-    return (Iter){.next = split_next,
+        return (iter_t){0};
+    *state = (split_state_t){s, delim, 0, anychar};
+    return (iter_t){.next = split_next,
                   .drop = split_drop,
                   .state = state,
-                  .elem_size = sizeof(String),
+                  .elem_size = sizeof(string_t),
                   .allocator = allocator};
 }
 
-/* --- HashMap helpers ---------------------------------------------------- */
+iter_t string_split_substr(string_t s, string_t delim, allocator_t allocator)
+{
+    return split_make(s, delim, false, allocator);
+}
+
+iter_t string_split_any(string_t s, string_t set, allocator_t allocator)
+{
+    return split_make(s, set, true, allocator);
+}
+
+/* --- hashmap_t helpers ---------------------------------------------------- */
 
 size_t string_hash(const void *key, size_t key_size)
 {
     (void)key_size;
     if (!key)
         return 0;
-    const String *s = (const String *)key;
+    const string_t *s = (const string_t *)key;
     if (!s->ptr || s->len == 0)
         return 0;
     const uint8_t *data = (const uint8_t *)s->ptr;
@@ -449,5 +470,5 @@ bool string_key_eq(const void *a, const void *b, size_t key_size)
     (void)key_size;
     if (!a || !b)
         return false;
-    return string_equals(*(const String *)a, *(const String *)b);
+    return string_equals(*(const string_t *)a, *(const string_t *)b);
 }
