@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-06-07
+
+### Fixed
+
+- CMake: use `PROJECT_SOURCE_DIR` instead of `CMAKE_SOURCE_DIR` for the public
+  include directory and the header install source. When seqc is consumed via
+  `FetchContent`/`add_subdirectory`, `CMAKE_SOURCE_DIR` points at the top-level
+  consumer project rather than seqc, so its headers were not found at build
+  time. `PROJECT_SOURCE_DIR` resolves to seqc's own root in both standalone and
+  subproject builds.
+
 ## [2.0.0] - 2026-06-07
 
 ### Added
