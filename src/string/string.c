@@ -70,6 +70,19 @@ bool string_equals(string_t a, string_t b)
     return a.len == b.len && memcmp(a.ptr, b.ptr, a.len) == 0;
 }
 
+bool string_equals_case_insensitive(string_t a, string_t b)
+{
+    if (a.len != b.len)
+        return false;
+    for (size_t i = 0; i < a.len; i++)
+    {
+        if (tolower((unsigned char)a.ptr[i])
+            != tolower((unsigned char)b.ptr[i]))
+            return false;
+    }
+    return true;
+}
+
 int string_compare(string_t a, string_t b)
 {
     size_t min = a.len < b.len ? a.len : b.len;
@@ -208,8 +221,7 @@ struct strbuf_t
 
 strbuf_t *strbuf_create(allocator_t allocator)
 {
-    strbuf_t *sb =
-        mem_alloc(allocator, sizeof(strbuf_t), _Alignof(strbuf_t));
+    strbuf_t *sb = mem_alloc(allocator, sizeof(strbuf_t), _Alignof(strbuf_t));
     if (!sb)
         return NULL;
     sb->chars = vec_create(sizeof(char), allocator);
@@ -242,6 +254,11 @@ string_t strbuf_finish(const strbuf_t *sb)
 {
     slice_t s = vec_as_slice(sb->chars);
     return (string_t){(const char *)s.ptr, s.len};
+}
+
+size_t strbuf_len(const strbuf_t *sb)
+{
+    return vec_len(sb->chars);
 }
 
 seqc_status_t strbuf_append_int(strbuf_t *sb, long long value)
@@ -358,9 +375,9 @@ iter_t string_chars_rev(string_t s, allocator_t allocator)
 typedef struct
 {
     string_t src;
-    string_t delim;   /* the substring to match, or the char set         */
+    string_t delim; /* the substring to match, or the char set         */
     size_t pos;
-    bool   anychar; /* true: delim is a set, every matching char splits */
+    bool anychar; /* true: delim is a set, every matching char splits */
 } split_state_t;
 
 /* Index of the first byte of s that appears in set, or STRING_NOT_FOUND. */
@@ -384,13 +401,13 @@ static bool split_next(iter_t *it, void *out)
     /* Locate the next boundary.  An empty delim/set matches nowhere, so the
      * whole remaining string becomes a single token (use string_chars for
      * per-character iteration). */
-    size_t off  = STRING_NOT_FOUND;
+    size_t off = STRING_NOT_FOUND;
     size_t blen = s->delim.len;
     if (s->delim.len > 0)
     {
         if (s->anychar)
         {
-            off  = charset_find(remaining, s->delim);
+            off = charset_find(remaining, s->delim);
             blen = 1; /* each matching char is its own boundary */
         }
         else
@@ -402,7 +419,7 @@ static bool split_next(iter_t *it, void *out)
     string_t token;
     if (off == STRING_NOT_FOUND)
     {
-        token  = remaining;
+        token = remaining;
         s->pos = s->src.len + 1; /* mark exhausted */
     }
     else
@@ -420,8 +437,8 @@ static void split_drop(iter_t *it)
     mem_free(it->allocator, it->state, sizeof(split_state_t));
 }
 
-static iter_t split_make(string_t s, string_t delim, bool anychar,
-                       allocator_t allocator)
+static iter_t split_make(
+    string_t s, string_t delim, bool anychar, allocator_t allocator)
 {
     split_state_t *state =
         mem_alloc(allocator, sizeof(split_state_t), _Alignof(split_state_t));
@@ -429,10 +446,10 @@ static iter_t split_make(string_t s, string_t delim, bool anychar,
         return (iter_t){0};
     *state = (split_state_t){s, delim, 0, anychar};
     return (iter_t){.next = split_next,
-                  .drop = split_drop,
-                  .state = state,
-                  .elem_size = sizeof(string_t),
-                  .allocator = allocator};
+                    .drop = split_drop,
+                    .state = state,
+                    .elem_size = sizeof(string_t),
+                    .allocator = allocator};
 }
 
 iter_t string_split_substr(string_t s, string_t delim, allocator_t allocator)

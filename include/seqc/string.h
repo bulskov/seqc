@@ -41,7 +41,7 @@ string_t string_view_cstr(const char *s);
 /* Copy s into allocator-owned memory, returning an owning string_t. */
 string_t string_from_cstr(const char *s, allocator_t allocator);
 
-string_t string_copy(string_t s, allocator_t allocator); /* allocator copy      */
+string_t string_copy(string_t s, allocator_t allocator); /* allocator copy */
 const char *string_to_cstr(
     string_t s, allocator_t allocator); /* copy + null-terminate */
 
@@ -53,6 +53,7 @@ const char *string_to_cstr_buf(string_t s, char *buf, size_t bufsize);
 /* --- Comparison --------------------------------------------------------- */
 
 bool string_equals(string_t a, string_t b);
+bool string_equals_case_insensitive(string_t a, string_t b);
 int string_compare(string_t a, string_t b); /* <0, 0, >0           */
 
 /* --- Query -------------------------------------------------------------- */
@@ -60,7 +61,8 @@ int string_compare(string_t a, string_t b); /* <0, 0, >0           */
 bool string_starts_with(string_t s, string_t prefix);
 bool string_ends_with(string_t s, string_t suffix);
 bool string_contains(string_t s, string_t needle);
-size_t string_find(string_t s, string_t needle); /* STRING_NOT_FOUND if absent */
+size_t string_find(
+    string_t s, string_t needle); /* STRING_NOT_FOUND if absent */
 
 /* --- Transformation ----------------------------------------------------- */
 
@@ -107,6 +109,7 @@ seqc_status_t strbuf_append_cstr(strbuf_t *sb, const char *s);
 seqc_status_t strbuf_append_int(strbuf_t *sb, long long value);
 seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
 string_t strbuf_finish(const strbuf_t *sb); /* view — no copy      */
+size_t strbuf_len(const strbuf_t *sb);
 
 /* --- hashmap_t helpers ---------------------------------------------------- */
 

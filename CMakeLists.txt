@@ -21,15 +21,15 @@ endif()
 # against a local checkout with no network access.
 include(FetchContent)
 
-set(SEQC_ARENA_GIT_REPOSITORY "ssh://git@codeberg.org/bulskov/arena_allocation.git"
+set(SEQC_ARENA_GIT_REPOSITORY "https://github.com/bulskov/arena_allocation"
     CACHE STRING "Clone URL for the arena_allocator dependency")
 set(SEQC_ARENA_GIT_TAG "v1.1.1"
     CACHE STRING "Tag or commit of the arena_allocator dependency")
 
 FetchContent_Declare(arena
     GIT_REPOSITORY ${SEQC_ARENA_GIT_REPOSITORY}
-    GIT_TAG        ${SEQC_ARENA_GIT_TAG}
-    GIT_SHALLOW    TRUE)
+    GIT_TAG ${SEQC_ARENA_GIT_TAG}
+    GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(arena)
 
 add_subdirectory(src)
@@ -37,7 +37,7 @@ add_subdirectory(src)
 include(CTest)
 
 if(BUILD_TESTING)
-	add_subdirectory(test)
+    add_subdirectory(test)
 endif()
 
 set(CPACK_PACKAGE_NAME "seqc")
