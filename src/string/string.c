@@ -36,6 +36,8 @@ string_t string_copy(string_t s, allocator_t allocator)
     if (!s.ptr || s.len == 0)
         return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
+    if (!buf)
+        return (string_t){NULL, 0};
     memcpy(buf, s.ptr, s.len);
     return (string_t){buf, s.len};
 }
