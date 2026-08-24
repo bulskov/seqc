@@ -15,7 +15,9 @@ reducing across different data structures.
   library. Pass `growing_arena_allocator(&a)` to any collection for bulk lifetime
   management; a single `growing_arena_destroy(&a)` releases everything at once.
   Use `scratch_allocator(&sc)` for temporary work inside a loop, or a plain
-  malloc/free allocator when you need per-collection lifetime control.
+  malloc/free allocator when you need per-collection lifetime control. For a
+  hard memory ceiling, swap in `virtual_arena_allocator(&a)` — see
+  [Bounded allocation](docs/arena.md#bounded-allocation---max-mem).
 - **[slice_t](docs/slice.md)** — a fat pointer `{ptr, len, elem_size}`. The concrete, arena-owned result of
   materialising an iterator. Also the input to operations that need random access.
 - **[iter_t](docs/iter.md)** — a lazy, forward iterator. Any source produces one. Adaptors transform
