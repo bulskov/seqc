@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Docs: `docs/arena.md` now covers the bounded arenas. `fixed_arena_t` caps a
+  fully-committed region; `virtual_arena_t` reserves an address range and
+  commits pages on demand, giving growing-arena behaviour with a hard ceiling.
+  Both return `NULL` past the limit, which seqc reports as `SEQC_OOM`. Adds the
+  full `fixed_arena_*` / `virtual_arena_*` API, `arena_stats_t`, and
+  `growing_arena_stats`.
+- Docs: a "Bounded allocation (`--max-mem`)" pattern showing that a memory
+  ceiling is purely a choice of arena at start-up — every collection stores its
+  `allocator_t` by value, so no seqc API takes or needs a limit parameter. Notes
+  that a bump arena strands each superseded buffer on realloc, so the ceiling
+  bounds total bytes handed out rather than live data.
+- Docs: `growing_arena_reset_full`, previously undocumented.
+
+### Fixed
+
+- Docs: `growing_arena_reset` was described as reusing all committed blocks and
+  not releasing memory to the OS. It frees every block except the head.
+- Docs: `scratch_t` was described as a checkpoint into `growing_arena_t`. It
+  works with all three arenas; the per-arena `*_scratch_begin` entry points are
+  now listed.
+
 ## [2.0.1] - 2026-06-07
 
 ### Fixed
