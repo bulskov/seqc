@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Build: seqc's own test suite is only configured when seqc is the top-level
+  project. Consumers pulling seqc in through FetchContent or add_subdirectory no
+  longer fetch ctt or get seqc's tests in their ctest run, and no longer need to
+  force `BUILD_TESTING=OFF` before fetching seqc. At top level,
+  `-DBUILD_TESTING=OFF` still skips the tests.
+
 ## [2.2.0] - 2026-10-06
 
 ### Changed

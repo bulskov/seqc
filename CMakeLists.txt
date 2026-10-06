@@ -34,10 +34,25 @@ FetchContent_MakeAvailable(arena)
 
 add_subdirectory(src)
 
-include(CTest)
+# --- Tests -------------------------------------------------------------------
+# Only when seqc is the top-level project, so consumers (via FetchContent /
+# add_subdirectory) neither fetch ctt nor build seqc's suite into their own
+# ctest run — whatever their BUILD_TESTING says.  At top level,
+# -DBUILD_TESTING=OFF still skips the tests.
+if(NOT DEFINED PROJECT_IS_TOP_LEVEL)   # CMake < 3.21
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        set(PROJECT_IS_TOP_LEVEL ON)
+    else()
+        set(PROJECT_IS_TOP_LEVEL OFF)
+    endif()
+endif()
 
-if(BUILD_TESTING)
-    add_subdirectory(test)
+if(PROJECT_IS_TOP_LEVEL)
+    include(CTest)
+
+    if(BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
 endif()
 
 set(CPACK_PACKAGE_NAME "seqc")
