@@ -88,6 +88,37 @@ TEST(string, equals_different_length)
     EXPECT_FALSE(string_equals(STRING_LIT("abc"), STRING_LIT("ab")));
 }
 
+TEST(string, equals_case_insensitive_ignores_case)
+{
+    EXPECT_TRUE(string_equals_case_insensitive(
+        STRING_LIT("Hello World"), STRING_LIT("hELLO wORLD")));
+}
+
+TEST(string, equals_case_insensitive_different_content)
+{
+    EXPECT_FALSE(
+        string_equals_case_insensitive(STRING_LIT("abc"), STRING_LIT("ABD")));
+}
+
+TEST(string, equals_case_insensitive_different_length)
+{
+    EXPECT_FALSE(
+        string_equals_case_insensitive(STRING_LIT("abc"), STRING_LIT("AB")));
+}
+
+TEST(string, equals_case_insensitive_non_letters_exact)
+{
+    EXPECT_TRUE(
+        string_equals_case_insensitive(STRING_LIT("a-1_b"), STRING_LIT("A-1_B")));
+    EXPECT_FALSE(
+        string_equals_case_insensitive(STRING_LIT("a-1"), STRING_LIT("a_1")));
+}
+
+TEST(string, equals_case_insensitive_empty)
+{
+    EXPECT_TRUE(string_equals_case_insensitive(STRING_LIT(""), STRING_LIT("")));
+}
+
 TEST(string, compare_ordering)
 {
     EXPECT_LT(string_compare(STRING_LIT("abc"), STRING_LIT("abd")), 0);
@@ -190,6 +221,22 @@ TEST(string, builder_append_str)
     strbuf_append_cstr(sb, "world");
     string_t result = strbuf_finish(sb);
     EXPECT_TRUE(string_equals(result, STRING_LIT("hello world")));
+    growing_arena_destroy(a);
+}
+
+TEST(string, builder_len_tracks_appends)
+{
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
+    EXPECT_EQ(strbuf_len(sb), 0u);
+    strbuf_append(sb, STRING_LIT("hello"));
+    EXPECT_EQ(strbuf_len(sb), 5u);
+    strbuf_append_char(sb, ' ');
+    strbuf_append_int(sb, 42);
+    EXPECT_EQ(strbuf_len(sb), 8u);
+    EXPECT_EQ(strbuf_len(sb), strbuf_finish(sb).len);
     growing_arena_destroy(a);
 }
 
@@ -807,6 +854,13 @@ TEST(string, to_double_trailing_garbage)
 }
 
 /* --- OOM paths ---------------------------------------------------------- */
+
+TEST(string, copy_oom_returns_empty)
+{
+    string_t c = string_copy(STRING_LIT("hello"), null_allocator());
+    EXPECT_EQ(c.ptr, nullptr);
+    EXPECT_EQ(c.len, 0u);
+}
 
 TEST(string, split_oom_returns_empty)
 {

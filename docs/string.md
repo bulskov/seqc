@@ -82,7 +82,8 @@ buf[0] = 'X'; /* s.ptr[0] is still 'h' — independent copy */
 string_t string_copy(string_t s, allocator_t allocator);
 ```
 
-Allocate an arena-owned copy of `s`.
+Allocate an arena-owned copy of `s`. Returns an empty string (`ptr == NULL`,
+`len == 0`) if `s` is empty or the allocation fails.
 
 ### `string_to_cstr`
 
@@ -171,6 +172,16 @@ bool string_equals(string_t a, string_t b);
 ```
 
 Return `true` if `a` and `b` have the same length and byte content.
+
+### `string_equals_case_insensitive`
+
+```c
+bool string_equals_case_insensitive(string_t a, string_t b);
+```
+
+Like `string_equals`, but ASCII letters compare without regard to case
+(byte-wise `tolower` in the current C locale). Strings of different length are
+never equal; non-letter bytes must match exactly.
 
 ### `string_compare`
 
@@ -413,6 +424,15 @@ string_t result = strbuf_finish(sb);
 
 arena_free(a);
 ```
+
+### `strbuf_len`
+
+```c
+size_t strbuf_len(const strbuf_t *sb);
+```
+
+Return the number of bytes appended so far. Equal to `strbuf_finish(sb).len`,
+without building the view.
 
 ---
 
