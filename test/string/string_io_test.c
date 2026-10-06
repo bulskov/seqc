@@ -1,3 +1,7 @@
+/* MSVC's CRT deprecates tmpfile() in favour of tmpfile_s(); the standard
+ * function is what this test means to exercise. */
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "ctt.h"
 
 #include <stdio.h>

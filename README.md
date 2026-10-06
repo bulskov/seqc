@@ -133,7 +133,7 @@ seqc exposes:
 
 ```sh
 cmake --preset debug \
-    -DSEQC_ARENA_GIT_TAG=v1.1.4 \
+    -DSEQC_ARENA_GIT_TAG=v1.1.5 \
     -DFETCHCONTENT_SOURCE_DIR_ARENA=/path/to/local/arena_allocation
 ```
 

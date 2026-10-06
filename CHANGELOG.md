@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bump the pinned `arena_allocator` dependency from v1.1.4 to v1.1.5. The
+  library code is unchanged; arena's tests now pass on Apple Silicon.
+- CI: GitHub Actions on Linux (gcc, clang, ASan), Windows (MSVC `cl`,
+  clang-cl) and macOS.
+
+### Fixed
+
+- Build with MSVC (`cl`), which does not define `max_align_t` in C. Every
+  internal `_Alignof(max_align_t)` now goes through `SEQC_MAX_ALIGN`
+  (`src/max_align.h`), which falls back to MSVC's malloc alignment
+  (`2 * sizeof(void *)`) under `cl` and is unchanged elsewhere.
+- Tests: `string_io_test` builds and passes on Windows (no `<unistd.h>`;
+  stdout captured in binary mode).
+
 ## [2.2.2] - 2026-10-07
 
 ### Changed
