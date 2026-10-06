@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-10-07
+
 ### Changed
 
 - Bump the pinned `arena_allocator` dependency from v1.1.4 to v1.1.5. The
