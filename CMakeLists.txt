@@ -23,7 +23,7 @@ include(FetchContent)
 
 set(SEQC_ARENA_GIT_REPOSITORY "https://github.com/bulskov/arena_allocation"
     CACHE STRING "Clone URL for the arena_allocator dependency")
-set(SEQC_ARENA_GIT_TAG "v1.1.1"
+set(SEQC_ARENA_GIT_TAG "v1.1.3"
     CACHE STRING "Tag or commit of the arena_allocator dependency")
 
 FetchContent_Declare(arena

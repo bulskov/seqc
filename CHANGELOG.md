@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bounds total bytes handed out rather than live data.
 - Docs: `growing_arena_reset_full`, previously undocumented.
 
+### Changed
+
+- Bump the pinned `arena_allocator` dependency from v1.1.1 to v1.1.3. The
+  library code is unchanged; arena's own tests moved to ctt and its README now
+  documents FetchContent usage.
+
 ### Fixed
 
 - Docs: `growing_arena_reset` was described as reusing all committed blocks and
