@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-10-07
+
+### Changed
+
+- Bump the pinned `arena_allocator` dependency from v1.1.3 to v1.1.4. The
+  library code is unchanged; arena now gives clang-cl MSVC-style warning flags.
+
+### Fixed
+
+- Build: select warning flags with CMake's `MSVC` variable instead of the
+  compiler id. clang-cl reports itself as Clang, so it got `-Wall`, which in
+  clang-cl means `-Weverything` and buried consumers' Windows builds in
+  hundreds of warnings. It now gets `/W4`, like MSVC.
+
 ## [2.2.1] - 2026-10-07
 
 ### Fixed

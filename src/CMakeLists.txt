@@ -26,7 +26,7 @@ target_include_directories(seqc PUBLIC
 target_link_libraries(seqc PUBLIC arena)
 
 target_compile_options(seqc PRIVATE
-    $<IF:$<C_COMPILER_ID:MSVC>,
+    $<IF:$<BOOL:${MSVC}>,
         /W4,
         -Wall -Wextra -Wpedantic -Wno-unused-parameter>
 )

@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(ctt)
 function(add_ctt_test name source)
     add_executable(${name} ${source})
     target_compile_options(${name} PRIVATE
-        $<IF:$<C_COMPILER_ID:MSVC>,/W4,-Wall -Wextra>)
+        $<IF:$<BOOL:${MSVC}>,/W4,-Wall -Wextra>)
     target_link_libraries(${name} PRIVATE seqc ctt::ctt)
     target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME ${name} COMMAND ${name})
