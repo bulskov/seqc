@@ -1,0 +1,97 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  # Run by hand, e.g. after arena_allocator or ctt released something.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Two compilers, because a bug can be invisible under one of them.
+  # test.sh also rejects malloc/free in src/.
+  linux:
+    name: linux (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+
+      # arena and ctt are fetched at configure time, so this needs network.
+      - name: Build and test
+        env:
+          CC: ${{ matrix.cc }}
+        run: ./test.sh debug
+
+  # ASan + UBSan + LeakSanitizer, with use-after-return detection (see
+  # test.sh) — catches iterators that yield pointers into dead stack frames.
+  asan:
+    name: linux (asan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+
+      # The runner kernel randomises 32 bits of mmap addresses; the sanitizer
+      # runtimes assume fewer and abort with "unexpected memory mapping".
+      - name: Reduce mmap randomisation for the sanitizers
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Build and test
+        env:
+          CC: clang
+        run: ./test.sh asan
+
+  # MSVC itself and clang-cl, both against the MSVC headers and libraries.
+  # msvc-dev-cmd puts the MSVC environment on PATH so Ninja can find the
+  # compiler, linker and Windows SDK.
+  windows:
+    name: windows (${{ matrix.cc }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [cl, clang-cl]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        run: cmake --preset debug -DCMAKE_C_COMPILER=${{ matrix.cc }}
+
+      - name: Build
+        run: cmake --build --preset debug
+
+      - name: Test
+        run: ctest --preset debug --no-tests=error
+
+  macos:
+    name: macos (clang)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: brew install ninja
+
+      - name: Configure
+        run: cmake --preset debug
+
+      - name: Build
+        run: cmake --build --preset debug
+
+      - name: Test
+        run: ctest --preset debug --no-tests=error
