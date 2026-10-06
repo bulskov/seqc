@@ -1,7 +1,18 @@
 #include "ctt.h"
 
 #include <stdio.h>
-#include <unistd.h> /* dup, dup2 — redirect stdout for print/println tests */
+
+/* dup, dup2, close — redirect stdout for the print/println test. */
+#ifdef _WIN32
+#include <fcntl.h> /* _O_BINARY */
+#include <io.h>    /* _dup, _dup2, _close, _setmode */
+#define dup _dup
+#define dup2 _dup2
+#define close _close
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 
 #include "seqc/string.h"
 #include "seqc/string_io.h"
@@ -56,6 +67,12 @@ TEST(string_io_print_and_println_to_stdout)
     ASSERT_NE(-1, saved);
     fflush(stdout);
     ASSERT_NE(-1, dup2(fileno(f), fileno(stdout)));
+#ifdef _WIN32
+    /* stdout is a text-mode stream on Windows and would write '\n' as
+     * "\r\n"; capture the bytes exactly as on POSIX.  The dup2 below restores
+     * the original descriptor, mode included. */
+    _setmode(fileno(stdout), _O_BINARY);
+#endif
 
     size_t a = string_print(STRING_LIT("ab"));
     size_t b = string_println(STRING_LIT("cd"));
