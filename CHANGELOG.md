@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-07
+
 ### Fixed
 
 - Build: seqc's own test suite is only configured when seqc is the top-level
