@@ -1,6 +1,7 @@
 #include "seqc/list.h"
 
 #include <string.h>
+#include "max_align.h"
 
 typedef struct list_node_t list_node_t;
 
@@ -22,22 +23,22 @@ struct list_t
  * element type is correctly aligned. */
 static void *node_data(const list_node_t *node)
 {
-    const size_t offset = (sizeof(list_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(list_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return (char *)node + offset;
 }
 
 static size_t node_alloc_size(size_t elem_size)
 {
-    const size_t offset = (sizeof(list_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(list_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return offset + elem_size;
 }
 
 static list_node_t *list_make_node(const list_t *l, const void *elem)
 {
     list_node_t *node = mem_alloc(
-        l->allocator, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+        l->allocator, node_alloc_size(l->elem_size), SEQC_MAX_ALIGN);
     if (!node)
         return NULL;
     node->next = NULL;

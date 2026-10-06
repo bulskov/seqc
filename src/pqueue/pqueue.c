@@ -1,6 +1,7 @@
 #include "seqc/pqueue.h"
 
 #include <string.h>
+#include "max_align.h"
 
 struct pqueue_t
 {
@@ -183,7 +184,7 @@ slice_t pqueue_drain(pqueue_t *q, allocator_t allocator)
     size_t elem_size = vec_elem_size(q->data);
     if (n == 0)
         return (slice_t){NULL, 0, elem_size};
-    char *buf = mem_alloc(allocator, n * elem_size, _Alignof(max_align_t));
+    char *buf = mem_alloc(allocator, n * elem_size, SEQC_MAX_ALIGN);
     if (!buf)
     {
         pqueue_clear(q);

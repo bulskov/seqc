@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include "max_align.h"
 
 #define SET_INITIAL_CAP 16
 
@@ -149,7 +150,7 @@ seqc_status_t set_add(set_t *s, const void *elem)
         if (rs != SEQC_OK)
             return rs;
     }
-    void *key = mem_alloc(s->allocator, s->elem_size, _Alignof(max_align_t));
+    void *key = mem_alloc(s->allocator, s->elem_size, SEQC_MAX_ALIGN);
     if (!key)
         return SEQC_OOM;
     memcpy(key, elem, s->elem_size);
@@ -428,7 +429,7 @@ seqc_status_t set_add_all(set_t *s, iter_t it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = mem_alloc(s->allocator, s->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(s->allocator, s->elem_size, SEQC_MAX_ALIGN);
     if (!elem)
     {
         iter_drop(&it);

@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include "max_align.h"
 
 typedef struct dlist_node_t dlist_node_t;
 struct dlist_node_t
@@ -22,22 +23,22 @@ struct dlist_t
 /* Data lives immediately after the node header, padded to max_align_t. */
 static void *node_data(const dlist_node_t *node)
 {
-    const size_t offset = (sizeof(dlist_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(dlist_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return (char *)node + offset;
 }
 
 static size_t node_alloc_size(size_t elem_size)
 {
-    const size_t offset = (sizeof(dlist_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(dlist_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return offset + elem_size;
 }
 
 static dlist_node_t *make_node(const dlist_t *l, const void *elem)
 {
     dlist_node_t *node = mem_alloc(
-        l->allocator, node_alloc_size(l->elem_size), _Alignof(max_align_t));
+        l->allocator, node_alloc_size(l->elem_size), SEQC_MAX_ALIGN);
     if (!node)
         return NULL;
     node->prev = NULL;

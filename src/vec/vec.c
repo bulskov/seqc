@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "max_align.h"
 
 #define INITIAL_CAP 16
 
@@ -43,7 +44,7 @@ vec_t *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
     if (!v)
         return NULL;
     *v = (vec_t){.data = mem_alloc(
-                   allocator, capacity * elem_size, _Alignof(max_align_t)),
+                   allocator, capacity * elem_size, SEQC_MAX_ALIGN),
                .len = 0,
                .cap = capacity,
                .elem_size = elem_size,
@@ -86,7 +87,7 @@ seqc_status_t vec_push(vec_t *v, const void *elem)
             v->data,
             v->len * v->elem_size,
             new_cap * v->elem_size,
-            _Alignof(max_align_t));
+            SEQC_MAX_ALIGN);
         if (!new_data)
             return SEQC_OOM;
         v->data = new_data;
@@ -172,7 +173,7 @@ seqc_status_t vec_reserve(vec_t *v, size_t capacity)
         v->data,
         v->len * v->elem_size,
         capacity * v->elem_size,
-        _Alignof(max_align_t));
+        SEQC_MAX_ALIGN);
     if (!new_data)
         return SEQC_OOM;
     v->data = new_data;
@@ -262,7 +263,7 @@ seqc_status_t vec_extend(vec_t *v, iter_t it)
         iter_drop(&it);
         return SEQC_INVALID;
     }
-    void *elem = mem_alloc(v->allocator, v->elem_size, _Alignof(max_align_t));
+    void *elem = mem_alloc(v->allocator, v->elem_size, SEQC_MAX_ALIGN);
     if (!elem)
     {
         iter_drop(&it);

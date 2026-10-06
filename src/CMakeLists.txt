@@ -22,6 +22,9 @@ target_include_directories(seqc PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# Internal headers shared between modules (max_align.h).
+target_include_directories(seqc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # arena propagates its own PUBLIC include dirs (headers + generated version.h).
 target_link_libraries(seqc PUBLIC arena)
 

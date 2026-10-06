@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "max_align.h"
 
 typedef struct
 {
@@ -162,11 +163,11 @@ seqc_status_t hashmap_set(hashmap_t *map, const void *key, const void *value)
 
     // Allocate copies once — this is the only allocation point
     void *key_copy =
-        mem_alloc(map->allocator, map->key_size, _Alignof(max_align_t));
+        mem_alloc(map->allocator, map->key_size, SEQC_MAX_ALIGN);
     if (!key_copy)
         return SEQC_OOM;
     void *val_copy =
-        mem_alloc(map->allocator, map->val_size, _Alignof(max_align_t));
+        mem_alloc(map->allocator, map->val_size, SEQC_MAX_ALIGN);
     if (!val_copy)
     {
         mem_free(map->allocator, key_copy, map->key_size);

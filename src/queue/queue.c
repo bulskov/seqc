@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include "max_align.h"
 
 #define INITIAL_CAP 16
 
@@ -36,7 +37,7 @@ static seqc_status_t queue_grow(queue_t *q)
         return SEQC_OOM;
     size_t new_cap = q->cap == 0 ? INITIAL_CAP : q->cap * 2;
     char *new_buf =
-        mem_alloc(q->allocator, new_cap * q->elem_size, _Alignof(max_align_t));
+        mem_alloc(q->allocator, new_cap * q->elem_size, SEQC_MAX_ALIGN);
     if (!new_buf)
         return SEQC_OOM;
     /* copy elements from head to tail in logical order */

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include "max_align.h"
 
 #define RINGBUF_INITIAL_CAP 8
 
@@ -35,7 +36,7 @@ static seqc_status_t rb_grow(ringbuf_t *r)
         return SEQC_OOM;
     size_t new_cap = r->cap == 0 ? RINGBUF_INITIAL_CAP : r->cap * 2;
     void *nd =
-        mem_alloc(r->allocator, new_cap * r->elem_size, _Alignof(max_align_t));
+        mem_alloc(r->allocator, new_cap * r->elem_size, SEQC_MAX_ALIGN);
     if (!nd)
         return SEQC_OOM;
 

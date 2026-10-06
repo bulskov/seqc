@@ -1,6 +1,7 @@
 #include "seqc/omap.h"
 
 #include <string.h>
+#include "max_align.h"
 
 typedef struct omap_node_t omap_node_t;
 struct omap_node_t
@@ -31,15 +32,15 @@ struct omap_t
 
 static size_t key_off(void)
 {
-    return (sizeof(omap_node_t) + _Alignof(max_align_t) - 1)
-           & ~(_Alignof(max_align_t) - 1);
+    return (sizeof(omap_node_t) + SEQC_MAX_ALIGN - 1)
+           & ~(SEQC_MAX_ALIGN - 1);
 }
 
 static size_t val_off(size_t key_size)
 {
     size_t after_key = key_off() + key_size;
-    return (after_key + _Alignof(max_align_t) - 1)
-           & ~(_Alignof(max_align_t) - 1);
+    return (after_key + SEQC_MAX_ALIGN - 1)
+           & ~(SEQC_MAX_ALIGN - 1);
 }
 
 static size_t node_sz(size_t key_size, size_t val_size)
@@ -63,7 +64,7 @@ static omap_node_t *make_node(const omap_t *m, const void *key, const void *valu
         m->allocator,
 
         node_sz(m->key_size, m->val_size),
-        _Alignof(max_align_t));
+        SEQC_MAX_ALIGN);
     if (!n)
         return NULL;
     n->left = n->right = NULL;
@@ -602,7 +603,7 @@ iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key)
     void *hi_copy = NULL;
     if (hi_key)
     {
-        hi_copy = mem_alloc(m->allocator, m->key_size, _Alignof(max_align_t));
+        hi_copy = mem_alloc(m->allocator, m->key_size, SEQC_MAX_ALIGN);
         if (!hi_copy)
         {
             mem_free(m->allocator, s, sizeof(omap_range_iter_state_t));

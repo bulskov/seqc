@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include "max_align.h"
 
 typedef struct bstree_node_t bstree_node_t;
 struct bstree_node_t
@@ -24,22 +25,22 @@ struct bstree_t
 
 static void *node_data(const bstree_node_t *node)
 {
-    const size_t offset = (sizeof(bstree_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(bstree_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return (char *)node + offset;
 }
 
 static size_t node_alloc_size(size_t elem_size)
 {
-    const size_t offset = (sizeof(bstree_node_t) + _Alignof(max_align_t) - 1)
-                          & ~(_Alignof(max_align_t) - 1);
+    const size_t offset = (sizeof(bstree_node_t) + SEQC_MAX_ALIGN - 1)
+                          & ~(SEQC_MAX_ALIGN - 1);
     return offset + elem_size;
 }
 
 static bstree_node_t *make_node(const bstree_t *t, const void *elem)
 {
     bstree_node_t *node = mem_alloc(
-        t->allocator, node_alloc_size(t->elem_size), _Alignof(max_align_t));
+        t->allocator, node_alloc_size(t->elem_size), SEQC_MAX_ALIGN);
     if (!node)
         return NULL;
     node->left = node->right = NULL;
@@ -424,7 +425,7 @@ iter_t bstree_iter_range(const bstree_t *t, const void *lo, const void *hi)
     void *hi_copy = NULL;
     if (hi)
     {
-        hi_copy = mem_alloc(t->allocator, t->elem_size, _Alignof(max_align_t));
+        hi_copy = mem_alloc(t->allocator, t->elem_size, SEQC_MAX_ALIGN);
         if (!hi_copy)
         {
             mem_free(t->allocator, s, sizeof(bstree_range_iter_state_t));

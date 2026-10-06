@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include "max_align.h"
 
 #define SEQC_SCRATCH_MAX 512
 
@@ -14,7 +15,7 @@ static inline void *scratch_acquire(
 {
     if (elem_size <= SEQC_SCRATCH_MAX)
         return stack_buf;
-    return mem_alloc(al, elem_size, _Alignof(max_align_t));
+    return mem_alloc(al, elem_size, SEQC_MAX_ALIGN);
 }
 
 static inline void scratch_release(
@@ -262,7 +263,7 @@ iter_t iter_map(iter_t source, map_fn map, void *ctx, size_t out_elem_size)
     if (!s)
         return (iter_t){0};
     void *in_buf =
-        mem_alloc(source.allocator, source.elem_size, _Alignof(max_align_t));
+        mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
     if (!in_buf)
     {
         mem_free(source.allocator, s, sizeof(map_state_t));
@@ -457,7 +458,7 @@ slice_t iter_collect(iter_t it, allocator_t allocator)
     size_t cap = 16;
     size_t len = 0;
 
-    char *buf = mem_alloc(allocator, cap * elem_size, _Alignof(max_align_t));
+    char *buf = mem_alloc(allocator, cap * elem_size, SEQC_MAX_ALIGN);
     if (!buf)
     {
         iter_drop(&it);
@@ -484,7 +485,7 @@ slice_t iter_collect(iter_t it, allocator_t allocator)
                 buf,
                 cap * elem_size,
                 new_cap * elem_size,
-                _Alignof(max_align_t));
+                SEQC_MAX_ALIGN);
             if (!grown)
             {
                 /* return what we collected so far rather than losing it */
@@ -516,7 +517,7 @@ slice_t iter_collect(iter_t it, allocator_t allocator)
             buf,
             cap * elem_size,
             len * elem_size,
-            _Alignof(max_align_t));
+            SEQC_MAX_ALIGN);
         if (tight)
             buf = tight;
     }
@@ -651,7 +652,7 @@ static void zip_drop(iter_t *it)
 iter_t iter_zip(iter_t a, iter_t b)
 {
     zip_state_t *s = mem_alloc(a.allocator, sizeof *s, _Alignof(zip_state_t));
-    void *buf_a = mem_alloc(a.allocator, a.elem_size, _Alignof(max_align_t));
+    void *buf_a = mem_alloc(a.allocator, a.elem_size, SEQC_MAX_ALIGN);
     if (!s || !buf_a)
     {
         if (s)
@@ -776,7 +777,7 @@ iter_t iter_enumerate(iter_t source)
 {
     enum_state_t *s = mem_alloc(source.allocator, sizeof *s, _Alignof(enum_state_t));
     void *buf =
-        mem_alloc(source.allocator, source.elem_size, _Alignof(max_align_t));
+        mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
     if (!s || !buf)
     {
         if (s)
@@ -847,7 +848,7 @@ iter_t iter_window(iter_t source, size_t n)
         mem_alloc(source.allocator, sizeof *s, _Alignof(window_state_t));
     /* n == 0 needs no buffer; window_next yields nothing in that case */
     char *buf = n ? mem_alloc(source.allocator, n * source.elem_size,
-                              _Alignof(max_align_t))
+                              SEQC_MAX_ALIGN)
                   : NULL;
     if (!s || (n && !buf))
     {
@@ -910,7 +911,7 @@ iter_t iter_chunks(iter_t source, size_t n)
         mem_alloc(source.allocator, sizeof *s, _Alignof(chunk_state_t));
     /* n == 0 needs no buffer; chunk_next yields nothing in that case */
     char *buf = n ? mem_alloc(source.allocator, n * source.elem_size,
-                              _Alignof(max_align_t))
+                              SEQC_MAX_ALIGN)
                   : NULL;
     if (!s || (n && !buf))
     {
@@ -986,7 +987,7 @@ iter_t iter_peekable(iter_t source)
     peekable_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(peekable_state_t));
     void *buf =
-        mem_alloc(source.allocator, source.elem_size, _Alignof(max_align_t));
+        mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
     if (!s || !buf)
     {
         if (s)
@@ -1044,7 +1045,7 @@ iter_t iter_dedup(iter_t source, compare_fn cmp)
     dedup_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(dedup_state_t));
     void *last_buf =
-        mem_alloc(source.allocator, source.elem_size, _Alignof(max_align_t));
+        mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
     if (!s || !last_buf)
     {
         if (s)
@@ -1112,7 +1113,7 @@ iter_t iter_flat_map(iter_t source, flat_map_fn fn, void *ctx, size_t out_elem_s
     flat_map_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(flat_map_state_t));
     void *elem_buf =
-        mem_alloc(source.allocator, source.elem_size, _Alignof(max_align_t));
+        mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
     if (!s || !elem_buf)
     {
         if (s)
