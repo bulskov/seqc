@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-06
+
 ### Added
 
+- `string_equals_case_insensitive`: like `string_equals`, but ASCII letters
+  compare without regard to case.
+- `strbuf_len`: number of bytes appended to a builder so far.
 - Docs: `docs/arena.md` now covers the bounded arenas. `fixed_arena_t` caps a
   fully-committed region; `virtual_arena_t` reserves an address range and
   commits pages on demand, giving growing-arena behaviour with a hard ceiling.
@@ -30,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `string_copy` returns an empty string on allocation failure instead of
+  passing `NULL` to `memcpy`.
 - Docs: `growing_arena_reset` was described as reusing all committed blocks and
   not releasing memory to the OS. It frees every block except the head.
 - Docs: `scratch_t` was described as a checkpoint into `growing_arena_t`. It
