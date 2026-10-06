@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Tests: switch the test suite from GoogleTest to
+  [ctt](https://github.com/bulskov/ctt) (v0.3.1). The tests now build as plain
+  C11; seqc no longer needs a C++ compiler. Override `SEQC_CTT_GIT_TAG` to pin
+  a different ctt version.
+
 ## [2.1.0] - 2026-10-06
 
 ### Added

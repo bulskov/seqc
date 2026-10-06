@@ -58,7 +58,7 @@ carries the `seqc_` prefix to avoid the clash. Its functions stay `stack_*`.
 
 ## Building
 
-Requires: a C11/C++ compiler (GCC or Clang), `cmake >= 3.20`, `ninja`.
+Requires: a C11 compiler (GCC or Clang), `cmake >= 3.20`, `ninja`.
 
 ```sh
 ./build.sh          # configure + build (debug)
@@ -77,8 +77,9 @@ A `release` preset is also available.
 
 ## Testing
 
-Tests use [Google Test](https://github.com/google/googletest), which is automatically
+Tests use [ctt](https://github.com/bulskov/ctt), which is automatically
 fetched by CMake the first time tests are built — no manual installation needed.
+Override `SEQC_CTT_GIT_TAG` to pin a different ctt version.
 
 ```sh
 ./test.sh                    # build + run all tests
@@ -295,7 +296,7 @@ int main(void) {
 ## Test coverage
 
 Measured with `llvm-cov` (clang 18, instrumented build).
-The test suite uses [Google Test](https://github.com/google/googletest).
+The test suite uses [ctt](https://github.com/bulskov/ctt).
 
 | Module    |   Lines | Functions | Branches |
 | --------- | ------: | --------: | -------: |

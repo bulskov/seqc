@@ -1,10 +1,8 @@
-#include <gtest/gtest.h>
+#include "ctt.h"
 
-extern "C" {
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
 #include "seqc/bstree.h"
-}
 
 #include "../oom_alloc.h"
 
@@ -18,55 +16,55 @@ static int int_cmp(const void *a, const void *b)
 
 /* ---- tests ------------------------------------------------------------- */
 
-TEST(bstree, empty_on_create)
+TEST(bstree_empty_on_create)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
-    EXPECT_EQ(bstree_len(t), 0);
-    EXPECT_EQ(bstree_min(t), nullptr);
-    EXPECT_EQ(bstree_max(t), nullptr);
+    ASSERT_EQ(0, bstree_len(t));
+    ASSERT_NULL(bstree_min(t));
+    ASSERT_NULL(bstree_max(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, insert_and_contains)
+TEST(bstree_insert_and_contains)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
-        EXPECT_EQ(bstree_insert(t, &vals[i]), SEQC_OK);
-    EXPECT_EQ(bstree_len(t), 5);
+        ASSERT_EQ(SEQC_OK, bstree_insert(t, &vals[i]));
+    ASSERT_EQ(5, bstree_len(t));
     for (int i = 0; i < 5; i++)
-        EXPECT_TRUE(bstree_contains(t, &vals[i]));
+        ASSERT_TRUE(bstree_contains(t, &vals[i]));
     int absent = 99;
-    EXPECT_FALSE(bstree_contains(t, &absent));
+    ASSERT_FALSE(bstree_contains(t, &absent));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, insert_duplicate_returns_0)
+TEST(bstree_insert_duplicate_returns_0)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 10;
-    EXPECT_EQ(bstree_insert(t, &v), SEQC_OK);
-    EXPECT_NE(bstree_insert(t, &v), SEQC_OK);
-    EXPECT_EQ(bstree_len(t), 1);
+    ASSERT_EQ(SEQC_OK, bstree_insert(t, &v));
+    ASSERT_NE(SEQC_OK, bstree_insert(t, &v));
+    ASSERT_EQ(1, bstree_len(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, min_max)
+TEST(bstree_min_max)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int vals[] = {5, 1, 8, 3, 9, 2};
     for (int i = 0; i < 6; i++)
         bstree_insert(t, &vals[i]);
-    EXPECT_EQ(*(int *)bstree_min(t), 1);
-    EXPECT_EQ(*(int *)bstree_max(t), 9);
+    ASSERT_EQ(1, *(int *)bstree_min(t));
+    ASSERT_EQ(9, *(int *)bstree_max(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_in_order)
+TEST(bstree_iter_in_order)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -80,15 +78,15 @@ TEST(bstree, iter_in_order)
     while (it.next(&it, &got[n]))
         n++;
     iter_drop(&it);
-    EXPECT_EQ(n, 7);
+    ASSERT_EQ(7, n);
     /* in-order traversal must yield ascending values */
     for (size_t i = 1; i < n; i++)
-        EXPECT_LT(got[i - 1], got[i]);
+        ASSERT_LT(got[i - 1], got[i]);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(bstree, remove_leaf)
+TEST(bstree_remove_leaf)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -96,13 +94,13 @@ TEST(bstree, remove_leaf)
     for (int i = 0; i < 3; i++)
         bstree_insert(t, &vals[i]);
     int v = 3;
-    EXPECT_EQ(bstree_remove(t, &v), SEQC_OK);
-    EXPECT_FALSE(bstree_contains(t, &v));
-    EXPECT_EQ(bstree_len(t), 2);
+    ASSERT_EQ(SEQC_OK, bstree_remove(t, &v));
+    ASSERT_FALSE(bstree_contains(t, &v));
+    ASSERT_EQ(2, bstree_len(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, remove_node_with_two_children)
+TEST(bstree_remove_node_with_two_children)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -110,18 +108,18 @@ TEST(bstree, remove_node_with_two_children)
     for (int i = 0; i < 7; i++)
         bstree_insert(t, &vals[i]);
     int v = 5; /* root with two children */
-    EXPECT_EQ(bstree_remove(t, &v), SEQC_OK);
-    EXPECT_FALSE(bstree_contains(t, &v));
-    EXPECT_EQ(bstree_len(t), 6);
+    ASSERT_EQ(SEQC_OK, bstree_remove(t, &v));
+    ASSERT_FALSE(bstree_contains(t, &v));
+    ASSERT_EQ(6, bstree_len(t));
     /* tree must still be valid: iter still ascending */
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
     iter_t it = bstree_iter(t);
     int prev, cur;
     int ok = it.next(&it, &prev);
-    EXPECT_TRUE(ok);
+    ASSERT_TRUE(ok);
     while (it.next(&it, &cur))
     {
-        EXPECT_LT(prev, cur);
+        ASSERT_LT(prev, cur);
         prev = cur;
     }
     iter_drop(&it);
@@ -129,26 +127,26 @@ TEST(bstree, remove_node_with_two_children)
     growing_arena_destroy(a);
 }
 
-TEST(bstree, remove_nonexistent_returns_0)
+TEST(bstree_remove_nonexistent_returns_0)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 42;
-    EXPECT_NE(bstree_remove(t, &v), SEQC_OK);
+    ASSERT_NE(SEQC_OK, bstree_remove(t, &v));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_empty_tree)
+TEST(bstree_iter_empty_tree)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(iter_count(bstree_iter(t)), 0);
+    ASSERT_EQ(0, iter_count(bstree_iter(t)));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(bstree, many_inserts_sorted)
+TEST(bstree_many_inserts_sorted)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 8192);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -159,28 +157,28 @@ TEST(bstree, many_inserts_sorted)
                    23, 26, 29, 32, 35, 38, 41, 44, 47, 48, 49};
     for (int i = 0; i < 50; i++)
         bstree_insert(t, &order[i]);
-    EXPECT_EQ(bstree_len(t), 50);
+    ASSERT_EQ(50, bstree_len(t));
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
     iter_t it = bstree_iter(t);
     int prev, cur;
     it.next(&it, &prev);
-    EXPECT_EQ(prev, 0);
+    ASSERT_EQ(0, prev);
     int n = 1;
     while (it.next(&it, &cur))
     {
-        EXPECT_LT(prev, cur);
+        ASSERT_LT(prev, cur);
         prev = cur;
         n++;
     }
     iter_drop(&it);
-    EXPECT_EQ(n, 50);
-    EXPECT_EQ(*(int *)bstree_min(t), 0);
-    EXPECT_EQ(*(int *)bstree_max(t), 49);
+    ASSERT_EQ(50, n);
+    ASSERT_EQ(0, *(int *)bstree_min(t));
+    ASSERT_EQ(49, *(int *)bstree_max(t));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_rev_descending)
+TEST(bstree_iter_rev_descending)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -190,22 +188,22 @@ TEST(bstree, iter_rev_descending)
     scratch_t sc; growing_arena_scratch_begin(&sc, a);
     iter_t it = bstree_iter_rev(t);
     int prev, cur;
-    EXPECT_TRUE(it.next(&it, &prev));
-    EXPECT_EQ(prev, 7);
+    ASSERT_TRUE(it.next(&it, &prev));
+    ASSERT_EQ(7, prev);
     int n = 1;
     while (it.next(&it, &cur))
     {
-        EXPECT_GT(prev, cur);
+        ASSERT_GT(prev, cur);
         prev = cur;
         n++;
     }
     iter_drop(&it);
-    EXPECT_EQ(n, 7);
+    ASSERT_EQ(7, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_range_mid)
+TEST(bstree_iter_range_mid)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -219,13 +217,13 @@ TEST(bstree, iter_range_mid)
     while (it.next(&it, &collected[n]))
         n++;
     iter_drop(&it);
-    EXPECT_EQ(n, 5); /* 3,4,5,6,7 */
-    EXPECT_EQ(collected[0], 3);
-    EXPECT_EQ(collected[4], 7);
+    ASSERT_EQ(5, n); /* 3,4,5,6,7 */
+    ASSERT_EQ(3, collected[0]);
+    ASSERT_EQ(7, collected[4]);
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_range_no_lo)
+TEST(bstree_iter_range_no_lo)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -239,11 +237,11 @@ TEST(bstree, iter_range_no_lo)
     while (it.next(&it, &v))
         n++;
     iter_drop(&it);
-    EXPECT_EQ(n, 3); /* 1,2,3 */
+    ASSERT_EQ(3, n); /* 1,2,3 */
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_range_no_hi)
+TEST(bstree_iter_range_no_hi)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -257,11 +255,11 @@ TEST(bstree, iter_range_no_hi)
     while (it.next(&it, &v))
         n++;
     iter_drop(&it);
-    EXPECT_EQ(n, 3); /* 3,4,5 */
+    ASSERT_EQ(3, n); /* 3,4,5 */
     growing_arena_destroy(a);
 }
 
-TEST(bstree, iter_range_empty_result)
+TEST(bstree_iter_range_empty_result)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -271,14 +269,14 @@ TEST(bstree, iter_range_empty_result)
     int lo = 6, hi = 9;
     iter_t it = bstree_iter_range(t, &lo, &hi);
     int v;
-    EXPECT_TRUE(!it.next(&it, &v));
+    ASSERT_TRUE(!it.next(&it, &v));
     iter_drop(&it);
     growing_arena_destroy(a);
 }
 
 /* ---- bstree_clear ------------------------------------------------------- */
 
-TEST(bstree, clear_empties_tree)
+TEST(bstree_clear_empties_tree)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -286,13 +284,13 @@ TEST(bstree, clear_empties_tree)
     for (int i = 0; i < 5; i++)
         bstree_insert(t, &vals[i]);
     bstree_clear(t);
-    EXPECT_EQ(bstree_len(t), 0);
-    EXPECT_EQ(bstree_min(t), nullptr);
-    EXPECT_EQ(bstree_max(t), nullptr);
+    ASSERT_EQ(0, bstree_len(t));
+    ASSERT_NULL(bstree_min(t));
+    ASSERT_NULL(bstree_max(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, clear_allows_reuse)
+TEST(bstree_clear_allows_reuse)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -301,33 +299,33 @@ TEST(bstree, clear_allows_reuse)
         bstree_insert(t, &vals[i]);
     bstree_clear(t);
     int x = 42;
-    EXPECT_EQ(bstree_insert(t, &x), SEQC_OK);
-    EXPECT_EQ(bstree_len(t), 1);
-    EXPECT_TRUE(bstree_contains(t, &x));
+    ASSERT_EQ(SEQC_OK, bstree_insert(t, &x));
+    ASSERT_EQ(1, bstree_len(t));
+    ASSERT_TRUE(bstree_contains(t, &x));
     growing_arena_destroy(a);
 }
 
 /* ---- bstree_height ------------------------------------------------------- */
 
-TEST(bstree, height_empty_is_zero)
+TEST(bstree_height_empty_is_zero)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
-    EXPECT_EQ(bstree_height(t), 0);
+    ASSERT_EQ(0, bstree_height(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, height_single_node_is_one)
+TEST(bstree_height_single_node_is_one)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int x = 5;
     bstree_insert(t, &x);
-    EXPECT_EQ(bstree_height(t), 1);
+    ASSERT_EQ(1, bstree_height(t));
     growing_arena_destroy(a);
 }
 
-TEST(bstree, height_increases_with_depth)
+TEST(bstree_height_increases_with_depth)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
@@ -335,66 +333,71 @@ TEST(bstree, height_increases_with_depth)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
         bstree_insert(t, &vals[i]);
-    EXPECT_GE(bstree_height(t), 1);
+    ASSERT_GE(bstree_height(t), 1);
     growing_arena_destroy(a);
 }
 
 /* Documents O(n) degenerate behaviour for sorted input (no balancing). */
-TEST(bstree, sorted_input_produces_linear_height)
+TEST(bstree_sorted_input_produces_linear_height)
 {
     growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 65536);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 0; i < 1000; i++)
         bstree_insert(t, &i);
-    EXPECT_EQ(bstree_len(t), 1000);
-    EXPECT_EQ(bstree_height(t), 1000);
+    ASSERT_EQ(1000, bstree_len(t));
+    ASSERT_EQ(1000, bstree_height(t));
     growing_arena_destroy(a);
 }
 
 /* ---- OOM paths: an exhausted allocator must not crash ------------------ */
 
-TEST(bstree, iter_oom_returns_empty)
+TEST(bstree_iter_oom_returns_empty)
 {
     oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, al);
-    ASSERT_NE(t, nullptr);
+    ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
         bstree_insert(t, &i);
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = bstree_iter(t);
-    EXPECT_EQ(it.next, nullptr); /* empty iterator, not a NULL deref */
+    ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
     iter_drop(&it);
     bstree_free(t);
 }
 
-TEST(bstree, iter_rev_oom_returns_empty)
+TEST(bstree_iter_rev_oom_returns_empty)
 {
     oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, al);
-    ASSERT_NE(t, nullptr);
+    ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
         bstree_insert(t, &i);
     ctx.remaining = 0;
     iter_t it = bstree_iter_rev(t);
-    EXPECT_EQ(it.next, nullptr);
+    ASSERT_NULL(it.next);
     iter_drop(&it);
     bstree_free(t);
 }
 
-TEST(bstree, iter_range_oom_returns_empty)
+TEST(bstree_iter_range_oom_returns_empty)
 {
     oom_ctx_t ctx;
     allocator_t al = oom_after_allocator(64, &ctx);
     bstree_t *t = bstree_create(sizeof(int), int_cmp, al);
-    ASSERT_NE(t, nullptr);
+    ASSERT_NOT_NULL(t);
     for (int i = 0; i < 5; i++)
         bstree_insert(t, &i);
     int lo = 1, hi = 3;
     ctx.remaining = 0;
     iter_t it = bstree_iter_range(t, &lo, &hi);
-    EXPECT_EQ(it.next, nullptr);
+    ASSERT_NULL(it.next);
     iter_drop(&it);
     bstree_free(t);
+}
+
+int main(int argc, char *argv[])
+{
+    return ctt_main(argc, argv, "bstree_test");
 }

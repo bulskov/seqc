@@ -1,12 +1,9 @@
-#include <gtest/gtest.h>
+#include "ctt.h"
 
-extern "C"
-{
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
 #include "seqc/iter.h"
 #include "seqc/vec.h"
-}
 
 /* ---- helpers ----------------------------------------------------------- */
 
@@ -36,7 +33,7 @@ static void push_to_arr(const void *elem, void *ctx)
 
 /* ---- tests ------------------------------------------------------------- */
 
-TEST(iter, from_slice_count)
+TEST(iter_from_slice_count)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -45,12 +42,12 @@ TEST(iter, from_slice_count)
     growing_arena_init(a, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(iter_count(iter_from_slice(s, scratch_allocator(&sc))), 5);
+    ASSERT_EQ(5, iter_count(iter_from_slice(s, scratch_allocator(&sc))));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, from_slice_empty)
+TEST(iter_from_slice_empty)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _a_storage;
@@ -58,12 +55,12 @@ TEST(iter, from_slice_empty)
     growing_arena_init(a, 64);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(iter_count(iter_from_slice(s, scratch_allocator(&sc))), 0);
+    ASSERT_EQ(0, iter_count(iter_from_slice(s, scratch_allocator(&sc))));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, filter_keeps_matching)
+TEST(iter_filter_keeps_matching)
 {
     int data[] = {3, 15, 7, 22, 1, 18};
     slice_t s = {data, 6, sizeof(int)};
@@ -74,12 +71,12 @@ TEST(iter, filter_keeps_matching)
     growing_arena_scratch_begin(&sc, a);
     size_t n = iter_count(
         iter_filter(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(3, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, filter_none_match)
+TEST(iter_filter_none_match)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -90,12 +87,12 @@ TEST(iter, filter_none_match)
     growing_arena_scratch_begin(&sc, a);
     size_t n = iter_count(
         iter_filter(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, map_doubles_values)
+TEST(iter_map_doubles_values)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -111,15 +108,15 @@ TEST(iter, map_doubles_values)
             sizeof(int)),
         growing_arena_allocator(a));
 
-    EXPECT_EQ(result.len, 3);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 2);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 4);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 6);
+    ASSERT_EQ(3, result.len);
+    ASSERT_EQ(2, *(int *)slice_get(result, 0));
+    ASSERT_EQ(4, *(int *)slice_get(result, 1));
+    ASSERT_EQ(6, *(int *)slice_get(result, 2));
 
     growing_arena_destroy(a);
 }
 
-TEST(iter, collect_produces_correct_slice)
+TEST(iter_collect_produces_correct_slice)
 {
     int data[] = {10, 20, 30, 40};
     slice_t s = {data, 4, sizeof(int)};
@@ -131,14 +128,14 @@ TEST(iter, collect_produces_correct_slice)
         iter_from_slice(s, growing_arena_allocator(a)),
         growing_arena_allocator(a));
 
-    EXPECT_EQ(result.len, 4);
+    ASSERT_EQ(4, result.len);
     for (size_t i = 0; i < result.len; i++)
-        EXPECT_EQ(*(int *)slice_get(result, i), data[i]);
+        ASSERT_EQ(data[i], *(int *)slice_get(result, i));
 
     growing_arena_destroy(a);
 }
 
-TEST(iter, collect_empty_gives_null_ptr)
+TEST(iter_collect_empty_gives_null_ptr)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _a_storage;
@@ -149,13 +146,13 @@ TEST(iter, collect_empty_gives_null_ptr)
         iter_from_slice(s, growing_arena_allocator(a)),
         growing_arena_allocator(a));
 
-    EXPECT_EQ(result.len, 0);
-    EXPECT_EQ(result.ptr, nullptr);
+    ASSERT_EQ(0, result.len);
+    ASSERT_NULL(result.ptr);
 
     growing_arena_destroy(a);
 }
 
-TEST(iter, take_limits_output)
+TEST(iter_take_limits_output)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -164,14 +161,14 @@ TEST(iter, take_limits_output)
     growing_arena_init(a, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(
-        iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 3)),
-        3);
+    ASSERT_EQ(
+        3,
+        iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 3)));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, take_more_than_available)
+TEST(iter_take_more_than_available)
 {
     int data[] = {1, 2};
     slice_t s = {data, 2, sizeof(int)};
@@ -180,14 +177,14 @@ TEST(iter, take_more_than_available)
     growing_arena_init(a, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(
-        iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 100)),
-        2);
+    ASSERT_EQ(
+        2,
+        iter_count(iter_take(iter_from_slice(s, scratch_allocator(&sc)), 100)));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, skip_drops_first_n)
+TEST(iter_skip_drops_first_n)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -196,14 +193,14 @@ TEST(iter, skip_drops_first_n)
     growing_arena_init(a, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(
-        iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 3)),
-        2);
+    ASSERT_EQ(
+        2,
+        iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 3)));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, skip_all)
+TEST(iter_skip_all)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -212,14 +209,14 @@ TEST(iter, skip_all)
     growing_arena_init(a, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
-    EXPECT_EQ(
-        iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 10)),
-        0);
+    ASSERT_EQ(
+        0,
+        iter_count(iter_skip(iter_from_slice(s, scratch_allocator(&sc)), 10)));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, reduce_sum)
+TEST(iter_reduce_sum)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -231,12 +228,12 @@ TEST(iter, reduce_sum)
     int sum = 0;
     iter_reduce(
         iter_from_slice(s, scratch_allocator(&sc)), &sum, sum_combine, NULL);
-    EXPECT_EQ(sum, 15);
+    ASSERT_EQ(15, sum);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, foreach_visits_all)
+TEST(iter_foreach_visits_all)
 {
     int data[] = {10, 20, 30};
     slice_t s = {data, 3, sizeof(int)};
@@ -248,14 +245,14 @@ TEST(iter, foreach_visits_all)
     int out[3] = {0};
     int *ptr = out;
     iter_foreach(iter_from_slice(s, scratch_allocator(&sc)), push_to_arr, &ptr);
-    EXPECT_EQ(out[0], 10);
-    EXPECT_EQ(out[1], 20);
-    EXPECT_EQ(out[2], 30);
+    ASSERT_EQ(10, out[0]);
+    ASSERT_EQ(20, out[1]);
+    ASSERT_EQ(30, out[2]);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, filter_map_chain)
+TEST(iter_filter_map_chain)
 {
     int data[] = {3, 15, 7, 22, 1, 18};
     slice_t s = {data, 6, sizeof(int)};
@@ -273,17 +270,17 @@ TEST(iter, filter_map_chain)
         growing_arena_allocator(a));
 
     /* 15→30, 22→44, 18→36 */
-    EXPECT_EQ(result.len, 3);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 30);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 44);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 36);
+    ASSERT_EQ(3, result.len);
+    ASSERT_EQ(30, *(int *)slice_get(result, 0));
+    ASSERT_EQ(44, *(int *)slice_get(result, 1));
+    ASSERT_EQ(36, *(int *)slice_get(result, 2));
 
     growing_arena_destroy(a);
 }
 
 /* ---- iter_chain -------------------------------------------------------- */
 
-TEST(iter, chain_concatenates)
+TEST(iter_chain_concatenates)
 {
     int a[] = {1, 2, 3};
     int b[] = {4, 5};
@@ -297,12 +294,12 @@ TEST(iter, chain_concatenates)
     allocator_t al = scratch_allocator(&sc);
     size_t n = iter_count(
         iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)));
-    EXPECT_EQ(n, 5);
+    ASSERT_EQ(5, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, chain_collects_in_order)
+TEST(iter_chain_collects_in_order)
 {
     int a[] = {1, 2};
     int b[] = {3, 4};
@@ -314,13 +311,13 @@ TEST(iter, chain_collects_in_order)
     allocator_t al = growing_arena_allocator(arena);
     slice_t result = iter_collect(
         iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)), al);
-    EXPECT_EQ(result.len, 4);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(result, 3), 4);
+    ASSERT_EQ(4, result.len);
+    ASSERT_EQ(1, *(int *)slice_get(result, 0));
+    ASSERT_EQ(4, *(int *)slice_get(result, 3));
     growing_arena_destroy(arena);
 }
 
-TEST(iter, chain_empty_first)
+TEST(iter_chain_empty_first)
 {
     int b[] = {7, 8};
     slice_t sa = {NULL, 0, sizeof(int)};
@@ -331,17 +328,17 @@ TEST(iter, chain_empty_first)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     allocator_t al = scratch_allocator(&sc);
-    EXPECT_EQ(
+    ASSERT_EQ(
+        2,
         iter_count(
-            iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al))),
-        2);
+            iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al))));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_zip ---------------------------------------------------------- */
 
-TEST(iter, zip_pairs_elements)
+TEST(iter_zip_pairs_elements)
 {
     int as[] = {1, 2, 3};
     char bs[] = {'a', 'b', 'c'};
@@ -352,7 +349,7 @@ TEST(iter, zip_pairs_elements)
     growing_arena_init(arena, 512);
     allocator_t al = growing_arena_allocator(arena);
     iter_t z = iter_zip(iter_from_slice(sa, al), iter_from_slice(sb, al));
-    EXPECT_EQ(z.elem_size, sizeof(int) + sizeof(char));
+    ASSERT_EQ(sizeof(int) + sizeof(char), z.elem_size);
     char buf[sizeof(int) + sizeof(char)];
     int count = 0;
     while (z.next(&z, buf))
@@ -361,16 +358,16 @@ TEST(iter, zip_pairs_elements)
         memcpy(&iv, buf, sizeof(int));
         char cv;
         memcpy(&cv, buf + sizeof(int), sizeof(char));
-        EXPECT_EQ(iv, count + 1);
-        EXPECT_EQ(cv, 'a' + count);
+        ASSERT_EQ(count + 1, iv);
+        ASSERT_EQ('a' + count, cv);
         count++;
     }
-    EXPECT_EQ(count, 3);
+    ASSERT_EQ(3, count);
     iter_drop(&z);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, zip_stops_at_shorter)
+TEST(iter_zip_stops_at_shorter)
 {
     int as[] = {1, 2, 3, 4};
     int bs[] = {10, 20};
@@ -382,9 +379,9 @@ TEST(iter, zip_stops_at_shorter)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     allocator_t al = scratch_allocator(&sc);
-    EXPECT_EQ(
-        iter_count(iter_zip(iter_from_slice(sa, al), iter_from_slice(sb, al))),
-        2);
+    ASSERT_EQ(
+        2,
+        iter_count(iter_zip(iter_from_slice(sa, al), iter_from_slice(sb, al))));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -397,7 +394,7 @@ static int int_cmp(const void *a, const void *b)
     return (x > y) - (x < y);
 }
 
-TEST(iter, sort_ascending)
+TEST(iter_sort_ascending)
 {
     int data[] = {5, 1, 4, 2, 3};
     slice_t s = {data, 5, sizeof(int)};
@@ -408,13 +405,13 @@ TEST(iter, sort_ascending)
         iter_from_slice(s, growing_arena_allocator(arena)),
         int_cmp,
         growing_arena_allocator(arena));
-    EXPECT_EQ(result.len, 5);
+    ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
-        EXPECT_EQ(*(int *)slice_get(result, i), (int)(i + 1));
+        ASSERT_EQ((int)(i + 1), *(int *)slice_get(result, i));
     growing_arena_destroy(arena);
 }
 
-TEST(iter, sort_already_sorted)
+TEST(iter_sort_already_sorted)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -425,14 +422,14 @@ TEST(iter, sort_already_sorted)
         iter_from_slice(s, growing_arena_allocator(arena)),
         int_cmp,
         growing_arena_allocator(arena));
-    EXPECT_EQ(*(int *)slice_get(result, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 3);
+    ASSERT_EQ(1, *(int *)slice_get(result, 0));
+    ASSERT_EQ(3, *(int *)slice_get(result, 2));
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_find --------------------------------------------------------- */
 
-TEST(iter, find_returns_first_match)
+TEST(iter_find_returns_first_match)
 {
     int data[] = {1, 15, 22, 18};
     slice_t s = {data, 4, sizeof(int)};
@@ -444,13 +441,13 @@ TEST(iter, find_returns_first_match)
     int out = 0;
     int found =
         iter_find(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL, &out);
-    EXPECT_TRUE(found);
-    EXPECT_EQ(out, 15);
+    ASSERT_TRUE(found);
+    ASSERT_EQ(15, out);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, find_not_found)
+TEST(iter_find_not_found)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -461,14 +458,14 @@ TEST(iter, find_not_found)
     growing_arena_scratch_begin(&sc, arena);
     int found =
         iter_find(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL, NULL);
-    EXPECT_FALSE(found);
+    ASSERT_FALSE(found);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_any / iter_all ----------------------------------------------- */
 
-TEST(iter, any_true_when_match_exists)
+TEST(iter_any_true_when_match_exists)
 {
     int data[] = {1, 2, 20};
     slice_t s = {data, 3, sizeof(int)};
@@ -477,13 +474,13 @@ TEST(iter, any_true_when_match_exists)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_TRUE(
+    ASSERT_TRUE(
         iter_any(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, any_false_when_no_match)
+TEST(iter_any_false_when_no_match)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -492,13 +489,13 @@ TEST(iter, any_false_when_no_match)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_FALSE(
+    ASSERT_FALSE(
         iter_any(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, all_true_when_all_match)
+TEST(iter_all_true_when_all_match)
 {
     int data[] = {11, 22, 33};
     slice_t s = {data, 3, sizeof(int)};
@@ -507,13 +504,13 @@ TEST(iter, all_true_when_all_match)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_TRUE(
+    ASSERT_TRUE(
         iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, all_false_when_one_fails)
+TEST(iter_all_false_when_one_fails)
 {
     int data[] = {11, 22, 5};
     slice_t s = {data, 3, sizeof(int)};
@@ -522,13 +519,13 @@ TEST(iter, all_false_when_one_fails)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_FALSE(
+    ASSERT_FALSE(
         iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, all_vacuously_true_for_empty)
+TEST(iter_all_vacuously_true_for_empty)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -536,7 +533,7 @@ TEST(iter, all_vacuously_true_for_empty)
     growing_arena_init(arena, 64);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_TRUE(
+    ASSERT_TRUE(
         iter_all(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -544,7 +541,7 @@ TEST(iter, all_vacuously_true_for_empty)
 
 /* ---- iter_enumerate ---------------------------------------------------- */
 
-TEST(iter, enumerate_indices_and_values)
+TEST(iter_enumerate_indices_and_values)
 {
     int data[] = {10, 20, 30};
     slice_t s = {data, 3, sizeof(int)};
@@ -556,21 +553,21 @@ TEST(iter, enumerate_indices_and_values)
     iter_t it = iter_enumerate(iter_from_slice(s, scratch_allocator(&sc)));
     enum_entry_t e;
     it.next(&it, &e);
-    EXPECT_EQ(e.index, 0);
-    EXPECT_EQ(*(int *)e.elem, 10);
+    ASSERT_EQ(0, e.index);
+    ASSERT_EQ(10, *(int *)e.elem);
     it.next(&it, &e);
-    EXPECT_EQ(e.index, 1);
-    EXPECT_EQ(*(int *)e.elem, 20);
+    ASSERT_EQ(1, e.index);
+    ASSERT_EQ(20, *(int *)e.elem);
     it.next(&it, &e);
-    EXPECT_EQ(e.index, 2);
-    EXPECT_EQ(*(int *)e.elem, 30);
-    EXPECT_FALSE(it.next(&it, &e));
+    ASSERT_EQ(2, e.index);
+    ASSERT_EQ(30, *(int *)e.elem);
+    ASSERT_FALSE(it.next(&it, &e));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, enumerate_empty)
+TEST(iter_enumerate_empty)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -580,7 +577,7 @@ TEST(iter, enumerate_empty)
     growing_arena_scratch_begin(&sc, arena);
     iter_t it = iter_enumerate(iter_from_slice(s, scratch_allocator(&sc)));
     enum_entry_t e;
-    EXPECT_FALSE(it.next(&it, &e));
+    ASSERT_FALSE(it.next(&it, &e));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -588,7 +585,7 @@ TEST(iter, enumerate_empty)
 
 /* ---- iter_window ------------------------------------------------------- */
 
-TEST(iter, window_basic)
+TEST(iter_window_basic)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -600,26 +597,26 @@ TEST(iter, window_basic)
     iter_t it = iter_window(iter_from_slice(s, scratch_allocator(&sc)), 3);
     slice_t w;
     /* window [1,2,3] */
-    EXPECT_TRUE(it.next(&it, &w));
-    EXPECT_EQ(w.len, 3);
-    EXPECT_EQ(*(int *)slice_get(w, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(w, 1), 2);
-    EXPECT_EQ(*(int *)slice_get(w, 2), 3);
+    ASSERT_TRUE(it.next(&it, &w));
+    ASSERT_EQ(3, w.len);
+    ASSERT_EQ(1, *(int *)slice_get(w, 0));
+    ASSERT_EQ(2, *(int *)slice_get(w, 1));
+    ASSERT_EQ(3, *(int *)slice_get(w, 2));
     /* window [2,3,4] */
-    EXPECT_TRUE(it.next(&it, &w));
-    EXPECT_EQ(*(int *)slice_get(w, 0), 2);
-    EXPECT_EQ(*(int *)slice_get(w, 2), 4);
+    ASSERT_TRUE(it.next(&it, &w));
+    ASSERT_EQ(2, *(int *)slice_get(w, 0));
+    ASSERT_EQ(4, *(int *)slice_get(w, 2));
     /* window [3,4,5] */
-    EXPECT_TRUE(it.next(&it, &w));
-    EXPECT_EQ(*(int *)slice_get(w, 0), 3);
-    EXPECT_EQ(*(int *)slice_get(w, 2), 5);
-    EXPECT_FALSE(it.next(&it, &w));
+    ASSERT_TRUE(it.next(&it, &w));
+    ASSERT_EQ(3, *(int *)slice_get(w, 0));
+    ASSERT_EQ(5, *(int *)slice_get(w, 2));
+    ASSERT_FALSE(it.next(&it, &w));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, window_source_too_short)
+TEST(iter_window_source_too_short)
 {
     int data[] = {1, 2};
     slice_t s = {data, 2, sizeof(int)};
@@ -630,13 +627,13 @@ TEST(iter, window_source_too_short)
     growing_arena_scratch_begin(&sc, arena);
     iter_t it = iter_window(iter_from_slice(s, scratch_allocator(&sc)), 3);
     slice_t w;
-    EXPECT_FALSE(it.next(&it, &w));
+    ASSERT_FALSE(it.next(&it, &w));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, window_zero_yields_nothing)
+TEST(iter_window_zero_yields_nothing)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -645,14 +642,14 @@ TEST(iter, window_zero_yields_nothing)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_EQ(
-        iter_count(iter_window(iter_from_slice(s, scratch_allocator(&sc)), 0)),
-        0u);
+    ASSERT_EQ(
+        0u,
+        iter_count(iter_window(iter_from_slice(s, scratch_allocator(&sc)), 0)));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, chunks_zero_yields_nothing)
+TEST(iter_chunks_zero_yields_nothing)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -661,16 +658,16 @@ TEST(iter, chunks_zero_yields_nothing)
     growing_arena_init(arena, 256);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_EQ(
-        iter_count(iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 0)),
-        0u);
+    ASSERT_EQ(
+        0u,
+        iter_count(iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 0)));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_chunks ------------------------------------------------------- */
 
-TEST(iter, chunks_even)
+TEST(iter_chunks_even)
 {
     int data[] = {1, 2, 3, 4, 5, 6};
     slice_t s = {data, 6, sizeof(int)};
@@ -681,25 +678,25 @@ TEST(iter, chunks_even)
     growing_arena_scratch_begin(&sc, arena);
     iter_t it = iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 2);
     slice_t c;
-    EXPECT_TRUE(it.next(&it, &c));
-    EXPECT_EQ(c.len, 2);
-    EXPECT_EQ(*(int *)slice_get(c, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(c, 1), 2);
-    EXPECT_TRUE(it.next(&it, &c));
-    EXPECT_EQ(c.len, 2);
-    EXPECT_EQ(*(int *)slice_get(c, 0), 3);
-    EXPECT_EQ(*(int *)slice_get(c, 1), 4);
-    EXPECT_TRUE(it.next(&it, &c));
-    EXPECT_EQ(c.len, 2);
-    EXPECT_EQ(*(int *)slice_get(c, 0), 5);
-    EXPECT_EQ(*(int *)slice_get(c, 1), 6);
-    EXPECT_FALSE(it.next(&it, &c));
+    ASSERT_TRUE(it.next(&it, &c));
+    ASSERT_EQ(2, c.len);
+    ASSERT_EQ(1, *(int *)slice_get(c, 0));
+    ASSERT_EQ(2, *(int *)slice_get(c, 1));
+    ASSERT_TRUE(it.next(&it, &c));
+    ASSERT_EQ(2, c.len);
+    ASSERT_EQ(3, *(int *)slice_get(c, 0));
+    ASSERT_EQ(4, *(int *)slice_get(c, 1));
+    ASSERT_TRUE(it.next(&it, &c));
+    ASSERT_EQ(2, c.len);
+    ASSERT_EQ(5, *(int *)slice_get(c, 0));
+    ASSERT_EQ(6, *(int *)slice_get(c, 1));
+    ASSERT_FALSE(it.next(&it, &c));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, chunks_remainder)
+TEST(iter_chunks_remainder)
 {
     int data[] = {1, 2, 3, 4, 5};
     slice_t s = {data, 5, sizeof(int)};
@@ -711,13 +708,13 @@ TEST(iter, chunks_remainder)
     iter_t it = iter_chunks(iter_from_slice(s, scratch_allocator(&sc)), 2);
     slice_t c;
     it.next(&it, &c);
-    EXPECT_EQ(c.len, 2);
+    ASSERT_EQ(2, c.len);
     it.next(&it, &c);
-    EXPECT_EQ(c.len, 2);
-    EXPECT_TRUE(it.next(&it, &c));
-    EXPECT_EQ(c.len, 1); /* remainder */
-    EXPECT_EQ(*(int *)slice_get(c, 0), 5);
-    EXPECT_FALSE(it.next(&it, &c));
+    ASSERT_EQ(2, c.len);
+    ASSERT_TRUE(it.next(&it, &c));
+    ASSERT_EQ(1, c.len); /* remainder */
+    ASSERT_EQ(5, *(int *)slice_get(c, 0));
+    ASSERT_FALSE(it.next(&it, &c));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -737,7 +734,7 @@ static void repeat_n(const void *elem, iter_t *out, void *ctx)
     *out = vec_iter(v);
 }
 
-TEST(iter, flat_map_expand)
+TEST(iter_flat_map_expand)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};
@@ -753,16 +750,16 @@ TEST(iter, flat_map_expand)
     int val;
     for (int i = 0; i < 6; i++)
     {
-        EXPECT_TRUE(it.next(&it, &val));
-        EXPECT_EQ(val, expected[i]);
+        ASSERT_TRUE(it.next(&it, &val));
+        ASSERT_EQ(expected[i], val);
     }
-    EXPECT_FALSE(it.next(&it, &val));
+    ASSERT_FALSE(it.next(&it, &val));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, flat_map_empty_source)
+TEST(iter_flat_map_empty_source)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -774,7 +771,7 @@ TEST(iter, flat_map_empty_source)
     iter_t it =
         iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc, sizeof(int));
     int val;
-    EXPECT_FALSE(it.next(&it, &val));
+    ASSERT_FALSE(it.next(&it, &val));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -782,7 +779,7 @@ TEST(iter, flat_map_empty_source)
 
 /* ---- iter_min / iter_max ----------------------------------------------- */
 
-TEST(iter, min_basic)
+TEST(iter_min_basic)
 {
     int data[] = {5, 3, 8, 1, 9, 2};
     slice_t s = {data, 6, sizeof(int)};
@@ -792,14 +789,14 @@ TEST(iter, min_basic)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     int result;
-    EXPECT_TRUE(
+    ASSERT_TRUE(
         iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &result));
-    EXPECT_EQ(result, 1);
+    ASSERT_EQ(1, result);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, max_basic)
+TEST(iter_max_basic)
 {
     int data[] = {5, 3, 8, 1, 9, 2};
     slice_t s = {data, 6, sizeof(int)};
@@ -809,14 +806,14 @@ TEST(iter, max_basic)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     int result;
-    EXPECT_TRUE(
+    ASSERT_TRUE(
         iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &result));
-    EXPECT_EQ(result, 9);
+    ASSERT_EQ(9, result);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, min_max_empty_returns_0)
+TEST(iter_min_max_empty_returns_0)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -824,16 +821,16 @@ TEST(iter, min_max_empty_returns_0)
     growing_arena_init(arena, 64);
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_FALSE(
+    ASSERT_FALSE(
         iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, NULL));
     growing_arena_scratch_begin(&sc, arena);
-    EXPECT_FALSE(
+    ASSERT_FALSE(
         iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, NULL));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, min_max_single_element)
+TEST(iter_min_max_single_element)
 {
     int data[] = {42};
     slice_t s = {data, 1, sizeof(int)};
@@ -846,15 +843,15 @@ TEST(iter, min_max_single_element)
     iter_min(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &mn);
     growing_arena_scratch_begin(&sc, arena);
     iter_max(iter_from_slice(s, scratch_allocator(&sc)), int_cmp, &mx);
-    EXPECT_EQ(mn, 42);
-    EXPECT_EQ(mx, 42);
+    ASSERT_EQ(42, mn);
+    ASSERT_EQ(42, mx);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_take_while --------------------------------------------------- */
 
-TEST(iter, take_while_basic)
+TEST(iter_take_while_basic)
 {
     /* yields the leading prefix where pred holds */
     int data[] = {15, 22, 8, 30};
@@ -868,14 +865,14 @@ TEST(iter, take_while_basic)
         iter_take_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 ✓, 22 ✓, 8 ✗ → stop */
-    EXPECT_EQ(result.len, 2);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 15);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 22);
+    ASSERT_EQ(2, result.len);
+    ASSERT_EQ(15, *(int *)slice_get(result, 0));
+    ASSERT_EQ(22, *(int *)slice_get(result, 1));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, take_while_none_match)
+TEST(iter_take_while_none_match)
 {
     /* first element fails pred → yields nothing */
     int data[] = {1, 2, 3};
@@ -887,12 +884,12 @@ TEST(iter, take_while_none_match)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_take_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, take_while_all_match)
+TEST(iter_take_while_all_match)
 {
     /* all elements satisfy pred → yields all */
     int data[] = {11, 22, 33};
@@ -904,12 +901,12 @@ TEST(iter, take_while_all_match)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_take_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(3, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, take_while_empty_source)
+TEST(iter_take_while_empty_source)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -919,14 +916,14 @@ TEST(iter, take_while_empty_source)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_take_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_skip_while --------------------------------------------------- */
 
-TEST(iter, skip_while_basic)
+TEST(iter_skip_while_basic)
 {
     /* skips leading prefix where pred holds, then yields the rest */
     int data[] = {15, 22, 8, 30};
@@ -940,14 +937,14 @@ TEST(iter, skip_while_basic)
         iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 skip, 22 skip, 8 → yield, 30 → yield */
-    EXPECT_EQ(result.len, 2);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 8);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 30);
+    ASSERT_EQ(2, result.len);
+    ASSERT_EQ(8, *(int *)slice_get(result, 0));
+    ASSERT_EQ(30, *(int *)slice_get(result, 1));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, skip_while_none_match)
+TEST(iter_skip_while_none_match)
 {
     /* first element fails pred → yields all */
     int data[] = {1, 2, 3};
@@ -959,12 +956,12 @@ TEST(iter, skip_while_none_match)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_skip_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(3, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, skip_while_all_match)
+TEST(iter_skip_while_all_match)
 {
     /* all elements satisfy pred → yields nothing */
     int data[] = {11, 22, 33};
@@ -976,12 +973,12 @@ TEST(iter, skip_while_all_match)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_skip_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, skip_while_empty_source)
+TEST(iter_skip_while_empty_source)
 {
     slice_t s = {NULL, 0, sizeof(int)};
     growing_arena_t _arena_storage;
@@ -991,12 +988,12 @@ TEST(iter, skip_while_empty_source)
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_skip_while(
         iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, skip_while_yields_all_after_first_miss)
+TEST(iter_skip_while_yields_all_after_first_miss)
 {
     /* elements after the first miss should be yielded even if pred would match
      */
@@ -1011,10 +1008,10 @@ TEST(iter, skip_while_yields_all_after_first_miss)
         iter_skip_while(iter_from_slice(s, scratch_allocator(&sc)), gt10, NULL),
         scratch_allocator(&sc));
     /* gt10: 15 skip, 3 → yield; then 22 and 8 must also be yielded */
-    EXPECT_EQ(result.len, 3);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 3);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 22);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 8);
+    ASSERT_EQ(3, result.len);
+    ASSERT_EQ(3, *(int *)slice_get(result, 0));
+    ASSERT_EQ(22, *(int *)slice_get(result, 1));
+    ASSERT_EQ(8, *(int *)slice_get(result, 2));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1031,7 +1028,7 @@ static bool count_up(void *out, void *ctx)
     return true;
 }
 
-TEST(iter, generate_basic)
+TEST(iter_generate_basic)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1042,14 +1039,14 @@ TEST(iter, generate_basic)
     slice_t result = iter_collect(
         iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)),
         scratch_allocator(&sc));
-    EXPECT_EQ(result.len, 5);
+    ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
-        EXPECT_EQ(*(int *)slice_get(result, i), (int)i);
+        ASSERT_EQ((int)i, *(int *)slice_get(result, i));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, generate_empty_when_fn_false_immediately)
+TEST(iter_generate_empty_when_fn_false_immediately)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1059,12 +1056,12 @@ TEST(iter, generate_empty_when_fn_false_immediately)
     int state = 5; /* already at limit — fn returns false immediately */
     size_t n = iter_count(
         iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, generate_with_take)
+TEST(iter_generate_with_take)
 {
     /* Generate is infinite without take; take limits it */
     growing_arena_t _arena_storage;
@@ -1077,14 +1074,14 @@ TEST(iter, generate_with_take)
     size_t n = iter_count(iter_take(
         iter_generate(count_up, &state, sizeof(int), scratch_allocator(&sc)),
         3));
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(3, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_range -------------------------------------------------------- */
 
-TEST(iter, range_basic)
+TEST(iter_range_basic)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1093,14 +1090,14 @@ TEST(iter, range_basic)
     growing_arena_scratch_begin(&sc, arena);
     slice_t result = iter_collect(
         iter_range(0, 5, 1, scratch_allocator(&sc)), scratch_allocator(&sc));
-    EXPECT_EQ(result.len, 5);
+    ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
-        EXPECT_EQ(*(long long *)slice_get(result, i), (long long)i);
+        ASSERT_EQ((long long)i, *(long long *)slice_get(result, i));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, range_step_two)
+TEST(iter_range_step_two)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1110,14 +1107,14 @@ TEST(iter, range_step_two)
     slice_t result = iter_collect(
         iter_range(0, 10, 2, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 0, 2, 4, 6, 8 */
-    EXPECT_EQ(result.len, 5);
-    EXPECT_EQ(*(long long *)slice_get(result, 0), 0LL);
-    EXPECT_EQ(*(long long *)slice_get(result, 4), 8LL);
+    ASSERT_EQ(5, result.len);
+    ASSERT_EQ(0LL, *(long long *)slice_get(result, 0));
+    ASSERT_EQ(8LL, *(long long *)slice_get(result, 4));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, range_negative_step)
+TEST(iter_range_negative_step)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1127,14 +1124,14 @@ TEST(iter, range_negative_step)
     slice_t result = iter_collect(
         iter_range(5, 0, -1, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 5, 4, 3, 2, 1 */
-    EXPECT_EQ(result.len, 5);
-    EXPECT_EQ(*(long long *)slice_get(result, 0), 5LL);
-    EXPECT_EQ(*(long long *)slice_get(result, 4), 1LL);
+    ASSERT_EQ(5, result.len);
+    ASSERT_EQ(5LL, *(long long *)slice_get(result, 0));
+    ASSERT_EQ(1LL, *(long long *)slice_get(result, 4));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, range_empty_when_start_equals_end)
+TEST(iter_range_empty_when_start_equals_end)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1142,12 +1139,12 @@ TEST(iter, range_empty_when_start_equals_end)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_range(3, 3, 1, scratch_allocator(&sc)));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, range_empty_wrong_direction)
+TEST(iter_range_empty_wrong_direction)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1156,12 +1153,12 @@ TEST(iter, range_empty_wrong_direction)
     growing_arena_scratch_begin(&sc, arena);
     /* positive step but start > end */
     size_t n = iter_count(iter_range(5, 0, 1, scratch_allocator(&sc)));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
-TEST(iter, range_zero_step_returns_empty)
+TEST(iter_range_zero_step_returns_empty)
 {
     growing_arena_t _arena_storage;
     growing_arena_t *arena = &_arena_storage;
@@ -1169,14 +1166,14 @@ TEST(iter, range_zero_step_returns_empty)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, arena);
     size_t n = iter_count(iter_range(0, 10, 0, scratch_allocator(&sc)));
-    EXPECT_EQ(n, 0);
+    ASSERT_EQ(0, n);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
 
 /* ---- iter_peekable ----------------------------------------------------- */
 
-TEST(iter, peekable_peek_does_not_consume)
+TEST(iter_peekable_peek_does_not_consume)
 {
     int data[] = {10, 20, 30};
     slice_t s = {data, 3, sizeof(int)};
@@ -1187,18 +1184,18 @@ TEST(iter, peekable_peek_does_not_consume)
     growing_arena_scratch_begin(&sc, a);
     iter_t it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
     int peeked, got;
-    EXPECT_TRUE(iter_peek(&it, &peeked));
-    EXPECT_EQ(peeked, 10);
-    EXPECT_TRUE(it.next(&it, &got));
-    EXPECT_EQ(got, 10); /* peek did not consume */
-    EXPECT_TRUE(it.next(&it, &got));
-    EXPECT_EQ(got, 20);
+    ASSERT_TRUE(iter_peek(&it, &peeked));
+    ASSERT_EQ(10, peeked);
+    ASSERT_TRUE(it.next(&it, &got));
+    ASSERT_EQ(10, got); /* peek did not consume */
+    ASSERT_TRUE(it.next(&it, &got));
+    ASSERT_EQ(20, got);
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, peekable_peek_at_end_returns_false)
+TEST(iter_peekable_peek_at_end_returns_false)
 {
     int data[] = {1};
     slice_t s = {data, 1, sizeof(int)};
@@ -1210,13 +1207,13 @@ TEST(iter, peekable_peek_at_end_returns_false)
     iter_t it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
     int got;
     it.next(&it, &got); /* consume the only element */
-    EXPECT_FALSE(iter_peek(&it, &got));
+    ASSERT_FALSE(iter_peek(&it, &got));
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, peekable_multiple_peeks_return_same)
+TEST(iter_peekable_multiple_peeks_return_same)
 {
     int data[] = {42, 99};
     slice_t s = {data, 2, sizeof(int)};
@@ -1227,9 +1224,9 @@ TEST(iter, peekable_multiple_peeks_return_same)
     growing_arena_scratch_begin(&sc, a);
     iter_t it = iter_peekable(iter_from_slice(s, scratch_allocator(&sc)));
     int p1, p2;
-    EXPECT_TRUE(iter_peek(&it, &p1));
-    EXPECT_TRUE(iter_peek(&it, &p2));
-    EXPECT_EQ(p1, p2); /* repeated peek returns same value */
+    ASSERT_TRUE(iter_peek(&it, &p1));
+    ASSERT_TRUE(iter_peek(&it, &p2));
+    ASSERT_EQ(p2, p1); /* repeated peek returns same value */
     iter_drop(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -1243,7 +1240,7 @@ static int int_cmp_dedup(const void *a, const void *b)
     return (x > y) - (x < y);
 }
 
-TEST(iter, dedup_removes_consecutive_duplicates)
+TEST(iter_dedup_removes_consecutive_duplicates)
 {
     int data[] = {1, 1, 2, 3, 3, 3, 4};
     slice_t s = {data, 7, sizeof(int)};
@@ -1255,16 +1252,16 @@ TEST(iter, dedup_removes_consecutive_duplicates)
     slice_t result = iter_collect(
         iter_dedup(iter_from_slice(s, scratch_allocator(&sc)), int_cmp_dedup),
         scratch_allocator(&sc));
-    EXPECT_EQ(result.len, 4);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 2);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 3);
-    EXPECT_EQ(*(int *)slice_get(result, 3), 4);
+    ASSERT_EQ(4, result.len);
+    ASSERT_EQ(1, *(int *)slice_get(result, 0));
+    ASSERT_EQ(2, *(int *)slice_get(result, 1));
+    ASSERT_EQ(3, *(int *)slice_get(result, 2));
+    ASSERT_EQ(4, *(int *)slice_get(result, 3));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, dedup_non_consecutive_duplicates_kept)
+TEST(iter_dedup_non_consecutive_duplicates_kept)
 {
     int data[] = {1, 2, 1, 2};
     slice_t s = {data, 4, sizeof(int)};
@@ -1275,12 +1272,12 @@ TEST(iter, dedup_non_consecutive_duplicates_kept)
     growing_arena_scratch_begin(&sc, a);
     size_t n = iter_count(
         iter_dedup(iter_from_slice(s, scratch_allocator(&sc)), int_cmp_dedup));
-    EXPECT_EQ(n, 4); /* no adjacent duplicates */
+    ASSERT_EQ(4, n); /* no adjacent duplicates */
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
 
-TEST(iter, sort_then_dedup_unique_values)
+TEST(iter_sort_then_dedup_unique_values)
 {
     int data[] = {3, 1, 2, 1, 3, 2};
     slice_t s = {data, 6, sizeof(int)};
@@ -1299,10 +1296,15 @@ TEST(iter, sort_then_dedup_unique_values)
                 scratch_allocator(&sc)),
             int_cmp_dedup),
         scratch_allocator(&sc));
-    EXPECT_EQ(result.len, 3);
-    EXPECT_EQ(*(int *)slice_get(result, 0), 1);
-    EXPECT_EQ(*(int *)slice_get(result, 1), 2);
-    EXPECT_EQ(*(int *)slice_get(result, 2), 3);
+    ASSERT_EQ(3, result.len);
+    ASSERT_EQ(1, *(int *)slice_get(result, 0));
+    ASSERT_EQ(2, *(int *)slice_get(result, 1));
+    ASSERT_EQ(3, *(int *)slice_get(result, 2));
     scratch_end(&sc);
     growing_arena_destroy(a);
+}
+
+int main(int argc, char *argv[])
+{
+    return ctt_main(argc, argv, "iter_test");
 }
