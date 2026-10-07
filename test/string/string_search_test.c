@@ -63,8 +63,8 @@ TEST(find_char_reads_nothing_past_len)
 TEST(find_char_finds_high_bytes)
 {
     string_t s = L("a\xc3\xa5"); /* "aå" */
-    ASSERT_EQ(1, string_find_char(s, (char)0xc3));
-    ASSERT_EQ(2, string_find_char(s, (char)0xa5));
+    ASSERT_EQ(1, string_find_char(s, '\xc3'));
+    ASSERT_EQ(2, string_find_char(s, '\xa5'));
 }
 
 /* --- string_rfind_char -------------------------------------------------- */
