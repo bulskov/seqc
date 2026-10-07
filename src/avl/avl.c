@@ -1,7 +1,7 @@
 #include "seqc/avl.h"
 
-#include <string.h>
 #include "max_align.h"
+#include <string.h>
 
 typedef struct avl_node_t avl_node_t;
 struct avl_node_t
@@ -25,24 +25,26 @@ struct avl_t
 
 static void *node_data(const avl_node_t *node)
 {
-    const size_t offset = (sizeof(avl_node_t) + SEQC_MAX_ALIGN - 1)
-                          & ~(SEQC_MAX_ALIGN - 1);
+    const size_t offset =
+        (sizeof(avl_node_t) + SEQC_MAX_ALIGN - 1) & ~(SEQC_MAX_ALIGN - 1);
     return (char *)node + offset;
 }
 
 static size_t node_alloc_size(size_t elem_size)
 {
-    const size_t offset = (sizeof(avl_node_t) + SEQC_MAX_ALIGN - 1)
-                          & ~(SEQC_MAX_ALIGN - 1);
+    const size_t offset =
+        (sizeof(avl_node_t) + SEQC_MAX_ALIGN - 1) & ~(SEQC_MAX_ALIGN - 1);
     return offset + elem_size;
 }
 
 static avl_node_t *make_node(const avl_t *t, const void *elem)
 {
-    avl_node_t *n = mem_alloc(
-        t->allocator, node_alloc_size(t->elem_size), SEQC_MAX_ALIGN);
+    avl_node_t *n =
+        mem_alloc(t->allocator, node_alloc_size(t->elem_size), SEQC_MAX_ALIGN);
     if (!n)
+    {
         return NULL;
+    }
     n->left = n->right = NULL;
     n->height = 1;
     memcpy(node_data(n), elem, t->elem_size);
@@ -112,7 +114,9 @@ static avl_node_t *rebalance(avl_node_t *n)
 
     /* LL: right rotation */
     if (bf > 1 && balance_factor(n->left) >= 0)
+    {
         return rotate_right(n);
+    }
 
     /* LR: left-right double rotation */
     if (bf > 1 && balance_factor(n->left) < 0)
@@ -123,7 +127,9 @@ static avl_node_t *rebalance(avl_node_t *n)
 
     /* RR: left rotation */
     if (bf < -1 && balance_factor(n->right) <= 0)
+    {
         return rotate_left(n);
+    }
 
     /* RL: right-left double rotation */
     if (bf < -1 && balance_factor(n->right) > 0)
@@ -141,12 +147,15 @@ avl_t *avl_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
 {
     avl_t *t = mem_alloc(allocator, sizeof(avl_t), _Alignof(avl_t));
     if (!t)
+    {
         return NULL;
-    *t = (avl_t){.root = NULL,
-                   .len = 0,
-                   .elem_size = elem_size,
-                   .cmp = cmp,
-                   .allocator = allocator};
+    }
+    *t = (avl_t){
+        .root = NULL,
+        .len = 0,
+        .elem_size = elem_size,
+        .cmp = cmp,
+        .allocator = allocator};
     return t;
 }
 
@@ -171,14 +180,18 @@ static avl_node_t *do_insert(
     {
         avl_node_t *new_left = do_insert(t, node->left, elem, inserted, oom);
         if (*oom)
+        {
             return node; /* preserve existing tree on OOM */
+        }
         node->left = new_left;
     }
     else if (c > 0)
     {
         avl_node_t *new_right = do_insert(t, node->right, elem, inserted, oom);
         if (*oom)
+        {
             return node;
+        }
         node->right = new_right;
     }
     else
@@ -192,16 +205,24 @@ static avl_node_t *do_insert(
 seqc_status_t avl_insert(avl_t *t, const void *elem)
 {
     if (!t || !elem)
+    {
         return SEQC_INVALID;
+    }
     bool inserted = false;
     bool oom = false;
     avl_node_t *new_root = do_insert(t, t->root, elem, &inserted, &oom);
     if (oom)
+    {
         return SEQC_OOM;
+    }
     if (new_root)
+    {
         t->root = new_root;
+    }
     if (inserted)
+    {
         t->len++;
+    }
     return inserted ? SEQC_OK : SEQC_DUPLICATE;
 }
 
@@ -210,17 +231,25 @@ seqc_status_t avl_insert(avl_t *t, const void *elem)
 bool avl_contains(const avl_t *t, const void *elem)
 {
     if (!t || !elem)
+    {
         return false;
+    }
     avl_node_t *cur = t->root;
     while (cur)
     {
         int c = t->cmp(elem, node_data(cur));
         if (c < 0)
+        {
             cur = cur->left;
+        }
         else if (c > 0)
+        {
             cur = cur->right;
+        }
         else
+        {
             return true;
+        }
     }
     return false;
 }
@@ -230,7 +259,9 @@ bool avl_contains(const avl_t *t, const void *elem)
 static avl_node_t *min_node(avl_node_t *n)
 {
     while (n->left)
+    {
         n = n->left;
+    }
     return n;
 }
 
@@ -279,11 +310,15 @@ static avl_node_t *do_remove(
 seqc_status_t avl_remove(avl_t *t, const void *elem)
 {
     if (!t || !elem)
+    {
         return SEQC_INVALID;
+    }
     bool removed = false;
     t->root = do_remove(t, t->root, elem, &removed);
     if (removed)
+    {
         t->len--;
+    }
     return removed ? SEQC_OK : SEQC_NOT_FOUND;
 }
 
@@ -292,20 +327,28 @@ seqc_status_t avl_remove(avl_t *t, const void *elem)
 void *avl_min(const avl_t *t)
 {
     if (!t || !t->root)
+    {
         return NULL;
+    }
     avl_node_t *cur = t->root;
     while (cur->left)
+    {
         cur = cur->left;
+    }
     return node_data(cur);
 }
 
 void *avl_max(const avl_t *t)
 {
     if (!t || !t->root)
+    {
         return NULL;
+    }
     avl_node_t *cur = t->root;
     while (cur->right)
+    {
         cur = cur->right;
+    }
     return node_data(cur);
 }
 
@@ -323,7 +366,9 @@ int avl_height(const avl_t *t)
 static void free_subtree(avl_t *t, avl_node_t *node)
 {
     if (!node)
+    {
         return;
+    }
     free_subtree(t, node->left);
     free_subtree(t, node->right);
     mem_free(t->allocator, node, node_alloc_size(t->elem_size));
@@ -332,7 +377,9 @@ static void free_subtree(avl_t *t, avl_node_t *node)
 void avl_free(avl_t *t)
 {
     if (!t)
+    {
         return;
+    }
     free_subtree(t, t->root);
     allocator_t al = t->allocator;
     mem_free(al, t, sizeof(avl_t));
@@ -341,7 +388,9 @@ void avl_free(avl_t *t)
 void avl_clear(avl_t *t)
 {
     if (!t)
+    {
         return;
+    }
     free_subtree(t, t->root);
     t->root = NULL;
     t->len = 0;
@@ -364,16 +413,25 @@ typedef struct
 /* Push node onto a growable traversal stack, doubling capacity on demand.
  * Returns false on OOM, leaving the existing stack intact for the drop. */
 static bool avl_stack_push(
-    avl_node_t ***stack, size_t *len, size_t *cap, allocator_t al, avl_node_t *node)
+    avl_node_t ***stack,
+    size_t *len,
+    size_t *cap,
+    allocator_t al,
+    avl_node_t *node)
 {
     if (*len == *cap)
     {
         size_t new_cap = *cap == 0 ? AVL_ITER_STACK_INIT_CAP : *cap * 2;
-        avl_node_t **grown = mem_realloc(al, *stack, *cap * sizeof(avl_node_t *),
-                                      new_cap * sizeof(avl_node_t *),
-                                      _Alignof(avl_node_t *));
+        avl_node_t **grown = mem_realloc(
+            al,
+            *stack,
+            *cap * sizeof(avl_node_t *),
+            new_cap * sizeof(avl_node_t *),
+            _Alignof(avl_node_t *));
         if (!grown)
+        {
             return false;
+        }
         *stack = grown;
         *cap = new_cap;
     }
@@ -386,13 +444,21 @@ static bool avl_iter_next(iter_t *it, void *out)
     avl_iter_state_t *s = it->state;
     while (s->current)
     {
-        if (!avl_stack_push(&s->stack, &s->stack_len, &s->stack_cap,
-                            s->allocator, s->current))
+        if (!avl_stack_push(
+                &s->stack,
+                &s->stack_len,
+                &s->stack_cap,
+                s->allocator,
+                s->current))
+        {
             return false; /* OOM: end iteration; drop frees the stack */
+        }
         s->current = s->current->left;
     }
     if (s->stack_len == 0)
+    {
         return false;
+    }
     avl_node_t *node = s->stack[--s->stack_len];
     memcpy(out, node_data(node), s->elem_size);
     s->current = node->right;
@@ -403,29 +469,37 @@ static void avl_iter_drop(iter_t *it)
 {
     avl_iter_state_t *s = it->state;
     if (s->stack)
+    {
         mem_free(it->allocator, s->stack, s->stack_cap * sizeof(avl_node_t *));
+    }
     mem_free(it->allocator, s, sizeof(avl_iter_state_t));
 }
 
 iter_t avl_iter(const avl_t *t)
 {
     if (!t)
+    {
         return (iter_t){0};
+    }
     avl_iter_state_t *s =
         mem_alloc(t->allocator, sizeof *s, _Alignof(avl_iter_state_t));
     if (!s)
+    {
         return (iter_t){0};
-    *s = (avl_iter_state_t){.stack = NULL,
-                        .stack_len = 0,
-                        .stack_cap = 0,
-                        .current = t->root,
-                        .elem_size = t->elem_size,
-                        .allocator = t->allocator};
-    return (iter_t){.next = avl_iter_next,
-                  .drop = avl_iter_drop,
-                  .state = s,
-                  .elem_size = t->elem_size,
-                  .allocator = t->allocator};
+    }
+    *s = (avl_iter_state_t){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = t->root,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator};
+    return (iter_t){
+        .next = avl_iter_next,
+        .drop = avl_iter_drop,
+        .state = s,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator};
 }
 
 static bool avl_iter_rev_next(iter_t *it, void *out)
@@ -433,13 +507,21 @@ static bool avl_iter_rev_next(iter_t *it, void *out)
     avl_iter_state_t *s = it->state;
     while (s->current)
     {
-        if (!avl_stack_push(&s->stack, &s->stack_len, &s->stack_cap,
-                            s->allocator, s->current))
+        if (!avl_stack_push(
+                &s->stack,
+                &s->stack_len,
+                &s->stack_cap,
+                s->allocator,
+                s->current))
+        {
             return false; /* OOM: end iteration; drop frees the stack */
+        }
         s->current = s->current->right;
     }
     if (s->stack_len == 0)
+    {
         return false;
+    }
     avl_node_t *node = s->stack[--s->stack_len];
     memcpy(out, node_data(node), s->elem_size);
     s->current = node->left;
@@ -449,22 +531,28 @@ static bool avl_iter_rev_next(iter_t *it, void *out)
 iter_t avl_iter_rev(const avl_t *t)
 {
     if (!t)
+    {
         return (iter_t){0};
+    }
     avl_iter_state_t *s =
         mem_alloc(t->allocator, sizeof *s, _Alignof(avl_iter_state_t));
     if (!s)
+    {
         return (iter_t){0};
-    *s = (avl_iter_state_t){.stack = NULL,
-                        .stack_len = 0,
-                        .stack_cap = 0,
-                        .current = t->root,
-                        .elem_size = t->elem_size,
-                        .allocator = t->allocator};
-    return (iter_t){.next = avl_iter_rev_next,
-                  .drop = avl_iter_drop,
-                  .state = s,
-                  .elem_size = t->elem_size,
-                  .allocator = t->allocator};
+    }
+    *s = (avl_iter_state_t){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = t->root,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator};
+    return (iter_t){
+        .next = avl_iter_rev_next,
+        .drop = avl_iter_drop,
+        .state = s,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator};
 }
 
 /* ---- range iterator ---------------------------------------------------- */
@@ -486,13 +574,21 @@ static bool avl_range_iter_next(iter_t *it, void *out)
     avl_range_iter_state_t *s = it->state;
     while (s->current)
     {
-        if (!avl_stack_push(&s->stack, &s->stack_len, &s->stack_cap,
-                            s->allocator, s->current))
+        if (!avl_stack_push(
+                &s->stack,
+                &s->stack_len,
+                &s->stack_cap,
+                s->allocator,
+                s->current))
+        {
             return false; /* OOM: end iteration; drop frees the stack */
+        }
         s->current = s->current->left;
     }
     if (s->stack_len == 0)
+    {
         return false;
+    }
     avl_node_t *node = s->stack[--s->stack_len];
     void *data = node_data(node);
     if (s->hi && s->cmp(data, s->hi) > 0)
@@ -510,13 +606,18 @@ static void avl_range_iter_drop(iter_t *it)
 {
     avl_range_iter_state_t *s = it->state;
     if (s->stack)
+    {
         mem_free(it->allocator, s->stack, s->stack_cap * sizeof(avl_node_t *));
+    }
     if (s->hi)
+    {
         mem_free(it->allocator, s->hi, s->elem_size);
+    }
     mem_free(it->allocator, s, sizeof(avl_range_iter_state_t));
 }
 
-static void avl_push_lo(avl_range_iter_state_t *s, avl_node_t *node, const void *lo)
+static void avl_push_lo(
+    avl_range_iter_state_t *s, avl_node_t *node, const void *lo)
 {
     while (node)
     {
@@ -526,9 +627,15 @@ static void avl_push_lo(avl_range_iter_state_t *s, avl_node_t *node, const void 
         }
         else
         {
-            if (!avl_stack_push(&s->stack, &s->stack_len, &s->stack_cap,
-                                s->allocator, node))
+            if (!avl_stack_push(
+                    &s->stack,
+                    &s->stack_len,
+                    &s->stack_cap,
+                    s->allocator,
+                    node))
+            {
                 return; /* OOM: stop priming; iterator yields what it has */
+            }
             node = node->left;
         }
     }
@@ -537,11 +644,15 @@ static void avl_push_lo(avl_range_iter_state_t *s, avl_node_t *node, const void 
 iter_t avl_iter_range(const avl_t *t, const void *lo, const void *hi)
 {
     if (!t)
+    {
         return (iter_t){0};
+    }
     avl_range_iter_state_t *s =
         mem_alloc(t->allocator, sizeof *s, _Alignof(avl_range_iter_state_t));
     if (!s)
+    {
         return (iter_t){0};
+    }
     void *hi_copy = NULL;
     if (hi)
     {
@@ -553,21 +664,27 @@ iter_t avl_iter_range(const avl_t *t, const void *lo, const void *hi)
         }
         memcpy(hi_copy, hi, t->elem_size);
     }
-    *s = (avl_range_iter_state_t){.stack = NULL,
-                             .stack_len = 0,
-                             .stack_cap = 0,
-                             .current = NULL,
-                             .elem_size = t->elem_size,
-                             .allocator = t->allocator,
-                             .cmp = t->cmp,
-                             .hi = hi_copy};
+    *s = (avl_range_iter_state_t){
+        .stack = NULL,
+        .stack_len = 0,
+        .stack_cap = 0,
+        .current = NULL,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator,
+        .cmp = t->cmp,
+        .hi = hi_copy};
     if (lo)
+    {
         avl_push_lo(s, t->root, lo);
+    }
     else
+    {
         s->current = t->root;
-    return (iter_t){.next = avl_range_iter_next,
-                  .drop = avl_range_iter_drop,
-                  .state = s,
-                  .elem_size = t->elem_size,
-                  .allocator = t->allocator};
+    }
+    return (iter_t){
+        .next = avl_range_iter_next,
+        .drop = avl_range_iter_drop,
+        .state = s,
+        .elem_size = t->elem_size,
+        .allocator = t->allocator};
 }

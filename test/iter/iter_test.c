@@ -130,7 +130,9 @@ TEST(iter_collect_produces_correct_slice)
 
     ASSERT_EQ(4, result.len);
     for (size_t i = 0; i < result.len; i++)
+    {
         ASSERT_EQ(data[i], *(int *)slice_get(result, i));
+    }
 
     growing_arena_destroy(a);
 }
@@ -407,7 +409,9 @@ TEST(iter_sort_ascending)
         growing_arena_allocator(arena));
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
+    {
         ASSERT_EQ((int)(i + 1), *(int *)slice_get(result, i));
+    }
     growing_arena_destroy(arena);
 }
 
@@ -730,7 +734,9 @@ static void repeat_n(const void *elem, iter_t *out, void *ctx)
     /* Build a small vec_t of n copies and return an iter over it */
     vec_t *v = vec_create(sizeof(int), *alloc);
     for (int i = 0; i < n; i++)
+    {
         vec_push(v, &n);
+    }
     *out = vec_iter(v);
 }
 
@@ -1023,7 +1029,9 @@ static bool count_up(void *out, void *ctx)
 {
     int *n = (int *)ctx;
     if (*n >= 5)
+    {
         return false;
+    }
     *(int *)out = (*n)++;
     return true;
 }
@@ -1041,7 +1049,9 @@ TEST(iter_generate_basic)
         scratch_allocator(&sc));
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
+    {
         ASSERT_EQ((int)i, *(int *)slice_get(result, i));
+    }
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1092,7 +1102,9 @@ TEST(iter_range_basic)
         iter_range(0, 5, 1, scratch_allocator(&sc)), scratch_allocator(&sc));
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
+    {
         ASSERT_EQ((long long)i, *(long long *)slice_get(result, i));
+    }
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }

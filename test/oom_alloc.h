@@ -99,7 +99,9 @@ static void *oom_alloc(void *ctx, size_t size, size_t align)
 {
     oom_ctx_t *c = (oom_ctx_t *)ctx;
     if (c->remaining == 0)
+    {
         return NULL;
+    }
     c->remaining--;
     (void)align;
     return malloc(size);
@@ -110,7 +112,9 @@ static void *oom_realloc(
 {
     oom_ctx_t *c = (oom_ctx_t *)ctx;
     if (c->remaining == 0)
+    {
         return NULL;
+    }
     c->remaining--;
     (void)old_size;
     (void)align;

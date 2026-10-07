@@ -19,5 +19,5 @@ bool queue_is_empty(const queue_t *q);
 size_t queue_len(const queue_t *q);
 iter_t queue_iter(const queue_t *q);     /* front→back */
 iter_t queue_iter_rev(const queue_t *q); /* back→front */
-void queue_clear(queue_t *q);          /* empty the queue, keep buffer */
+void queue_clear(queue_t *q);            /* empty the queue, keep buffer */
 void queue_free(queue_t *q);

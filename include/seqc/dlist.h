@@ -23,5 +23,5 @@ bool dlist_is_empty(const dlist_t *l);
 size_t dlist_len(const dlist_t *l);
 iter_t dlist_iter(const dlist_t *l);     /* front→back */
 iter_t dlist_iter_rev(const dlist_t *l); /* back→front */
-void dlist_clear(dlist_t *l);          /* remove all nodes */
+void dlist_clear(dlist_t *l);            /* remove all nodes */
 void dlist_free(dlist_t *l);

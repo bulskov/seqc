@@ -22,7 +22,7 @@ seqc_status_t avl_remove(avl_t *t, const void *elem);
 void *avl_min(const avl_t *t); /* NULL if empty          */
 void *avl_max(const avl_t *t); /* NULL if empty          */
 size_t avl_len(const avl_t *t);
-int avl_height(const avl_t *t);    /* 0 if empty             */
+int avl_height(const avl_t *t);      /* 0 if empty             */
 iter_t avl_iter(const avl_t *t);     /* ascending, in-order    */
 iter_t avl_iter_rev(const avl_t *t); /* descending, in-order   */
 /* Ascending in-order, only elements where lo <= elem <= hi.

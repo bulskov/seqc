@@ -297,7 +297,9 @@ TEST(string_split_basic)
     iter_t it = string_split_substr(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
     while (it.next(&it, &parts[i]))
+    {
         i++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
@@ -347,9 +349,11 @@ TEST(string_split_null_string_yields_one_empty_token)
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
     string_t null_str = {NULL, 0};
-    /* The iterator is consumed after string_split_substr returns, so its yielded
-     * token must not point into string_split_substr's own stack frame. */
-    iter_t it = string_split_substr(null_str, STRING_LIT(","), scratch_allocator(&sc));
+    /* The iterator is consumed after string_split_substr returns, so its
+     * yielded token must not point into string_split_substr's own stack frame.
+     */
+    iter_t it =
+        string_split_substr(null_str, STRING_LIT(","), scratch_allocator(&sc));
     string_t token = {(char *)1, 999}; /* poison: must be overwritten */
     ASSERT_TRUE(it.next(&it, &token));
     ASSERT_EQ(0u, token.len);
@@ -390,7 +394,9 @@ TEST(string_split_any_charset)
     iter_t it = string_split_any(
         STRING_LIT("a,b;c"), STRING_LIT(",;"), scratch_allocator(&sc));
     while (it.next(&it, &parts[i]))
+    {
         i++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
@@ -414,7 +420,9 @@ TEST(string_split_any_keeps_empties_each_char_is_boundary)
     iter_t it = string_split_any(
         STRING_LIT("a, b"), STRING_LIT(", "), scratch_allocator(&sc));
     while (it.next(&it, &parts[i]))
+    {
         i++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
@@ -450,11 +458,15 @@ TEST(string_split_any_whitespace_tokenize_with_filter)
     /* skip-empty tokenisation = keep-empty split composed with iter_filter */
     iter_t it = iter_filter(
         string_split_any(
-            STRING_LIT("  the\tquick \nbrown  "), STRING_LIT(" \t\n"),
+            STRING_LIT("  the\tquick \nbrown  "),
+            STRING_LIT(" \t\n"),
             scratch_allocator(&sc)),
-        non_empty_str, NULL);
+        non_empty_str,
+        NULL);
     while (it.next(&it, &parts[i]))
+    {
         i++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("the")));
@@ -491,7 +503,8 @@ TEST(string_split_any_oom_returns_empty)
     iter_drop(&it);
 }
 
-/* --- hashmap_t with string_t keys ------------------------------------------- */
+/* --- hashmap_t with string_t keys -------------------------------------------
+ */
 
 TEST(string_hashmap_string_keys)
 {
@@ -528,7 +541,8 @@ TEST(string_hashmap_string_keys)
     growing_arena_destroy(a);
 }
 
-/* --- strbuf_append_int / strbuf_append_fmt ------------------------------------- */
+/* --- strbuf_append_int / strbuf_append_fmt
+ * ------------------------------------- */
 
 TEST(string_strbuf_append_int_positive)
 {
@@ -755,7 +769,8 @@ TEST(string_join_empty_separator)
     growing_arena_scratch_begin(&sc, a);
     iter_t it = string_split_substr(
         STRING_LIT("a,b,c"), STRING_LIT(","), scratch_allocator(&sc));
-    string_t result = string_join(it, STRING_LIT(""), growing_arena_allocator(a));
+    string_t result =
+        string_join(it, STRING_LIT(""), growing_arena_allocator(a));
     ASSERT_TRUE(string_equals(result, STRING_LIT("abc")));
     scratch_end(&sc);
     growing_arena_destroy(a);

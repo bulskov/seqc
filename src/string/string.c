@@ -27,20 +27,28 @@ static inline unsigned char ascii_upper(unsigned char c)
 string_t string_view_cstr(const char *s)
 {
     if (!s)
+    {
         return (string_t){NULL, 0};
+    }
     return (string_t){s, strlen(s)};
 }
 
 string_t string_from_cstr(const char *s, allocator_t allocator)
 {
     if (!s)
+    {
         return (string_t){NULL, 0};
+    }
     size_t len = strlen(s);
     if (len == 0)
+    {
         return (string_t){NULL, 0};
+    }
     char *buf = mem_alloc(allocator, len, 1);
     if (!buf)
+    {
         return (string_t){NULL, 0};
+    }
     memcpy(buf, s, len);
     return (string_t){buf, len};
 }
@@ -48,10 +56,14 @@ string_t string_from_cstr(const char *s, allocator_t allocator)
 string_t string_copy(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
+    {
         return (string_t){NULL, 0};
+    }
     char *buf = mem_alloc(allocator, s.len, 1);
     if (!buf)
+    {
         return (string_t){NULL, 0};
+    }
     memcpy(buf, s.ptr, s.len);
     return (string_t){buf, s.len};
 }
@@ -60,9 +72,13 @@ const char *string_to_cstr(string_t s, allocator_t allocator)
 {
     char *buf = mem_alloc(allocator, s.len + 1, 1);
     if (!buf)
+    {
         return NULL;
+    }
     if (s.ptr && s.len > 0)
+    {
         memcpy(buf, s.ptr, s.len);
+    }
     buf[s.len] = '\0';
     return buf;
 }
@@ -70,11 +86,17 @@ const char *string_to_cstr(string_t s, allocator_t allocator)
 const char *string_to_cstr_buf(string_t s, char *buf, size_t bufsize)
 {
     if (!buf || bufsize == 0)
+    {
         return NULL;
+    }
     if (s.len >= bufsize) /* need s.len bytes + a NUL; overflow-safe form */
+    {
         return NULL;
+    }
     if (s.ptr && s.len > 0)
+    {
         memcpy(buf, s.ptr, s.len);
+    }
     buf[s.len] = '\0';
     return buf;
 }
@@ -89,7 +111,9 @@ bool string_equals(string_t a, string_t b)
 bool string_equals_case_insensitive(string_t a, string_t b)
 {
     if (a.len != b.len)
+    {
         return false;
+    }
     for (size_t i = 0; i < a.len; i++)
     {
         if (ascii_lower((unsigned char)a.ptr[i])
@@ -106,7 +130,9 @@ int string_compare(string_t a, string_t b)
     size_t min = a.len < b.len ? a.len : b.len;
     int cmp = memcmp(a.ptr, b.ptr, min);
     if (cmp != 0)
+    {
         return cmp;
+    }
     return (a.len > b.len) - (a.len < b.len);
 }
 
@@ -130,14 +156,18 @@ int string_compare_case_insensitive(string_t a, string_t b)
 bool string_starts_with(string_t s, string_t prefix)
 {
     if (prefix.len > s.len)
+    {
         return false;
+    }
     return memcmp(s.ptr, prefix.ptr, prefix.len) == 0;
 }
 
 bool string_ends_with(string_t s, string_t suffix)
 {
     if (suffix.len > s.len)
+    {
         return false;
+    }
     return memcmp(s.ptr + s.len - suffix.len, suffix.ptr, suffix.len) == 0;
 }
 
@@ -168,13 +198,19 @@ size_t string_rfind_char(string_t s, char c)
 size_t string_find(string_t s, string_t needle)
 {
     if (needle.len == 0)
+    {
         return 0;
+    }
     if (needle.len > s.len)
+    {
         return STRING_NOT_FOUND;
+    }
     for (size_t i = 0; i <= s.len - needle.len; i++)
     {
         if (memcmp(s.ptr + i, needle.ptr, needle.len) == 0)
+        {
             return i;
+        }
     }
     return STRING_NOT_FOUND;
 }
@@ -189,9 +225,13 @@ bool string_contains(string_t s, string_t needle)
 string_t string_slice(string_t s, size_t start, size_t end)
 {
     if (!s.ptr || start >= s.len || end <= start)
+    {
         return (string_t){NULL, 0};
+    }
     if (end > s.len)
+    {
         end = s.len;
+    }
     return (string_t){s.ptr + start, end - start};
 }
 
@@ -208,7 +248,9 @@ string_t string_trim_left(string_t s)
 string_t string_trim_right(string_t s)
 {
     while (s.len > 0 && isspace((unsigned char)s.ptr[s.len - 1]))
+    {
         s.len--;
+    }
     return s;
 }
 
@@ -251,28 +293,36 @@ string_t string_replace(
 string_t string_to_uppercase(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
+    {
         return (string_t){NULL, 0};
+    }
     char *buf = mem_alloc(allocator, s.len, 1);
     if (!buf)
     {
         return (string_t){NULL, 0};
     }
     for (size_t i = 0; i < s.len; i++)
+    {
         buf[i] = (char)ascii_upper((unsigned char)s.ptr[i]);
+    }
     return (string_t){buf, s.len};
 }
 
 string_t string_to_lowercase(string_t s, allocator_t allocator)
 {
     if (!s.ptr || s.len == 0)
+    {
         return (string_t){NULL, 0};
+    }
     char *buf = mem_alloc(allocator, s.len, 1);
     if (!buf)
     {
         return (string_t){NULL, 0};
     }
     for (size_t i = 0; i < s.len; i++)
+    {
         buf[i] = (char)ascii_lower((unsigned char)s.ptr[i]);
+    }
     return (string_t){buf, s.len};
 }
 
@@ -288,7 +338,9 @@ strbuf_t *strbuf_create(allocator_t allocator)
 {
     strbuf_t *sb = mem_alloc(allocator, sizeof(strbuf_t), _Alignof(strbuf_t));
     if (!sb)
+    {
         return NULL;
+    }
     sb->chars = vec_create(sizeof(char), allocator);
     sb->allocator = allocator;
     return sb;
@@ -300,7 +352,9 @@ seqc_status_t strbuf_append(strbuf_t *sb, string_t s)
     {
         seqc_status_t st = vec_push(sb->chars, &s.ptr[i]);
         if (st != SEQC_OK)
+        {
             return st;
+        }
     }
     return SEQC_OK;
 }
@@ -331,7 +385,9 @@ seqc_status_t strbuf_append_int(strbuf_t *sb, long long value)
     char buf[32];
     int n = snprintf(buf, sizeof buf, "%lld", value);
     if (n > 0)
+    {
         return strbuf_append_cstr(sb, buf);
+    }
     return SEQC_OK;
 }
 
@@ -343,14 +399,18 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...)
     int n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
     if (n <= 0)
+    {
         return SEQC_OK;
+    }
     /* Second pass: write into a stack buffer (common case) or heap */
     char stack_buf[256];
     char *buf = (size_t)n + 1 <= sizeof stack_buf
                     ? stack_buf
                     : mem_alloc(sb->allocator, (size_t)n + 1, _Alignof(char));
     if (!buf)
+    {
         return SEQC_OOM;
+    }
     va_start(ap, fmt);
     vsnprintf(buf, (size_t)n + 1, fmt, ap);
     va_end(ap);
@@ -359,10 +419,14 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...)
     {
         st = strbuf_append_char(sb, buf[i]);
         if (st != SEQC_OK)
+        {
             break;
+        }
     }
     if (buf != stack_buf)
+    {
         mem_free(sb->allocator, buf, (size_t)n + 1);
+    }
     return st;
 }
 
@@ -375,7 +439,9 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator)
     while (it.next(&it, &token))
     {
         if (!first)
+        {
             strbuf_append(sb, sep);
+        }
         strbuf_append(sb, token);
         first = false;
     }
@@ -388,17 +454,23 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator)
 bool string_to_int(string_t s, long long *out)
 {
     if (!s.ptr || s.len == 0)
+    {
         return false;
+    }
     char buf[24]; /* enough for any long long: 19 digits + sign + NUL */
     if (s.len >= sizeof buf)
+    {
         return false;
+    }
     memcpy(buf, s.ptr, s.len);
     buf[s.len] = '\0';
     char *end;
     errno = 0;
     long long val = strtoll(buf, &end, 10);
     if (end == buf || *end != '\0' || errno == ERANGE)
+    {
         return false;
+    }
     *out = val;
     return true;
 }
@@ -406,17 +478,23 @@ bool string_to_int(string_t s, long long *out)
 bool string_to_double(string_t s, double *out)
 {
     if (!s.ptr || s.len == 0)
+    {
         return false;
+    }
     char buf[64];
     if (s.len >= sizeof buf)
+    {
         return false;
+    }
     memcpy(buf, s.ptr, s.len);
     buf[s.len] = '\0';
     char *end;
     errno = 0;
     double val = strtod(buf, &end);
     if (end == buf || *end != '\0' || errno == ERANGE)
+    {
         return false;
+    }
     *out = val;
     return true;
 }
@@ -449,9 +527,15 @@ typedef struct
 static size_t charset_find(string_t s, string_t set)
 {
     for (size_t i = 0; i < s.len; i++)
+    {
         for (size_t j = 0; j < set.len; j++)
+        {
             if (s.ptr[i] == set.ptr[j])
+            {
                 return i;
+            }
+        }
+    }
     return STRING_NOT_FOUND;
 }
 
@@ -459,7 +543,9 @@ static bool split_next(iter_t *it, void *out)
 {
     split_state_t *s = it->state;
     if (s->pos > s->src.len)
+    {
         return false;
+    }
 
     string_t remaining = {s->src.ptr + s->pos, s->src.len - s->pos};
 
@@ -508,7 +594,9 @@ static iter_t split_make(
     split_state_t *state =
         mem_alloc(allocator, sizeof(split_state_t), _Alignof(split_state_t));
     if (!state)
+    {
         return (iter_t){0};
+    }
     *state = (split_state_t){s, delim, 0, anychar};
     return (iter_t){
         .next = split_next,
@@ -554,10 +642,14 @@ size_t string_hash(const void *key, size_t key_size)
 {
     (void)key_size;
     if (!key)
+    {
         return 0;
+    }
     const string_t *s = (const string_t *)key;
     if (!s->ptr || s->len == 0)
+    {
         return 0;
+    }
     const uint8_t *data = (const uint8_t *)s->ptr;
     uint64_t hash = 14695981039346656037ULL;
     for (size_t i = 0; i < s->len; i++)
@@ -594,7 +686,9 @@ bool string_key_eq(const void *a, const void *b, size_t key_size)
 {
     (void)key_size;
     if (!a || !b)
+    {
         return false;
+    }
     return string_equals(*(const string_t *)a, *(const string_t *)b);
 }
 

@@ -1,9 +1,9 @@
 #include "seqc/ringbuf.h"
 
+#include "max_align.h"
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include "max_align.h"
 
 #define RINGBUF_INITIAL_CAP 8
 
@@ -33,12 +33,15 @@ static inline void *rb_ptr(const ringbuf_t *r, size_t slot)
 static seqc_status_t rb_grow(ringbuf_t *r)
 {
     if (r->cap > SIZE_MAX / 2)
+    {
         return SEQC_OOM;
+    }
     size_t new_cap = r->cap == 0 ? RINGBUF_INITIAL_CAP : r->cap * 2;
-    void *nd =
-        mem_alloc(r->allocator, new_cap * r->elem_size, SEQC_MAX_ALIGN);
+    void *nd = mem_alloc(r->allocator, new_cap * r->elem_size, SEQC_MAX_ALIGN);
     if (!nd)
+    {
         return SEQC_OOM;
+    }
 
     /* Linearise: copy front..end then wrap..head (if any) */
     if (r->len > 0)
@@ -62,7 +65,9 @@ static seqc_status_t rb_grow(ringbuf_t *r)
     }
 
     if (r->data)
+    {
         mem_free(r->allocator, r->data, r->cap * r->elem_size);
+    }
     r->data = nd;
     r->cap = new_cap;
     r->head = 0;
@@ -75,7 +80,9 @@ ringbuf_t *ringbuf_create(size_t elem_size, allocator_t allocator)
 {
     ringbuf_t *r = mem_alloc(allocator, sizeof(ringbuf_t), _Alignof(ringbuf_t));
     if (!r)
+    {
         return NULL;
+    }
     *r = (ringbuf_t){
         .data = NULL,
         .cap = 0,
@@ -90,12 +97,16 @@ ringbuf_t *ringbuf_create(size_t elem_size, allocator_t allocator)
 seqc_status_t ringbuf_push_back(ringbuf_t *r, const void *elem)
 {
     if (!r || !elem)
+    {
         return SEQC_INVALID;
+    }
     if (r->len == r->cap)
     {
         seqc_status_t st = rb_grow(r);
         if (st != SEQC_OK)
+        {
             return st;
+        }
     }
     size_t slot = rb_slot(r, r->len);
     memcpy(rb_ptr(r, slot), elem, r->elem_size);
@@ -106,12 +117,16 @@ seqc_status_t ringbuf_push_back(ringbuf_t *r, const void *elem)
 seqc_status_t ringbuf_push_front(ringbuf_t *r, const void *elem)
 {
     if (!r || !elem)
+    {
         return SEQC_INVALID;
+    }
     if (r->len == r->cap)
     {
         seqc_status_t st = rb_grow(r);
         if (st != SEQC_OK)
+        {
             return st;
+        }
     }
     /* move head back by one (wrapping) */
     r->head = (r->head + r->cap - 1) & (r->cap - 1);
@@ -123,9 +138,13 @@ seqc_status_t ringbuf_push_front(ringbuf_t *r, const void *elem)
 seqc_status_t ringbuf_pop_front(ringbuf_t *r, void *out)
 {
     if (!r || r->len == 0)
+    {
         return SEQC_NOT_FOUND;
+    }
     if (out)
+    {
         memcpy(out, rb_ptr(r, r->head), r->elem_size);
+    }
     r->head = (r->head + 1) & (r->cap - 1);
     r->len--;
     return SEQC_OK;
@@ -134,10 +153,14 @@ seqc_status_t ringbuf_pop_front(ringbuf_t *r, void *out)
 seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out)
 {
     if (!r || r->len == 0)
+    {
         return SEQC_NOT_FOUND;
+    }
     size_t slot = rb_slot(r, r->len - 1);
     if (out)
+    {
         memcpy(out, rb_ptr(r, slot), r->elem_size);
+    }
     r->len--;
     return SEQC_OK;
 }
@@ -145,9 +168,13 @@ seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out)
 seqc_status_t ringbuf_at(const ringbuf_t *r, size_t i, void *out)
 {
     if (!r || i >= r->len)
+    {
         return SEQC_NOT_FOUND;
+    }
     if (out)
+    {
         memcpy(out, rb_ptr(r, rb_slot(r, i)), r->elem_size);
+    }
     return SEQC_OK;
 }
 
@@ -169,7 +196,9 @@ bool ringbuf_is_empty(const ringbuf_t *r)
 void ringbuf_clear(ringbuf_t *r)
 {
     if (!r)
+    {
         return;
+    }
     r->len = 0;
     r->head = 0;
 }
@@ -177,9 +206,13 @@ void ringbuf_clear(ringbuf_t *r)
 void ringbuf_free(ringbuf_t *r)
 {
     if (!r)
+    {
         return;
+    }
     if (r->data)
+    {
         mem_free(r->allocator, r->data, r->cap * r->elem_size);
+    }
     allocator_t al = r->allocator;
     mem_free(al, r, sizeof(ringbuf_t));
 }
@@ -196,7 +229,9 @@ static bool ringbuf_iter_next(iter_t *it, void *out)
 {
     ringbuf_iter_state_t *st = it->state;
     if (st->pos >= st->r->len)
+    {
         return false;
+    }
     memcpy(out, rb_ptr(st->r, rb_slot(st->r, st->pos)), st->r->elem_size);
     st->pos++;
     return true;
@@ -206,7 +241,9 @@ static bool ringbuf_iter_rev_next(iter_t *it, void *out)
 {
     ringbuf_iter_state_t *st = it->state;
     if (st->pos == 0)
+    {
         return false;
+    }
     st->pos--;
     memcpy(out, rb_ptr(st->r, rb_slot(st->r, st->pos)), st->r->elem_size);
     return true;
@@ -220,11 +257,15 @@ static void ringbuf_iter_drop(iter_t *it)
 iter_t ringbuf_iter(const ringbuf_t *r)
 {
     if (!r)
+    {
         return (iter_t){0};
+    }
     ringbuf_iter_state_t *st =
         mem_alloc(r->allocator, sizeof *st, _Alignof(ringbuf_iter_state_t));
     if (!st)
+    {
         return (iter_t){0};
+    }
     *st = (ringbuf_iter_state_t){r, 0};
     return (iter_t){
         .next = ringbuf_iter_next,
@@ -238,11 +279,15 @@ iter_t ringbuf_iter(const ringbuf_t *r)
 iter_t ringbuf_iter_rev(const ringbuf_t *r)
 {
     if (!r)
+    {
         return (iter_t){0};
+    }
     ringbuf_iter_state_t *st =
         mem_alloc(r->allocator, sizeof *st, _Alignof(ringbuf_iter_state_t));
     if (!st)
+    {
         return (iter_t){0};
+    }
     *st = (ringbuf_iter_state_t){r, r->len}; /* starts past the last element */
     return (iter_t){
         .next = ringbuf_iter_rev_next,

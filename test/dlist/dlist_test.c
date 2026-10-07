@@ -10,7 +10,9 @@
 
 TEST(dlist_is_empty_on_create)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     ASSERT_TRUE(dlist_is_empty(l));
     ASSERT_EQ(0, dlist_len(l));
@@ -19,16 +21,22 @@ TEST(dlist_is_empty_on_create)
 
 TEST(dlist_push_back_iter_forward)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &vals[i]);
+    }
     iter_t it = dlist_iter(l);
     int got[3];
     size_t n = 0;
     while (it.next(&it, &got[n]))
+    {
         n++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(1, got[0]);
@@ -39,16 +47,22 @@ TEST(dlist_push_back_iter_forward)
 
 TEST(dlist_iter_rev_yields_reverse_order)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &vals[i]);
+    }
     iter_t it = dlist_iter_rev(l);
     int got[3];
     size_t n = 0;
     while (it.next(&it, &got[n]))
+    {
         n++;
+    }
     iter_drop(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(3, got[0]);
@@ -59,7 +73,9 @@ TEST(dlist_iter_rev_yields_reverse_order)
 
 TEST(dlist_push_front_prepends)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int two = 2, one = 1;
     dlist_push_back(l, &two);
@@ -71,11 +87,15 @@ TEST(dlist_push_front_prepends)
 
 TEST(dlist_pop_front_removes_head)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {10, 20, 30};
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &vals[i]);
+    }
     int out;
     ASSERT_EQ(SEQC_OK, dlist_pop_front(l, &out));
     ASSERT_EQ(10, out);
@@ -86,11 +106,15 @@ TEST(dlist_pop_front_removes_head)
 
 TEST(dlist_pop_back_removes_tail)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {10, 20, 30};
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &vals[i]);
+    }
     int out;
     ASSERT_EQ(SEQC_OK, dlist_pop_back(l, &out));
     ASSERT_EQ(30, out);
@@ -101,7 +125,9 @@ TEST(dlist_pop_back_removes_tail)
 
 TEST(dlist_pop_until_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 1;
     dlist_push_back(l, &v);
@@ -116,7 +142,9 @@ TEST(dlist_pop_until_empty)
 
 TEST(dlist_front_back_null_if_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 64);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 64);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     ASSERT_NULL(dlist_front(l));
     ASSERT_NULL(dlist_back(l));
@@ -125,7 +153,9 @@ TEST(dlist_front_back_null_if_empty)
 
 TEST(dlist_single_element_front_equals_back)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 42;
     dlist_push_back(l, &v);
@@ -137,11 +167,15 @@ TEST(dlist_single_element_front_equals_back)
 TEST(dlist_prev_links_are_correct)
 {
     /* verify backward linkage by popping from the back repeatedly */
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
+    {
         dlist_push_back(l, &vals[i]);
+    }
     for (int i = 4; i >= 0; i--)
     {
         int out;
@@ -154,7 +188,9 @@ TEST(dlist_prev_links_are_correct)
 
 TEST(dlist_free_does_not_crash)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 1;
     dlist_push_back(l, &v);
@@ -168,10 +204,14 @@ TEST(dlist_free_does_not_crash)
 
 TEST(dlist_clear_empties_list)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 4; i++)
+    {
         dlist_push_back(l, &i);
+    }
     dlist_clear(l);
     ASSERT_TRUE(dlist_is_empty(l));
     ASSERT_EQ(0, dlist_len(l));
@@ -180,10 +220,14 @@ TEST(dlist_clear_empties_list)
 
 TEST(dlist_clear_allows_reuse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &i);
+    }
     dlist_clear(l);
     int x = 99;
     dlist_push_back(l, &x);
@@ -201,7 +245,9 @@ TEST(dlist_iter_oom_returns_empty)
     dlist_t *l = dlist_create(sizeof(int), al);
     ASSERT_NOT_NULL(l);
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &i);
+    }
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = dlist_iter(l);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
@@ -216,7 +262,9 @@ TEST(dlist_iter_rev_oom_returns_empty)
     dlist_t *l = dlist_create(sizeof(int), al);
     ASSERT_NOT_NULL(l);
     for (int i = 0; i < 3; i++)
+    {
         dlist_push_back(l, &i);
+    }
     ctx.remaining = 0;
     iter_t it = dlist_iter_rev(l);
     ASSERT_NULL(it.next);

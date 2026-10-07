@@ -352,7 +352,9 @@ TEST(hashmap_delete_middle_of_cluster)
     for (int i = 0; i < 10; i++)
     {
         if (i == mid)
+        {
             continue;
+        }
         int got;
         ASSERT_EQ(SEQC_OK, hashmap_get(m, &i, &got));
         ASSERT_EQ(i, got);
@@ -382,7 +384,9 @@ TEST(hashmap_clear_empties_map)
     hashmap_clear(m);
     ASSERT_EQ(0, hashmap_len(m));
     for (int i = 0; i < 5; i++)
+    {
         ASSERT_NE(SEQC_OK, hashmap_get(m, &i, NULL));
+    }
     growing_arena_destroy(a);
 }
 
@@ -435,11 +439,15 @@ TEST(hashmap_iter_rev_visits_same_entries_in_reverse)
     size_t nf = 0, nr = 0;
     iter_t it_fwd = hashmap_iter(m);
     while (it_fwd.next(&it_fwd, &fwd[nf]))
+    {
         nf++;
+    }
     iter_drop(&it_fwd);
     iter_t it_rev = hashmap_iter_rev(m);
     while (it_rev.next(&it_rev, &rev[nr]))
+    {
         nr++;
+    }
     iter_drop(&it_rev);
     ASSERT_EQ(5, nf);
     ASSERT_EQ(5, nr);
@@ -634,7 +642,9 @@ TEST(hashmap_collision_delete_probe_and_backward_shift)
     for (int i = 1; i <= 4; i++)
     {
         if (i == 3)
+        {
             continue;
+        }
         int got;
         ASSERT_EQ(SEQC_OK, hashmap_get(m, &i, &got));
         ASSERT_EQ(i * 10, got);
@@ -843,7 +853,9 @@ TEST(hashmap_iter_oom_returns_empty)
         hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     ASSERT_NOT_NULL(m);
     for (int i = 0; i < 3; i++)
+    {
         hashmap_set(m, &i, &i);
+    }
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = hashmap_iter(m);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
@@ -859,7 +871,9 @@ TEST(hashmap_iter_rev_oom_returns_empty)
         hashmap_create(sizeof(int), sizeof(int), hash_fnv1a, hash_eq_bytes, al);
     ASSERT_NOT_NULL(m);
     for (int i = 0; i < 3; i++)
+    {
         hashmap_set(m, &i, &i);
+    }
     ctx.remaining = 0;
     iter_t it = hashmap_iter_rev(m);
     ASSERT_NULL(it.next);

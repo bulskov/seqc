@@ -31,7 +31,7 @@ struct iter_t
 {
     bool (*next)(
         iter_t *it,
-        void *out);         /* writes elem_size bytes; returns true or false */
+        void *out); /* writes elem_size bytes; returns true or false */
     void (*drop)(iter_t *it); /* frees internal state; NULL is valid     */
     bool (*peek)(iter_t *it, void *out); /* NULL if not peekable            */
     void *state;
@@ -43,7 +43,9 @@ struct iter_t
 static inline void iter_drop(iter_t *it)
 {
     if (it && it->drop)
+    {
         it->drop(it);
+    }
 }
 
 /* Look at the next element without consuming it.
@@ -145,7 +147,8 @@ size_t iter_count(iter_t it);
 void iter_foreach(iter_t it, visitor_fn visit, void *ctx);
 void iter_reduce(iter_t it, void *acc, combine_fn combine, void *ctx);
 
-/* Collects into `allocator` and sorts in-place using cmp; returns sorted slice_t
+/* Collects into `allocator` and sorts in-place using cmp; returns sorted
+ * slice_t
  */
 slice_t iter_sort(iter_t it, compare_fn cmp, allocator_t allocator);
 

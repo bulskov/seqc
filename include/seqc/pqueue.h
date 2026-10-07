@@ -15,7 +15,8 @@
 
 typedef struct pqueue_t pqueue_t;
 
-pqueue_t *pqueue_create(size_t elem_size, compare_fn cmp, allocator_t allocator);
+pqueue_t *pqueue_create(
+    size_t elem_size, compare_fn cmp, allocator_t allocator);
 
 /* Build a heap from a copy of v's elements in O(n) using Floyd's algorithm.
  * The vec_t's element size must match elem_size; behaviour is undefined
@@ -41,7 +42,7 @@ bool pqueue_is_empty(const pqueue_t *q);
 iter_t pqueue_iter(
     const pqueue_t *q); /* heap-storage order (unspecified priority order) */
 iter_t pqueue_iter_rev(const pqueue_t *q); /* reverse heap-storage order */
-void pqueue_clear(pqueue_t *q);          /* empty the queue, keep buffer */
+void pqueue_clear(pqueue_t *q);            /* empty the queue, keep buffer */
 void pqueue_free(pqueue_t *q);
 
 /* Pop all elements in priority order into an allocator-owned slice_t.

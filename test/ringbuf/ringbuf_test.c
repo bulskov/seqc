@@ -8,7 +8,9 @@
 
 TEST(ringbuf_create_is_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     ASSERT_TRUE(ringbuf_is_empty(r));
     ASSERT_EQ(0, ringbuf_len(r));
@@ -19,10 +21,14 @@ TEST(ringbuf_create_is_empty)
 
 TEST(ringbuf_push_back_pop_front_fifo_order)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
+    {
         ASSERT_EQ(SEQC_OK, ringbuf_push_back(r, &i));
+    }
     ASSERT_EQ(5, ringbuf_len(r));
     for (int i = 0; i < 5; i++)
     {
@@ -38,11 +44,15 @@ TEST(ringbuf_push_back_pop_front_fifo_order)
 
 TEST(ringbuf_push_front_pop_back_order)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     /* push 0,1,2 to front => logical order [2,1,0] */
     for (int i = 0; i < 3; i++)
+    {
         ringbuf_push_front(r, &i);
+    }
     int out;
     ASSERT_EQ(SEQC_OK, ringbuf_pop_back(r, &out));
     ASSERT_EQ(0, out);
@@ -58,7 +68,9 @@ TEST(ringbuf_push_front_pop_back_order)
 
 TEST(ringbuf_deque_interleaved)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     int v;
 
@@ -79,7 +91,9 @@ TEST(ringbuf_deque_interleaved)
 
 TEST(ringbuf_pop_empty_returns_not_found)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     int out;
     ASSERT_NE(SEQC_OK, ringbuf_pop_front(r, &out));
@@ -91,7 +105,9 @@ TEST(ringbuf_pop_empty_returns_not_found)
 
 TEST(ringbuf_pop_null_out_discards)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     int v = 7;
     ringbuf_push_back(r, &v);
@@ -104,11 +120,16 @@ TEST(ringbuf_pop_null_out_discards)
 
 TEST(ringbuf_at_returns_correct_element)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
+    {
         ringbuf_push_back(r, &i);
-    for (int i = 0; i < 5; i++) {
+    }
+    for (int i = 0; i < 5; i++)
+    {
         int got;
         ASSERT_EQ(SEQC_OK, ringbuf_at(r, (size_t)i, &got));
         ASSERT_EQ(i, got);
@@ -118,7 +139,9 @@ TEST(ringbuf_at_returns_correct_element)
 
 TEST(ringbuf_at_out_of_bounds_returns_null)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     ASSERT_EQ(SEQC_NOT_FOUND, ringbuf_at(r, 0, NULL));
     growing_arena_destroy(a);
@@ -128,12 +151,16 @@ TEST(ringbuf_at_out_of_bounds_returns_null)
 
 TEST(ringbuf_wrap_around_correctness)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 4096);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 4096);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     /* Push 20 elements, pop 10 from front, push 10 more
      * to force the head to wrap around the internal buffer */
     for (int i = 0; i < 20; i++)
+    {
         ringbuf_push_back(r, &i);
+    }
     for (int i = 0; i < 10; i++)
     {
         int out;
@@ -141,7 +168,9 @@ TEST(ringbuf_wrap_around_correctness)
         ASSERT_EQ(i, out);
     }
     for (int i = 20; i < 30; i++)
+    {
         ringbuf_push_back(r, &i);
+    }
     ASSERT_EQ(20, ringbuf_len(r));
     for (int i = 10; i < 30; i++)
     {
@@ -157,10 +186,14 @@ TEST(ringbuf_wrap_around_correctness)
 
 TEST(ringbuf_clear_allows_reuse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 512);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 512);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
+    {
         ringbuf_push_back(r, &i);
+    }
     ringbuf_clear(r);
     ASSERT_TRUE(ringbuf_is_empty(r));
     int v = 99;
@@ -176,10 +209,14 @@ TEST(ringbuf_clear_allows_reuse)
 
 TEST(ringbuf_iter_forward)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
+    {
         ringbuf_push_back(r, &i);
+    }
     iter_t it = ringbuf_iter(r);
     int val, expected = 0;
     while (it.next(&it, &val))
@@ -196,10 +233,14 @@ TEST(ringbuf_iter_forward)
 
 TEST(ringbuf_iter_reverse)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     for (int i = 0; i < 5; i++)
+    {
         ringbuf_push_back(r, &i);
+    }
     iter_t it = ringbuf_iter_rev(r);
     int val, expected = 4;
     while (it.next(&it, &val))
@@ -216,18 +257,26 @@ TEST(ringbuf_iter_reverse)
 
 TEST(ringbuf_push_front_wrap)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 1024);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 1024);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     /* Push 0..4 to back then prepend 5..9 in reverse order to front.
      * push_front(9), push_front(8), ..., push_front(5)
      * => logical order: [5,6,7,8,9,0,1,2,3,4] */
     for (int i = 0; i < 5; i++)
+    {
         ringbuf_push_back(r, &i); /* [0,1,2,3,4] */
+    }
     for (int i = 9; i >= 5; i--)
-        ringbuf_push_front(r, &i); /* prepend 9,8,7,6,5 → [5,6,7,8,9,0,1,2,3,4] */
+    {
+        ringbuf_push_front(
+            r, &i); /* prepend 9,8,7,6,5 → [5,6,7,8,9,0,1,2,3,4] */
+    }
     ASSERT_EQ(10, ringbuf_len(r));
     int expected[] = {5, 6, 7, 8, 9, 0, 1, 2, 3, 4};
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         int got;
         ASSERT_EQ(SEQC_OK, ringbuf_at(r, (size_t)i, &got));
         ASSERT_EQ(expected[i], got);
@@ -239,7 +288,9 @@ TEST(ringbuf_push_front_wrap)
 
 TEST(ringbuf_iter_empty)
 {
-    growing_arena_t _a_storage; growing_arena_t *a = &_a_storage; growing_arena_init(a, 256);
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
     iter_t it = ringbuf_iter(r);
     int v;
