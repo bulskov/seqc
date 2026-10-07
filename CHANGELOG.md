@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-07
+
+### Added
+
+- `string_find_char` / `string_rfind_char`: byte offset of the first / last
+  occurrence of a byte, or `STRING_NOT_FOUND`. Exactly `s.len` bytes are
+  searched.
+- `string_split_next`: an allocation-free tokenizer over a `string_t` cursor.
+  Empty pieces are kept, as in `string_split_substr`.
+- `string_compare_case_insensitive`: ASCII-folded ordering (to lower case, as
+  `strcasecmp`), consistent with `string_equals_case_insensitive`.
+- `string_hash_case_insensitive` / `string_key_eq_case_insensitive`: a
+  `hash_fn` / `eq_fn` pair for hashmaps and sets with case-insensitive
+  `string_t` keys.
+
+### Fixed
+
+- Case folding no longer depends on the C locale. `string_equals_case_insensitive`,
+  `string_to_lowercase` and `string_to_uppercase` used `tolower` / `toupper`,
+  which in a single-byte locale (e.g. ISO-8859-1) also fold bytes above 127 —
+  bytes of UTF-8 sequences — so `string_to_lowercase` could corrupt UTF-8 text.
+  Only ASCII letters are folded now.
+- `string_to_lowercase` / `string_to_uppercase` return `{NULL, 0}` when the
+  allocation fails instead of writing through a NULL pointer.
+
+### Changed
+
+- `.clang-format`: `InsertBraces: true` — braces around every `if` / `else` /
+  `for` / `while` body.
+
 ## [2.2.3] - 2026-10-07
 
 ### Changed
