@@ -179,9 +179,10 @@ Return `true` if `a` and `b` have the same length and byte content.
 bool string_equals_case_insensitive(string_t a, string_t b);
 ```
 
-Like `string_equals`, but ASCII letters compare without regard to case
-(byte-wise `tolower` in the current C locale). Strings of different length are
-never equal; non-letter bytes must match exactly.
+Like `string_equals`, but ASCII letters compare without regard to case. Only
+`A`–`Z` / `a`–`z` are folded, independent of the C locale — bytes of UTF-8
+sequences are never touched, so `å` and `Å` stay different. Strings of
+different length are never equal; non-letter bytes must match exactly.
 
 ### `string_compare`
 
@@ -198,6 +199,22 @@ Wrap it:
 static int string_cmp(const void *a, const void *b) {
     return string_compare(*(const string_t *)a, *(const string_t *)b);
 }
+```
+
+### `string_compare_case_insensitive`
+
+```c
+int string_compare_case_insensitive(string_t a, string_t b);
+```
+
+Like `string_compare`, but ASCII letters are folded to lower case first — as
+`strcasecmp` does, so `"B"` sorts after `"_"`. Returns 0 exactly when
+`string_equals_case_insensitive` is true. ASCII only, independent of the C
+locale.
+
+```c
+string_compare_case_insensitive(STRING_LIT("ReadMe.MD"), STRING_LIT("readme.md")); // 0
+string_compare_case_insensitive(STRING_LIT("a"), STRING_LIT("B"));                 // < 0
 ```
 
 ---
@@ -231,6 +248,24 @@ size_t pos = string_find(STRING_LIT("hello world"), STRING_LIT("world"));
 // pos == 6
 ```
 
+### `string_find_char` / `string_rfind_char`
+
+```c
+size_t string_find_char(string_t s, char c);
+size_t string_rfind_char(string_t s, char c);
+```
+
+Return the byte offset of the first / last byte equal to `c`, or
+`STRING_NOT_FOUND`. Exactly `s.len` bytes are searched: an embedded NUL is an
+ordinary byte, and nothing past `len` is read.
+
+```c
+string_t p = STRING_LIT("/home/me/notes.txt");
+size_t slash = string_rfind_char(p, '/');          // 8
+string_t name = string_slice(p, slash + 1, p.len); // "notes.txt"
+size_t dot = string_rfind_char(name, '.');         // 5
+```
+
 ---
 
 ## Transformation
@@ -262,7 +297,9 @@ string_t string_to_lowercase(string_t s, allocator_t allocator);
 ```
 
 Return a new arena-allocated `string_t` with every ASCII letter converted to
-upper or lower case. Non-letter bytes are copied unchanged.
+upper or lower case. All other bytes — including UTF-8 sequences — are copied
+unchanged, independent of the C locale. Returns `{NULL, 0}` if the allocation
+fails.
 
 ```c
 Arena  *a = arena_create(256);
@@ -350,6 +387,31 @@ allocation.
 ```c
 string_t t = string_trim(STRING_LIT("  hello  "));
 // t.ptr points into the original buffer
+```
+
+### `string_split_next`
+
+```c
+bool string_split_next(string_t *rest, char sep, string_t *token);
+```
+
+An allocation-free tokenizer: splits `*rest` at the first byte equal to `sep`,
+writes the piece before it to `*token` (a view), advances `*rest` past the
+separator and returns `true`. Empty pieces are kept, as in
+[`string_split_substr`](#string_split_substr): `"a//b/"` gives `"a"`, `""`,
+`"b"`, `""`. After the last piece `*rest` becomes `{NULL, 0}` and the next call
+returns `false`; `""` gives one empty piece, `{NULL, 0}` gives none.
+
+Use it instead of the `iter_t` splitters when you do not want an allocator — the
+whole state is the `rest` variable on your stack.
+
+```c
+string_t rest = STRING_LIT("/usr//lib/"), part;
+while (string_split_next(&rest, '/', &part)) {
+    if (part.len == 0)
+        continue;            // skip the empty pieces from "/", "//" and "/"
+    // part: "usr", then "lib"
+}
 ```
 
 ---
@@ -453,6 +515,24 @@ hashmap_t *m = hashmap_create(sizeof(string_t), sizeof(int),
 string_t k = STRING_LIT("count");
 int    v = 7;
 hashmap_set(m, &k, &v);
+```
+
+### Case-insensitive keys
+
+```c
+size_t string_hash_case_insensitive(const void *key, size_t key_size);
+bool   string_key_eq_case_insensitive(const void *a, const void *b, size_t key_size);
+```
+
+The same, with ASCII letters folded (as `string_equals_case_insensitive`):
+`"Program Files"` and `"PROGRAM FILES"` are one key. Always use the two
+together — equal keys must hash equal.
+
+```c
+hashmap_t *m = hashmap_create(sizeof(string_t), sizeof(int),
+                             string_hash_case_insensitive,
+                             string_key_eq_case_insensitive,
+                             arena_allocator(a));
 ```
 
 ---
