@@ -56,6 +56,12 @@ bool string_equals(string_t a, string_t b);
 bool string_equals_case_insensitive(string_t a, string_t b);
 int string_compare(string_t a, string_t b); /* <0, 0, >0           */
 
+/* Like string_compare, but ASCII letters are folded to lower case first, so
+ * "B" sorts after "_" (as strcasecmp does).  Other bytes, including UTF-8,
+ * compare unchanged.  Returns 0 exactly when string_equals_case_insensitive
+ * is true. */
+int string_compare_case_insensitive(string_t a, string_t b);
+
 /* --- Query -------------------------------------------------------------- */
 
 bool string_starts_with(string_t s, string_t prefix);
@@ -63,6 +69,12 @@ bool string_ends_with(string_t s, string_t suffix);
 bool string_contains(string_t s, string_t needle);
 size_t string_find(
     string_t s, string_t needle); /* STRING_NOT_FOUND if absent */
+
+/* Position of the first / last byte equal to c, or STRING_NOT_FOUND.
+ * Searches exactly s.len bytes: embedded NULs are ordinary bytes, and
+ * nothing past s.len is read. */
+size_t string_find_char(string_t s, char c);
+size_t string_rfind_char(string_t s, char c);
 
 /* --- Transformation ----------------------------------------------------- */
 
@@ -98,6 +110,19 @@ string_t string_trim(string_t s);
 string_t string_trim_left(string_t s);
 string_t string_trim_right(string_t s);
 
+/* Allocation-free tokenizer: splits *rest at the first byte equal to sep.
+ * Writes the piece before it to *token (a view), advances *rest past the
+ * separator, and returns true.  Empty pieces are kept, as in
+ * string_split_substr: "a//b/" gives "a", "", "b", "".  After the last
+ * piece *rest becomes {NULL, 0} and the next call returns false; "" gives
+ * one empty piece, {NULL, 0} gives none.
+ *
+ *     string_t rest = path, part;
+ *     while (string_split_next(&rest, '/', &part))
+ *         ...
+ */
+bool string_split_next(string_t *rest, char sep, string_t *token);
+
 /* --- Builder ------------------------------------------------------------ */
 
 typedef struct strbuf_t strbuf_t;
@@ -118,6 +143,13 @@ size_t string_hash(const void *key, size_t key_size);
 
 /* Use as eq_fn when the hashmap key type is string_t */
 bool string_key_eq(const void *a, const void *b, size_t key_size);
+
+/* The case-insensitive pair (ASCII letters folded, as
+ * string_equals_case_insensitive): "README.md" and "readme.MD" are the same
+ * key.  Use both together — equal keys must hash equal. */
+size_t string_hash_case_insensitive(const void *key, size_t key_size);
+bool string_key_eq_case_insensitive(
+    const void *a, const void *b, size_t key_size);
 
 /* --- iter_t sources ------------------------------------------------------- */
 

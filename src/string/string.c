@@ -8,6 +8,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* ASCII-only lower case.  Unlike tolower, independent of the C locale, so
+ * bytes of UTF-8 sequences are never touched. */
+static inline unsigned char ascii_lower(unsigned char c)
+{
+    return c >= 'A' && c <= 'Z' ? (unsigned char)(c + ('a' - 'A')) : c;
+}
+
+/* ASCII-only upper case.  Unlike toupper, independent of the C locale, so
+ * bytes of UTF-8 sequences are never touched. */
+static inline unsigned char ascii_upper(unsigned char c)
+{
+    return c >= 'a' && c <= 'z' ? (unsigned char)(c - ('a' - 'A')) : c;
+}
+
 /* --- Construction ------------------------------------------------------- */
 
 string_t string_view_cstr(const char *s)
@@ -78,9 +92,11 @@ bool string_equals_case_insensitive(string_t a, string_t b)
         return false;
     for (size_t i = 0; i < a.len; i++)
     {
-        if (tolower((unsigned char)a.ptr[i])
-            != tolower((unsigned char)b.ptr[i]))
+        if (ascii_lower((unsigned char)a.ptr[i])
+            != ascii_lower((unsigned char)b.ptr[i]))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -91,6 +107,21 @@ int string_compare(string_t a, string_t b)
     int cmp = memcmp(a.ptr, b.ptr, min);
     if (cmp != 0)
         return cmp;
+    return (a.len > b.len) - (a.len < b.len);
+}
+
+int string_compare_case_insensitive(string_t a, string_t b)
+{
+    size_t min = a.len < b.len ? a.len : b.len;
+    for (size_t i = 0; i < min; i++)
+    {
+        int c = ascii_lower((unsigned char)a.ptr[i])
+                - ascii_lower((unsigned char)b.ptr[i]);
+        if (c != 0)
+        {
+            return c;
+        }
+    }
     return (a.len > b.len) - (a.len < b.len);
 }
 
@@ -108,6 +139,30 @@ bool string_ends_with(string_t s, string_t suffix)
     if (suffix.len > s.len)
         return false;
     return memcmp(s.ptr + s.len - suffix.len, suffix.ptr, suffix.len) == 0;
+}
+
+size_t string_find_char(string_t s, char c)
+{
+    for (size_t i = 0; i < s.len; i++)
+    {
+        if (s.ptr[i] == c)
+        {
+            return i;
+        }
+    }
+    return STRING_NOT_FOUND;
+}
+
+size_t string_rfind_char(string_t s, char c)
+{
+    for (size_t i = s.len; i > 0; i--)
+    {
+        if (s.ptr[i - 1] == c)
+        {
+            return i - 1;
+        }
+    }
+    return STRING_NOT_FOUND;
 }
 
 size_t string_find(string_t s, string_t needle)
@@ -198,8 +253,12 @@ string_t string_to_uppercase(string_t s, allocator_t allocator)
     if (!s.ptr || s.len == 0)
         return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
+    if (!buf)
+    {
+        return (string_t){NULL, 0};
+    }
     for (size_t i = 0; i < s.len; i++)
-        buf[i] = (char)toupper((unsigned char)s.ptr[i]);
+        buf[i] = (char)ascii_upper((unsigned char)s.ptr[i]);
     return (string_t){buf, s.len};
 }
 
@@ -208,8 +267,12 @@ string_t string_to_lowercase(string_t s, allocator_t allocator)
     if (!s.ptr || s.len == 0)
         return (string_t){NULL, 0};
     char *buf = mem_alloc(allocator, s.len, 1);
+    if (!buf)
+    {
+        return (string_t){NULL, 0};
+    }
     for (size_t i = 0; i < s.len; i++)
-        buf[i] = (char)tolower((unsigned char)s.ptr[i]);
+        buf[i] = (char)ascii_lower((unsigned char)s.ptr[i]);
     return (string_t){buf, s.len};
 }
 
@@ -447,11 +510,12 @@ static iter_t split_make(
     if (!state)
         return (iter_t){0};
     *state = (split_state_t){s, delim, 0, anychar};
-    return (iter_t){.next = split_next,
-                    .drop = split_drop,
-                    .state = state,
-                    .elem_size = sizeof(string_t),
-                    .allocator = allocator};
+    return (iter_t){
+        .next = split_next,
+        .drop = split_drop,
+        .state = state,
+        .elem_size = sizeof(string_t),
+        .allocator = allocator};
 }
 
 iter_t string_split_substr(string_t s, string_t delim, allocator_t allocator)
@@ -462,6 +526,26 @@ iter_t string_split_substr(string_t s, string_t delim, allocator_t allocator)
 iter_t string_split_any(string_t s, string_t set, allocator_t allocator)
 {
     return split_make(s, set, true, allocator);
+}
+
+bool string_split_next(string_t *rest, char sep, string_t *token)
+{
+    if (!rest || !token || !rest->ptr)
+    {
+        return false; /* {NULL, 0}: nothing (more) */
+    }
+    size_t i = string_find_char(*rest, sep);
+    if (i == STRING_NOT_FOUND)
+    {
+        *token = *rest; /* the last piece, possibly ""   */
+        *rest = (string_t){NULL, 0};
+    }
+    else
+    {
+        *token = (string_t){rest->ptr, i};
+        *rest = (string_t){rest->ptr + i + 1, rest->len - i - 1};
+    }
+    return true;
 }
 
 /* --- hashmap_t helpers ---------------------------------------------------- */
@@ -484,10 +568,44 @@ size_t string_hash(const void *key, size_t key_size)
     return (size_t)hash;
 }
 
+size_t string_hash_case_insensitive(const void *key, size_t key_size)
+{
+    (void)key_size;
+    if (!key)
+    {
+        return 0;
+    }
+    const string_t *s = (const string_t *)key;
+    if (!s->ptr || s->len == 0)
+    {
+        return 0;
+    }
+    const uint8_t *data = (const uint8_t *)s->ptr;
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < s->len; i++)
+    {
+        hash ^= (uint64_t)ascii_lower(data[i]);
+        hash *= 1099511628211ULL;
+    }
+    return (size_t)hash;
+}
+
 bool string_key_eq(const void *a, const void *b, size_t key_size)
 {
     (void)key_size;
     if (!a || !b)
         return false;
     return string_equals(*(const string_t *)a, *(const string_t *)b);
+}
+
+bool string_key_eq_case_insensitive(
+    const void *a, const void *b, size_t key_size)
+{
+    (void)key_size;
+    if (!a || !b)
+    {
+        return false;
+    }
+    return string_equals_case_insensitive(
+        *(const string_t *)a, *(const string_t *)b);
 }
