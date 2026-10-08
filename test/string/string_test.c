@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "arena/debug_allocator.h"
 #include "arena/growing_arena.h"
 #include "arena/scratch.h"
 #include "seqc/hashmap.h"
@@ -235,6 +236,86 @@ TEST(string_builder_len_tracks_appends)
     ASSERT_EQ(8u, strbuf_len(sb));
     ASSERT_EQ(strbuf_finish(sb).len, strbuf_len(sb));
     growing_arena_destroy(a);
+}
+
+TEST(string_builder_clear_empties_it)
+{
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
+    strbuf_append(sb, STRING_LIT("hello"));
+    strbuf_clear(sb);
+    ASSERT_EQ(0u, strbuf_len(sb));
+    ASSERT_EQ(0u, strbuf_finish(sb).len);
+    growing_arena_destroy(a);
+}
+
+TEST(string_builder_is_reusable_after_clear)
+{
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
+    strbuf_append(sb, STRING_LIT("first"));
+    strbuf_clear(sb);
+    strbuf_append(sb, STRING_LIT("second"));
+    ASSERT_TRUE(string_equals(strbuf_finish(sb), STRING_LIT("second")));
+    growing_arena_destroy(a);
+}
+
+/* Clear keeps the buffer: building the same length again allocates
+ * nothing. */
+TEST(string_builder_clear_keeps_capacity)
+{
+    growing_arena_t arena;
+    growing_arena_init(&arena, 4096);
+    debug_allocator_t dbg;
+    debug_allocator_init(&dbg, growing_arena_allocator(&arena));
+    strbuf_t *sb = strbuf_create(debug_allocator_allocator(&dbg));
+    strbuf_append(sb, STRING_LIT("a reasonably long string to build"));
+    size_t allocs = debug_allocator_stats(&dbg).alloc_count;
+    strbuf_clear(sb);
+    strbuf_append(sb, STRING_LIT("a reasonably long string to build"));
+    ASSERT_EQ(allocs, debug_allocator_stats(&dbg).alloc_count);
+    growing_arena_destroy(&arena);
+}
+
+/* strbuf_free gives back everything strbuf_create and the appends took. */
+TEST(string_builder_free_releases_everything)
+{
+    growing_arena_t arena;
+    growing_arena_init(&arena, 4096);
+    debug_allocator_t dbg;
+    debug_allocator_init(&dbg, growing_arena_allocator(&arena));
+    strbuf_t *sb = strbuf_create(debug_allocator_allocator(&dbg));
+    ASSERT_NOT_NULL(sb);
+    for (int i = 0; i < 100; ++i)
+    {
+        strbuf_append(sb, STRING_LIT("grow the buffer "));
+    }
+    ASSERT_GT(debug_allocator_stats(&dbg).bytes_live, 0u);
+    strbuf_free(sb);
+    ASSERT_EQ(0u, debug_allocator_stats(&dbg).bytes_live);
+    growing_arena_destroy(&arena);
+}
+
+TEST(string_builder_clear_and_free_accept_null)
+{
+    strbuf_clear(NULL);
+    strbuf_free(NULL);
+}
+
+/* An allocator that fails returns NULL from strbuf_create — and does not
+ * hand out a builder whose buffer is missing. */
+TEST(string_builder_create_reports_oom)
+{
+    ASSERT_NULL(strbuf_create(ALLOCATOR_NULL));
+
+    /* The builder itself succeeds, its buffer does not: still NULL, and the
+     * builder is given back (LeakSanitizer checks under ./test.sh asan). */
+    oom_ctx_t ctx = {0};
+    ASSERT_NULL(strbuf_create(oom_after_allocator(1, &ctx)));
 }
 
 TEST(string_builder_empty)

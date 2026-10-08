@@ -342,8 +342,31 @@ strbuf_t *strbuf_create(allocator_t allocator)
         return NULL;
     }
     sb->chars = vec_create(sizeof(char), allocator);
+    if (!sb->chars)
+    {
+        mem_free(allocator, sb, sizeof(strbuf_t));
+        return NULL;
+    }
     sb->allocator = allocator;
     return sb;
+}
+
+void strbuf_clear(strbuf_t *sb)
+{
+    if (sb)
+    {
+        vec_clear(sb->chars);
+    }
+}
+
+void strbuf_free(strbuf_t *sb)
+{
+    if (!sb)
+    {
+        return;
+    }
+    vec_free(sb->chars);
+    mem_free(sb->allocator, sb, sizeof(strbuf_t));
 }
 
 seqc_status_t strbuf_append(strbuf_t *sb, string_t s)
