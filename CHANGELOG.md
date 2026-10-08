@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-09
+
+### Added
+
+- `strbuf_clear`: empty a builder for reuse, keeping its buffer.
+- `strbuf_free`: release a builder and its buffer through its allocator.
+
+### Fixed
+
+- `strbuf_create` returns `NULL` when the builder's buffer cannot be
+  allocated, instead of returning a builder whose first append would
+  dereference a NULL buffer.
+
 ## [2.3.0] - 2026-10-07
 
 ### Added
