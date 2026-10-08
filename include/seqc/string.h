@@ -136,6 +136,18 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
 string_t strbuf_finish(const strbuf_t *sb); /* view — no copy      */
 size_t strbuf_len(const strbuf_t *sb);
 
+/* Empty the builder for reuse.  Keeps its memory, so building again does
+ * not allocate until the old capacity is exceeded.  Views returned by
+ * strbuf_finish before the clear see the bytes that are appended next. */
+void strbuf_clear(strbuf_t *sb);
+
+/* Release the builder and its buffer through its allocator.  Views
+ * returned by strbuf_finish become invalid — copy what you keep first
+ * (string_copy).  NULL is a no-op.  With an arena this frees nothing that
+ * destroying the arena would not; with a malloc-style allocator it is how
+ * the memory comes back. */
+void strbuf_free(strbuf_t *sb);
+
 /* --- hashmap_t helpers ---------------------------------------------------- */
 
 /* Use as hash_fn when the hashmap key type is string_t */
