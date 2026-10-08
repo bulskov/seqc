@@ -426,6 +426,8 @@ Builds a `string_t` incrementally using a [`vec_t`](vec.md) of `char`.
 strbuf_t *strbuf_create(allocator_t allocator);
 ```
 
+Returns `NULL` if the allocator cannot provide the builder or its buffer.
+
 ### `strbuf_append`
 
 ```c
@@ -495,6 +497,38 @@ size_t strbuf_len(const strbuf_t *sb);
 
 Return the number of bytes appended so far. Equal to `strbuf_finish(sb).len`,
 without building the view.
+
+### `strbuf_clear`
+
+```c
+void strbuf_clear(strbuf_t *sb);
+```
+
+Empty the builder so it can be reused. Its buffer is kept, so building again
+allocates nothing until the old capacity is exceeded — handy in a loop that
+builds one string per iteration. A view from an earlier `strbuf_finish` points
+into that same buffer and sees whatever is appended next; copy it first
+(`string_copy`) if you need to keep it.
+
+```c
+strbuf_t *sb = strbuf_create(alloc);
+for (size_t i = 0; i < n; ++i) {
+    strbuf_clear(sb);
+    strbuf_append_fmt(sb, "item-%zu", i);
+    use(strbuf_finish(sb));          // valid until the next clear
+}
+```
+
+### `strbuf_free`
+
+```c
+void strbuf_free(strbuf_t *sb);
+```
+
+Release the builder and its buffer through the allocator it was created with.
+Views from `strbuf_finish` become invalid. `NULL` is a no-op. With an arena
+this frees nothing that destroying the arena would not; with a malloc-style
+allocator it is how the memory comes back.
 
 ---
 
