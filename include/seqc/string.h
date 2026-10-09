@@ -135,6 +135,7 @@ seqc_status_t strbuf_append_int(strbuf_t *sb, long long value);
 seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
 string_t strbuf_finish(const strbuf_t *sb); /* view — no copy      */
 size_t strbuf_len(const strbuf_t *sb);
+bool strbuf_is_empty(const strbuf_t *sb);
 
 /* Empty the builder for reuse.  Keeps its memory, so building again does
  * not allocate until the old capacity is exceeded.  Views returned by

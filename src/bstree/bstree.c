@@ -1,4 +1,5 @@
 #include "seqc/bstree.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <stdbool.h>
@@ -564,4 +565,42 @@ iter_t bstree_iter_range(const bstree_t *t, const void *lo, const void *hi)
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
+}
+
+seqc_status_t bstree_min(const bstree_t *t, void *out)
+{
+    if (!t)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(bstree_min_ptr(t), t->elem_size, out);
+}
+
+seqc_status_t bstree_max(const bstree_t *t, void *out)
+{
+    if (!t)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(bstree_max_ptr(t), t->elem_size, out);
+}
+
+bool bstree_is_empty(const bstree_t *t)
+{
+    return !t || t->len == 0;
+}
+
+static seqc_status_t add_add(void *t, const void *elem)
+{
+    return bstree_add(t, elem);
+}
+
+seqc_status_t bstree_extend(bstree_t *t, iter_t it)
+{
+    if (!t)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(t, add_add, t->elem_size, t->allocator, it);
 }

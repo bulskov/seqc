@@ -23,22 +23,32 @@ omap_t *omap_create(
 /* Insert or update.  Returns SEQC_OK on success, SEQC_OOM on alloc failure. */
 seqc_status_t omap_set(omap_t *m, const void *key, const void *value);
 
-/* Copies the value for key into out (may be NULL to test for presence only).
- * Returns SEQC_OK if found, SEQC_NOT_FOUND otherwise. */
+/* The value for key.  Copies into out (may be NULL to test only), so it is not
+ * affected by later changes. SEQC_NOT_FOUND if absent, SEQC_INVALID if m or key
+ * is NULL. */
 seqc_status_t omap_get(const omap_t *m, const void *key, void *out);
+/* Pointer to the value for key, NULL if absent — valid until that key is
+ * removed (removing others may move it), or the map is cleared/destroyed.
+ * Use it to update a value in place. */
+void *omap_get_ptr(const omap_t *m, const void *key);
 
 bool omap_contains(const omap_t *m, const void *key);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
 seqc_status_t omap_remove(omap_t *m, const void *key);
-/* Copy the min/max key into out (may be NULL). Returns SEQC_NOT_FOUND if empty.
- */
+/* The smallest / largest key.  Copies into out (may be NULL to test only), so
+ * it is not affected by later changes.  SEQC_NOT_FOUND if empty. */
 seqc_status_t omap_min_key(const omap_t *m, void *out);
 seqc_status_t omap_max_key(const omap_t *m, void *out);
+/* Pointers to the smallest / largest key, NULL if empty — same validity as
+ * omap_get_ptr.  Never write through them: the order depends on keys. */
+void *omap_min_key_ptr(const omap_t *m);
+void *omap_max_key_ptr(const omap_t *m);
 /* Copy the key and value at the min/max position into key_out and val_out
  * (either may be NULL). Returns SEQC_NOT_FOUND if the map is empty. */
 seqc_status_t omap_min_entry(const omap_t *m, void *key_out, void *val_out);
 seqc_status_t omap_max_entry(const omap_t *m, void *key_out, void *val_out);
 size_t omap_len(const omap_t *m);
+bool omap_is_empty(const omap_t *m);
 int omap_height(const omap_t *m); /* 0 if empty            */
 
 /* Yields omap_entry_t in ascending key order */
@@ -50,4 +60,7 @@ iter_t omap_iter_rev(const omap_t *m);
 iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key);
 
 void omap_destroy(omap_t *m);
+/* Drain it (omap_entry_t, consumed), setting each key/value pair; stops at
+ * the first error. */
+seqc_status_t omap_extend(omap_t *m, iter_t it);
 void omap_clear(omap_t *m);

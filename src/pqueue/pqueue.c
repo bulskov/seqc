@@ -1,4 +1,5 @@
 #include "seqc/pqueue.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <string.h>
@@ -65,12 +66,16 @@ static void sift_down(pqueue_t *q, size_t i)
         size_t left = 2 * i + 1;
         size_t right = 2 * i + 2;
         if (left < n
-            && q->cmp(vec_get_ptr(q->data, left), vec_get_ptr(q->data, smallest)) < 0)
+            && q->cmp(
+                   vec_get_ptr(q->data, left), vec_get_ptr(q->data, smallest))
+                   < 0)
         {
             smallest = left;
         }
         if (right < n
-            && q->cmp(vec_get_ptr(q->data, right), vec_get_ptr(q->data, smallest)) < 0)
+            && q->cmp(
+                   vec_get_ptr(q->data, right), vec_get_ptr(q->data, smallest))
+                   < 0)
         {
             smallest = right;
         }
@@ -155,17 +160,18 @@ seqc_status_t pqueue_pop(pqueue_t *q, void *out)
     return SEQC_OK;
 }
 
+void *pqueue_peek_ptr(const pqueue_t *q)
+{
+    return q ? vec_get_ptr(q->data, 0) : NULL;
+}
+
 seqc_status_t pqueue_peek(const pqueue_t *q, void *out)
 {
-    if (!q || vec_len(q->data) == 0)
+    if (!q)
     {
-        return SEQC_NOT_FOUND;
+        return SEQC_INVALID;
     }
-    if (out)
-    {
-        memcpy(out, vec_get_ptr(q->data, 0), vec_elem_size(q->data));
-    }
-    return SEQC_OK;
+    return seqc_copy_out(pqueue_peek_ptr(q), vec_elem_size(q->data), out);
 }
 
 size_t pqueue_len(const pqueue_t *q)
@@ -233,4 +239,19 @@ slice_t pqueue_drain(pqueue_t *q, allocator_t allocator)
         pqueue_pop(q, buf + i * elem_size);
     }
     return (slice_t){buf, n, elem_size};
+}
+
+static seqc_status_t add_push(void *q, const void *elem)
+{
+    return pqueue_push(q, elem);
+}
+
+seqc_status_t pqueue_extend(pqueue_t *q, iter_t it)
+{
+    if (!q)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(q, add_push, vec_elem_size(q->data), q->allocator, it);
 }

@@ -25,9 +25,16 @@ bool hashmap_is_empty(const hashmap_t *map);
 seqc_status_t hashmap_extend(hashmap_t *map, iter_t it);
 bool hashmap_contains(const hashmap_t *map, const void *key);
 seqc_status_t hashmap_set(hashmap_t *map, const void *key, const void *value);
-/* Copies the value for key into out (may be NULL to test for presence only).
- * Returns SEQC_OK if found, SEQC_NOT_FOUND otherwise. */
+/* The value for key.  Copies into out (may be NULL to test only), so it is not
+ * affected by later changes — prefer it: ANY hashmap_set or hashmap_remove may
+ * move every entry, so a pointer cannot be held. SEQC_NOT_FOUND if absent,
+ * SEQC_INVALID if map or key is NULL. */
 seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out);
+/* Pointer to the value for key, NULL if absent — valid only until the next
+ * change to the map, including setting or removing OTHER keys.  Use it to
+ * update a value in place, then let it go: (*(int *)hashmap_get_ptr(m, &k))++
+ */
+void *hashmap_get_ptr(const hashmap_t *map, const void *key);
 seqc_status_t hashmap_remove(hashmap_t *map, const void *key);
 /* Yields hashmap_entry_t pairs in unspecified order.
  * Do not modify the map while iterating. */

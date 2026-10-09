@@ -1,5 +1,6 @@
 #include "seqc/vec.h"
 #include "arena/allocator.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <stdint.h>
@@ -37,7 +38,8 @@ vec_t *vec_create(size_t elem_size, allocator_t allocator)
     return v;
 }
 
-vec_t *vec_create_with_cap(size_t elem_size, size_t capacity, allocator_t allocator)
+vec_t *vec_create_with_cap(
+    size_t elem_size, size_t capacity, allocator_t allocator)
 {
     if (elem_size == 0 || capacity == 0 || !allocator.vt)
     {
@@ -120,16 +122,11 @@ void *vec_get_ptr(const vec_t *v, size_t i)
 
 seqc_status_t vec_get(const vec_t *v, size_t i, void *out)
 {
-    if (!v || !out)
+    if (!v)
     {
         return SEQC_INVALID;
     }
-    if (i >= v->len)
-    {
-        return SEQC_NOT_FOUND;
-    }
-    memcpy(out, (char *)v->data + i * v->elem_size, v->elem_size);
-    return SEQC_OK;
+    return seqc_copy_out(vec_get_ptr(v, i), v->elem_size, out);
 }
 
 slice_t vec_as_slice(const vec_t *v)
@@ -326,4 +323,9 @@ seqc_status_t vec_extend(vec_t *v, iter_t it)
     iter_destroy(&it);
     mem_free(v->allocator, elem, v->elem_size);
     return st;
+}
+
+bool vec_is_empty(const vec_t *v)
+{
+    return !v || v->len == 0;
 }

@@ -1,4 +1,5 @@
 #include "seqc/slice.h"
+#include "collection.h"
 
 void *slice_get_ptr(slice_t s, size_t i)
 {
@@ -27,8 +28,12 @@ void *slice_find(
     return NULL;
 }
 
-bool slice_any(
-    slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx)
+bool slice_any(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx)
 {
     return slice_find(s, pred, ctx) != NULL;
+}
+
+seqc_status_t slice_get(slice_t s, size_t i, void *out)
+{
+    return seqc_copy_out(slice_get_ptr(s, i), s.elem_size, out);
 }

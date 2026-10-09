@@ -5,17 +5,7 @@
 
 #include "arena/allocator.h"
 #include "seqc/slice.h"
-
-/* --- Error / status codes ---------------------------------------------- */
-
-typedef enum
-{
-    SEQC_OK = 0,    /* operation succeeded / element found    */
-    SEQC_NOT_FOUND, /* element or key is absent               */
-    SEQC_DUPLICATE, /* element already present (no-op insert) */
-    SEQC_OOM,       /* allocator returned NULL                */
-    SEQC_INVALID,   /* NULL or otherwise invalid argument     */
-} seqc_status_t;
+#include "seqc/status.h"
 
 typedef struct iter_t iter_t;
 

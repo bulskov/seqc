@@ -1,4 +1,5 @@
 #include "seqc/list.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <string.h>
@@ -249,4 +250,37 @@ iter_t list_iter(const list_t *l)
         .state = s,
         .elem_size = l->elem_size,
         .allocator = l->allocator};
+}
+
+seqc_status_t list_front(const list_t *l, void *out)
+{
+    if (!l)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(list_front_ptr(l), l->elem_size, out);
+}
+
+seqc_status_t list_back(const list_t *l, void *out)
+{
+    if (!l)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(list_back_ptr(l), l->elem_size, out);
+}
+
+static seqc_status_t add_push_back(void *l, const void *elem)
+{
+    return list_push_back(l, elem);
+}
+
+seqc_status_t list_extend(list_t *l, iter_t it)
+{
+    if (!l)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(l, add_push_back, l->elem_size, l->allocator, it);
 }

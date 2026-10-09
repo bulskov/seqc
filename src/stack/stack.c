@@ -1,4 +1,5 @@
 #include "seqc/stack.h"
+#include "collection.h"
 #include "seqc/vec.h"
 
 #include <string.h>
@@ -99,4 +100,28 @@ void stack_destroy(seqc_stack_t *s)
     vec_destroy(s->vec);
     allocator_t al = s->allocator;
     mem_free(al, s, sizeof(seqc_stack_t));
+}
+
+seqc_status_t stack_peek(const seqc_stack_t *s, void *out)
+{
+    if (!s)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(stack_peek_ptr(s), vec_elem_size(s->vec), out);
+}
+
+static seqc_status_t add_push(void *s, const void *elem)
+{
+    return stack_push(s, elem);
+}
+
+seqc_status_t stack_extend(seqc_stack_t *s, iter_t it)
+{
+    if (!s)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(s, add_push, vec_elem_size(s->vec), s->allocator, it);
 }

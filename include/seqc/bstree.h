@@ -19,9 +19,17 @@ seqc_status_t bstree_add(bstree_t *t, const void *elem);
 bool bstree_contains(const bstree_t *t, const void *elem);
 /* SEQC_OK=removed, SEQC_NOT_FOUND=absent */
 seqc_status_t bstree_remove(bstree_t *t, const void *elem);
-void *bstree_min_ptr(const bstree_t *t); /* NULL if empty          */
-void *bstree_max_ptr(const bstree_t *t); /* NULL if empty          */
+/* The smallest / largest element.  Copies into out (may be NULL to test only),
+ * so it is not affected by later changes.  SEQC_NOT_FOUND if empty. */
+seqc_status_t bstree_min(const bstree_t *t, void *out);
+seqc_status_t bstree_max(const bstree_t *t, void *out);
+/* Pointers to the smallest / largest element, NULL if empty — valid until
+ * that element is removed (removing others may move it), or the tree is
+ * cleared/destroyed. */
+void *bstree_min_ptr(const bstree_t *t);
+void *bstree_max_ptr(const bstree_t *t);
 size_t bstree_len(const bstree_t *t);
+bool bstree_is_empty(const bstree_t *t);
 int bstree_height(const bstree_t *t);      /* 0 if empty             */
 iter_t bstree_iter(const bstree_t *t);     /* ascending, in-order    */
 iter_t bstree_iter_rev(const bstree_t *t); /* descending, in-order   */
@@ -29,4 +37,7 @@ iter_t bstree_iter_rev(const bstree_t *t); /* descending, in-order   */
  * NULL lo/hi means unbounded on that side. */
 iter_t bstree_iter_range(const bstree_t *t, const void *lo, const void *hi);
 void bstree_destroy(bstree_t *t);
+/* Add every element of it (consumed); duplicates are skipped, the first
+ * other error stops it. */
+seqc_status_t bstree_extend(bstree_t *t, iter_t it);
 void bstree_clear(bstree_t *t);

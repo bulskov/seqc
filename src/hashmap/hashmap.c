@@ -1,4 +1,5 @@
 #include "seqc/hashmap.h"
+#include "collection.h"
 #include "max_align.h"
 #include "seqc/hash.h"
 #include <assert.h>
@@ -332,11 +333,11 @@ hashmap_stats_t hashmap_audit(const hashmap_t *map)
     };
 }
 
-seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out)
+void *hashmap_get_ptr(const hashmap_t *map, const void *key)
 {
     if (!map || !map->buckets || !key)
     {
-        return SEQC_INVALID;
+        return NULL;
     }
     size_t slot = hashmap_get_slot(map, key);
 
@@ -346,19 +347,28 @@ seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out)
         uint8_t cur_psl = map->buckets[slot].psl;
         if (cur_psl == 0 || cur_psl < probe)
         {
-            return SEQC_NOT_FOUND;
+            return NULL;
         }
         if (map->eq(map->buckets[slot].key, key, map->key_size))
         {
-            if (out)
-            {
-                memcpy(out, map->buckets[slot].value, map->val_size);
-            }
-            return SEQC_OK;
+            return map->buckets[slot].value;
         }
         slot = (slot + 1) & (map->cap - 1);
         probe++;
     }
+}
+
+seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out)
+{
+    if (!map || !key)
+    {
+        return SEQC_INVALID;
+    }
+    if (!map->buckets)
+    {
+        return SEQC_NOT_FOUND;
+    }
+    return seqc_copy_out(hashmap_get_ptr(map, key), map->val_size, out);
 }
 
 seqc_status_t hashmap_remove(hashmap_t *map, const void *key)

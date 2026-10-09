@@ -1,4 +1,5 @@
 #include "seqc/omap.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <string.h>
@@ -239,11 +240,11 @@ seqc_status_t omap_set(omap_t *m, const void *key, const void *value)
 
 /* ---- get --------------------------------------------------------------- */
 
-seqc_status_t omap_get(const omap_t *m, const void *key, void *out)
+void *omap_get_ptr(const omap_t *m, const void *key)
 {
     if (!m || !key)
     {
-        return SEQC_INVALID;
+        return NULL;
     }
     omap_node_t *cur = m->root;
     while (cur)
@@ -259,14 +260,19 @@ seqc_status_t omap_get(const omap_t *m, const void *key, void *out)
         }
         else
         {
-            if (out)
-            {
-                memcpy(out, node_val(cur, m->key_size), m->val_size);
-            }
-            return SEQC_OK;
+            return node_val(cur, m->key_size);
         }
     }
-    return SEQC_NOT_FOUND;
+    return NULL;
+}
+
+seqc_status_t omap_get(const omap_t *m, const void *key, void *out)
+{
+    if (!m || !key)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(omap_get_ptr(m, key), m->val_size, out);
 }
 
 bool omap_contains(const omap_t *m, const void *key)
@@ -349,40 +355,50 @@ seqc_status_t omap_remove(omap_t *m, const void *key)
 
 /* ---- min / max --------------------------------------------------------- */
 
-seqc_status_t omap_min_key(const omap_t *m, void *out)
+void *omap_min_key_ptr(const omap_t *m)
 {
     if (!m || !m->root)
     {
-        return SEQC_NOT_FOUND;
+        return NULL;
     }
     omap_node_t *cur = m->root;
     while (cur->left)
     {
         cur = cur->left;
     }
-    if (out)
-    {
-        memcpy(out, node_key(cur), m->key_size);
-    }
-    return SEQC_OK;
+    return node_key(cur);
 }
 
-seqc_status_t omap_max_key(const omap_t *m, void *out)
+seqc_status_t omap_min_key(const omap_t *m, void *out)
+{
+    if (!m)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(omap_min_key_ptr(m), m->key_size, out);
+}
+
+void *omap_max_key_ptr(const omap_t *m)
 {
     if (!m || !m->root)
     {
-        return SEQC_NOT_FOUND;
+        return NULL;
     }
     omap_node_t *cur = m->root;
     while (cur->right)
     {
         cur = cur->right;
     }
-    if (out)
+    return node_key(cur);
+}
+
+seqc_status_t omap_max_key(const omap_t *m, void *out)
+{
+    if (!m)
     {
-        memcpy(out, node_key(cur), m->key_size);
+        return SEQC_INVALID;
     }
-    return SEQC_OK;
+    return seqc_copy_out(omap_max_key_ptr(m), m->key_size, out);
 }
 
 seqc_status_t omap_min_entry(const omap_t *m, void *key_out, void *val_out)
@@ -766,4 +782,31 @@ iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key)
         .state = s,
         .elem_size = sizeof(omap_entry_t),
         .allocator = m->allocator};
+}
+
+bool omap_is_empty(const omap_t *m)
+{
+    return !m || m->len == 0;
+}
+
+/* Iterator of omap_entry_t (key/value pointer pairs), as hashmap_extend. */
+seqc_status_t omap_extend(omap_t *m, iter_t it)
+{
+    if (!m)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    omap_entry_t e;
+    seqc_status_t st = SEQC_OK;
+    while (it.next(&it, &e))
+    {
+        st = omap_set(m, e.key, e.value);
+        if (st != SEQC_OK)
+        {
+            break;
+        }
+    }
+    iter_destroy(&it);
+    return st;
 }
