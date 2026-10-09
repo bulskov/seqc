@@ -95,5 +95,16 @@ int nums[] = {3, 1, 4, 1, 5};
 slice_t s = {nums, 5, sizeof(int)};
 
 // iterate it
-iter_t it = iter_from_slice(s, arena_allocator(a));
+iter_t it = iter_from_slice(s, a);
 ```
+
+---
+
+### `slice_get` / `slice_get_ptr`
+
+```c
+seqc_status_t slice_get(slice_t s, size_t i, void *out);
+void *slice_get_ptr(slice_t s, size_t i);
+```
+
+Element `i`: a copy into `out` (`SEQC_NOT_FOUND` if `i >= len`), or a pointer (`NULL` if `i >= len`). A slice is a view, so the pointer is valid as long as the memory the slice views.

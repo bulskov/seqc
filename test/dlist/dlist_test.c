@@ -186,7 +186,7 @@ TEST(dlist_prev_links_are_correct)
     growing_arena_destroy(a);
 }
 
-TEST(dlist_free_does_not_crash)
+TEST(dlist_destroy_does_not_crash)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;

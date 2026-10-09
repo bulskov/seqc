@@ -41,8 +41,10 @@ list_t *list_create(size_t elem_size, allocator_t allocator);
 Create an empty list. Returns `NULL` if `elem_size` is zero.
 
 ```c
-Arena *a = arena_create(4096);
-list_t  *l = list_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+list_t  *l = list_create(sizeof(int), a);
 ```
 
 ---
@@ -126,11 +128,36 @@ Free all nodes and then the list struct itself. Do not use `l` after calling thi
 
 ---
 
+### `list_front` / `list_back` and their `_ptr` variants
+
+```c
+seqc_status_t list_front(const list_t *l, void *out);
+seqc_status_t list_back(const list_t *l, void *out);
+void *list_front_ptr(const list_t *l);
+void *list_back_ptr(const list_t *l);
+```
+
+The first and last element. Nodes never move, so a pointer stays valid until that element is removed or the list is cleared or destroyed. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `list_extend`
+
+```c
+seqc_status_t list_extend(list_t *l, iter_t it);
+```
+
+Push every element of `it` at the back, in order. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-list_t  *l = list_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+list_t  *l = list_create(sizeof(int), a);
 
 for (int i = 1; i <= 5; i++)
     list_push_back(l, &i);
@@ -141,5 +168,5 @@ while (it.next(&it, &v))
     printf("%d ", v);  // 1 2 3 4 5
 iter_destroy(&it);
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

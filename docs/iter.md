@@ -95,7 +95,7 @@ downstream adaptors.
 ```c
 int nums[] = {1, 2, 3};
 slice_t s = {nums, 3, sizeof(int)};
-iter_t it = iter_from_slice(s, arena_allocator(a));
+iter_t it = iter_from_slice(s, a);
 ```
 
 ### `iter_from_slice_rev`
@@ -136,8 +136,8 @@ static bool fib_next(void *out, void *ctx) {
 fib_state_t state = {0, 1};
 slice_t first10 = iter_collect(
     iter_take(iter_generate(fib_next, &state, sizeof(long long),
-                            arena_allocator(a)), 10),
-    arena_allocator(a));
+                            a), 10),
+    a);
 ```
 
 ---
@@ -156,10 +156,10 @@ step).
 
 ```c
 /* 0, 1, 2, 3, 4 */
-iter_t it = iter_range(0, 5, 1, arena_allocator(a));
+iter_t it = iter_range(0, 5, 1, a);
 
 /* 10, 8, 6, 4, 2 */
-iter_t it = iter_range(10, 0, -2, arena_allocator(a));
+iter_t it = iter_range(10, 0, -2, a);
 ```
 
 Other sources live on their respective modules:
@@ -479,10 +479,12 @@ determines which arena owns the returned memory. Pass the same arena you used
 for the iterator chain, or any other arena whose lifetime exceeds the slice.
 
 ```c
-Arena *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 slice_t s = iter_collect(
     iter_map(vec_iter(&v), double_fn, NULL, sizeof(double)),
-    arena_allocator(a));
+    a);
 ```
 
 ---
@@ -548,8 +550,10 @@ the sorted [`slice_t`](slice.md).
 static int int_cmp(const void *a, const void *b) {
     return *(const int *)a - *(const int *)b;
 }
-Arena *a = arena_create(4096);
-slice_t sorted = iter_sort(vec_iter(&v), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+slice_t sorted = iter_sort(vec_iter(&v), int_cmp, a);
 ```
 
 ---
@@ -561,7 +565,7 @@ bool iter_find(iter_t it, pred_fn pred, void *ctx, void *out);
 ```
 
 Return `true` and write the first matching element to `*out` (may be `NULL`) if
-found; return `false` otherwise. The iterator is dropped after use.
+found; return `false` otherwise. The iterator is destroyed after use.
 
 ---
 
@@ -624,8 +628,10 @@ static int int_cmp(const void *a, const void *b) {
 }
 
 int main(void) {
-    Arena *a = arena_create(4096);
-    vec_t    v = vec_create(sizeof(int), arena_allocator(a));
+    growing_arena_t arena;
+    growing_arena_init(&arena, 4096);
+    allocator_t a = growing_arena_allocator(&arena);
+    vec_t    v = vec_create(sizeof(int), a);
 
     for (int i = 10; i >= 1; i--) vec_push(&v, &i);
 
@@ -634,9 +640,9 @@ int main(void) {
                        iter_map(
                            iter_filter(vec_iter(&v), is_even, NULL),
                            triple, NULL, sizeof(int)),
-                       int_cmp, arena_allocator(a));
+                       int_cmp, a);
     // result = {6, 12, 18, 24, 30}
 
-    arena_free(a);
+    growing_arena_destroy(&arena);
 }
 ```

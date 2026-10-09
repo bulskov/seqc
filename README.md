@@ -143,6 +143,14 @@ separately vendor [`arena_allocator`](https://github.com/bulskov/arena_allocatio
 alongside your own. The release archive produced by `publish.sh` bundles a
 prebuilt `lib/libarena.a` and merged `include/` for this purpose.
 
+## Naming conventions
+
+Every collection names the same operation the same way — `X_create` /
+`X_destroy`, `X_len` / `X_is_empty`, `X_get` (a copy) / `X_get_ptr` (a
+pointer, valid until the next change), `X_extend`, ... See
+[docs/naming.md](docs/naming.md); it is also the one page to read when moving
+from seqc 2.x.
+
 ## Modules
 
 | Module    | Description                                           | Docs                               |

@@ -41,7 +41,7 @@ TEST(avl_empty_on_create)
     growing_arena_destroy(a);
 }
 
-TEST(avl_insert_and_contains)
+TEST(avl_add_and_contains)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;
@@ -62,7 +62,7 @@ TEST(avl_insert_and_contains)
     growing_arena_destroy(a);
 }
 
-TEST(avl_insert_duplicate_returns_0)
+TEST(avl_add_duplicate_returns_0)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;

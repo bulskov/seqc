@@ -38,10 +38,12 @@ use `hash_cstr` / `hash_eq_cstr`.
 ```c
 #include "seqc/hash.h"
 
-Arena *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 set_t   *s = set_create(sizeof(int),
                       hash_fnv1a, hash_eq_bytes,
-                      arena_allocator(a));
+                      a);
 ```
 
 ---
@@ -130,7 +132,7 @@ seqc_status_t set_extend(set_t *s, iter_t it);
 ```
 
 Drain `it`, adding each element into `s`. Duplicates are silently skipped.
-Returns `SEQC_OOM` if an allocation fails; the iterator is always dropped.
+Returns `SEQC_OOM` if an allocation fails; the iterator is always destroyed.
 
 ```c
 /* Copy all elements from another set */
@@ -155,7 +157,7 @@ Set `dest = a ∪ b`. All elements present in either `a` or `b` are added to
 `dest`. Duplicates are silently skipped.
 
 ```c
-set_t *u = set_create(sizeof(int), int_hash, int_eq, arena_allocator(a));
+set_t *u = set_create(sizeof(int), int_hash, int_eq, a);
 set_union(u, s1, s2);
 ```
 
@@ -253,9 +255,11 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 ```c
 #include "seqc/hash.h"
 
-Arena *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 set_t   *s = set_create(sizeof(int), hash_fnv1a, hash_eq_bytes,
-                      arena_allocator(a));
+                      a);
 
 int nums[] = {1, 2, 3, 2, 1};
 for (int i = 0; i < 5; i++)
@@ -265,5 +269,5 @@ printf("len=%zu\n", set_len(s));        // 3
 printf("%d\n", set_contains(s, &(int){2})); // 1
 printf("%d\n", set_contains(s, &(int){9})); // 0
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

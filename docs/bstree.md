@@ -39,8 +39,10 @@ static int int_cmp(const void *a, const void *b) {
     return (x > y) - (x < y);
 }
 
-Arena  *a = arena_create(4096);
-bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+bstree_t *t = bstree_create(sizeof(int), int_cmp, a);
 ```
 
 ---
@@ -106,7 +108,7 @@ empty tree, `1` for a single-node tree. Because `bstree_t` is unbalanced,
 height can be as large as `n` on sorted input.
 
 ```c
-bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+bstree_t *t = bstree_create(sizeof(int), int_cmp, a);
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
     bstree_add(t, &vals[i]);
@@ -171,11 +173,44 @@ Free all nodes and then the bstree_t struct itself. Do not use `t` after calling
 
 ---
 
+### `bstree_min` / `bstree_max`
+
+```c
+seqc_status_t bstree_min(const bstree_t *t, void *out);
+seqc_status_t bstree_max(const bstree_t *t, void *out);
+```
+
+Copy the smallest / largest element into `out`; `SEQC_NOT_FOUND` if empty. The pairs of `bstree_min_ptr` / `bstree_max_ptr`. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `bstree_is_empty`
+
+```c
+bool bstree_is_empty(const bstree_t *t);
+```
+
+`true` if the tree has no elements, or is `NULL`.
+
+---
+
+### `bstree_extend`
+
+```c
+seqc_status_t bstree_extend(bstree_t *t, iter_t it);
+```
+
+Add every element of `it`; duplicates are skipped, not errors. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena  *a = arena_create(4096);
-bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+bstree_t *t = bstree_create(sizeof(int), int_cmp, a);
 
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
@@ -193,5 +228,5 @@ while (it.next(&it, &v)) printf("%d ", v);
 iter_destroy(&it);
 // 1 3 4 5 6 7 8
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

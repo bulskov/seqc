@@ -103,7 +103,7 @@ TEST(list_single_element_front_equals_back)
     ASSERT_EQ(42, *(int *)list_back_ptr(l));
     growing_arena_destroy(a);
 }
-TEST(list_free_does_not_crash)
+TEST(list_destroy_does_not_crash)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;

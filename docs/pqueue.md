@@ -38,8 +38,10 @@ static int int_cmp(const void *a, const void *b) {
     return *(const int *)a - *(const int *)b;
 }
 
-Arena  *a = arena_create(4096);
-pqueue_t *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+pqueue_t *q = pqueue_create(sizeof(int), int_cmp, a);
 ```
 
 To get a **max-heap**, pass a negated comparator:
@@ -48,7 +50,7 @@ To get a **max-heap**, pass a negated comparator:
 static int int_cmp_desc(const void *a, const void *b) {
     return *(const int *)b - *(const int *)a;
 }
-pqueue_t *max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a));
+pqueue_t *max_heap = pqueue_create(sizeof(int), int_cmp_desc, a);
 ```
 
 ---
@@ -65,19 +67,21 @@ bottom-up heapify algorithm. This is faster than pushing elements one by one
 modified. The returned `pqueue_t` owns its own allocation independent of `v`.
 
 ```c
-Arena  *a = arena_create(4096);
-vec_t    *v = vec_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+vec_t    *v = vec_create(sizeof(int), a);
 int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
 for (int i = 0; i < 10; i++)
     vec_push(v, &data[i]);
 
-pqueue_t *q = pqueue_create_from_vec(v, int_cmp, arena_allocator(a));
+pqueue_t *q = pqueue_create_from_vec(v, int_cmp, a);
 // Identical to pushing all elements one-by-one but O(n) instead of O(n log n)
 
 int v_out;
 while (pqueue_pop(q, &v_out) == SEQC_OK)
     printf("%d\n", v_out);  // 0 1 2 3 4 5 6 7 8 9
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ---
@@ -183,7 +187,7 @@ fails.
 
 ```c
 /* drain and iterate in sorted order */
-slice_t sorted = pqueue_drain(q, arena_allocator(a));
+slice_t sorted = pqueue_drain(q, a);
 for (size_t i = 0; i < sorted.len; i++)
     printf("%d\n", *(int *)slice_get_ptr(sorted, i));
 ```
@@ -200,11 +204,33 @@ Free the pqueue_t and all its internal storage. Do not use `q` after calling thi
 
 ---
 
+### `pqueue_peek_ptr`
+
+```c
+void *pqueue_peek_ptr(const pqueue_t *q);
+```
+
+Pointer to the minimum element, `NULL` if empty — the pair of `pqueue_peek`. Every push and pop reorders the heap, so it is valid only until the next change. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `pqueue_extend`
+
+```c
+seqc_status_t pqueue_extend(pqueue_t *q, iter_t it);
+```
+
+Push every element of `it`. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example: top-K elements
 
 ```c
-Arena  *a = arena_create(4096);
-pqueue_t *q = pqueue_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+pqueue_t *q = pqueue_create(sizeof(int), int_cmp, a);
 
 int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
 for (int i = 0; i < 10; i++)
@@ -217,7 +243,7 @@ for (int i = 0; i < 3; i++) {
     printf("%d\n", v);  // 0, 1, 2
 }
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ## Example: Dijkstra-style distance queue
@@ -229,7 +255,7 @@ static int entry_cmp(const void *a, const void *b) {
     return ((Entry *)a)->dist - ((Entry *)b)->dist;
 }
 
-pqueue_t *q = pqueue_create(sizeof(Entry), entry_cmp, arena_allocator(a));
+pqueue_t *q = pqueue_create(sizeof(Entry), entry_cmp, a);
 
 Entry e = {0, source};
 pqueue_push(q, &e);
