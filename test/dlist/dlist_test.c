@@ -37,7 +37,7 @@ TEST(dlist_push_back_iter_forward)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(1, got[0]);
     ASSERT_EQ(2, got[1]);
@@ -63,7 +63,7 @@ TEST(dlist_iter_rev_yields_reverse_order)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(3, got[0]);
     ASSERT_EQ(2, got[1]);
@@ -80,8 +80,8 @@ TEST(dlist_push_front_prepends)
     int two = 2, one = 1;
     dlist_push_back(l, &two);
     dlist_push_front(l, &one);
-    ASSERT_EQ(1, *(int *)dlist_front(l));
-    ASSERT_EQ(2, *(int *)dlist_back(l));
+    ASSERT_EQ(1, *(int *)dlist_front_ptr(l));
+    ASSERT_EQ(2, *(int *)dlist_back_ptr(l));
     growing_arena_destroy(a);
 }
 
@@ -99,7 +99,7 @@ TEST(dlist_pop_front_removes_head)
     int out;
     ASSERT_EQ(SEQC_OK, dlist_pop_front(l, &out));
     ASSERT_EQ(10, out);
-    ASSERT_EQ(20, *(int *)dlist_front(l));
+    ASSERT_EQ(20, *(int *)dlist_front_ptr(l));
     ASSERT_EQ(2, dlist_len(l));
     growing_arena_destroy(a);
 }
@@ -118,7 +118,7 @@ TEST(dlist_pop_back_removes_tail)
     int out;
     ASSERT_EQ(SEQC_OK, dlist_pop_back(l, &out));
     ASSERT_EQ(30, out);
-    ASSERT_EQ(20, *(int *)dlist_back(l));
+    ASSERT_EQ(20, *(int *)dlist_back_ptr(l));
     ASSERT_EQ(2, dlist_len(l));
     growing_arena_destroy(a);
 }
@@ -135,8 +135,8 @@ TEST(dlist_pop_until_empty)
     ASSERT_EQ(SEQC_OK, dlist_pop_front(l, &out));
     ASSERT_NE(SEQC_OK, dlist_pop_front(l, &out));
     ASSERT_TRUE(dlist_is_empty(l));
-    ASSERT_NULL(dlist_front(l));
-    ASSERT_NULL(dlist_back(l));
+    ASSERT_NULL(dlist_front_ptr(l));
+    ASSERT_NULL(dlist_back_ptr(l));
     growing_arena_destroy(a);
 }
 
@@ -146,8 +146,8 @@ TEST(dlist_front_back_null_if_empty)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 64);
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_NULL(dlist_front(l));
-    ASSERT_NULL(dlist_back(l));
+    ASSERT_NULL(dlist_front_ptr(l));
+    ASSERT_NULL(dlist_back_ptr(l));
     growing_arena_destroy(a);
 }
 
@@ -159,8 +159,8 @@ TEST(dlist_single_element_front_equals_back)
     dlist_t *l = dlist_create(sizeof(int), growing_arena_allocator(a));
     int v = 42;
     dlist_push_back(l, &v);
-    ASSERT_EQ(42, *(int *)dlist_front(l));
-    ASSERT_EQ(42, *(int *)dlist_back(l));
+    ASSERT_EQ(42, *(int *)dlist_front_ptr(l));
+    ASSERT_EQ(42, *(int *)dlist_back_ptr(l));
     growing_arena_destroy(a);
 }
 
@@ -195,7 +195,7 @@ TEST(dlist_free_does_not_crash)
     int v = 1;
     dlist_push_back(l, &v);
     dlist_push_back(l, &v);
-    dlist_free(l);
+    dlist_destroy(l);
     ASSERT_TRUE(dlist_is_empty(l));
     growing_arena_destroy(a);
 }
@@ -232,7 +232,7 @@ TEST(dlist_clear_allows_reuse)
     int x = 99;
     dlist_push_back(l, &x);
     ASSERT_EQ(1, dlist_len(l));
-    ASSERT_EQ(99, *(int *)dlist_front(l));
+    ASSERT_EQ(99, *(int *)dlist_front_ptr(l));
     growing_arena_destroy(a);
 }
 
@@ -251,8 +251,8 @@ TEST(dlist_iter_oom_returns_empty)
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = dlist_iter(l);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    dlist_free(l);
+    iter_destroy(&it);
+    dlist_destroy(l);
 }
 
 TEST(dlist_iter_rev_oom_returns_empty)
@@ -268,8 +268,8 @@ TEST(dlist_iter_rev_oom_returns_empty)
     ctx.remaining = 0;
     iter_t it = dlist_iter_rev(l);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    dlist_free(l);
+    iter_destroy(&it);
+    dlist_destroy(l);
 }
 
 int main(int argc, char *argv[])

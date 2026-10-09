@@ -67,11 +67,11 @@ dlist_pop_front(l, &out);
 
 ---
 
-### `dlist_front` / `dlist_back`
+### `dlist_front_ptr` / `dlist_back_ptr`
 
 ```c
-void *dlist_front(const dlist_t *l);
-void *dlist_back(const dlist_t *l);
+void *dlist_front_ptr(const dlist_t *l);
+void *dlist_back_ptr(const dlist_t *l);
 ```
 
 Pointer to head / tail data. Returns `NULL` if empty.
@@ -116,10 +116,10 @@ arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
 
 ---
 
-### `dlist_free`
+### `dlist_destroy`
 
 ```c
-void dlist_free(dlist_t *l);
+void dlist_destroy(dlist_t *l);
 ```
 
 Free all nodes and then the dlist_t struct itself. Do not use `l` after calling this.
@@ -139,12 +139,12 @@ for (int i = 1; i <= 5; i++)
 iter_t fwd = dlist_iter(l);
 int v;
 while (fwd.next(&fwd, &v)) printf("%d ", v);
-iter_drop(&fwd);
+iter_destroy(&fwd);
 
 // reverse: 5 4 3 2 1
 iter_t rev = dlist_iter_rev(l);
 while (rev.next(&rev, &v)) printf("%d ", v);
-iter_drop(&rev);
+iter_destroy(&rev);
 
 arena_free(a);
 ```

@@ -36,8 +36,8 @@ TEST(avl_empty_on_create)
     avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     ASSERT_EQ(0, avl_len(t));
     ASSERT_EQ(0, avl_height(t));
-    ASSERT_NULL(avl_min(t));
-    ASSERT_NULL(avl_max(t));
+    ASSERT_NULL(avl_min_ptr(t));
+    ASSERT_NULL(avl_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -50,7 +50,7 @@ TEST(avl_insert_and_contains)
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
     {
-        ASSERT_EQ(SEQC_OK, avl_insert(t, &vals[i]));
+        ASSERT_EQ(SEQC_OK, avl_add(t, &vals[i]));
     }
     ASSERT_EQ(5, avl_len(t));
     for (int i = 0; i < 5; i++)
@@ -69,8 +69,8 @@ TEST(avl_insert_duplicate_returns_0)
     growing_arena_init(a, 512);
     avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 10;
-    ASSERT_EQ(SEQC_OK, avl_insert(t, &v));
-    ASSERT_NE(SEQC_OK, avl_insert(t, &v));
+    ASSERT_EQ(SEQC_OK, avl_add(t, &v));
+    ASSERT_NE(SEQC_OK, avl_add(t, &v));
     ASSERT_EQ(1, avl_len(t));
     growing_arena_destroy(a);
 }
@@ -84,10 +84,10 @@ TEST(avl_min_max)
     int vals[] = {5, 1, 8, 3, 9, 2};
     for (int i = 0; i < 6; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
-    ASSERT_EQ(1, *(int *)avl_min(t));
-    ASSERT_EQ(9, *(int *)avl_max(t));
+    ASSERT_EQ(1, *(int *)avl_min_ptr(t));
+    ASSERT_EQ(9, *(int *)avl_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -103,11 +103,11 @@ TEST(avl_ll_rotation)
     int vals[] = {3, 2, 1};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     ASSERT_EQ(2, avl_height(t));
-    ASSERT_EQ(1, *(int *)avl_min(t));
-    ASSERT_EQ(3, *(int *)avl_max(t));
+    ASSERT_EQ(1, *(int *)avl_min_ptr(t));
+    ASSERT_EQ(3, *(int *)avl_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -121,7 +121,7 @@ TEST(avl_rr_rotation)
     int vals[] = {1, 2, 3};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     ASSERT_EQ(2, avl_height(t));
     growing_arena_destroy(a);
@@ -137,7 +137,7 @@ TEST(avl_lr_rotation)
     int vals[] = {3, 1, 2};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     ASSERT_EQ(2, avl_height(t));
     growing_arena_destroy(a);
@@ -153,7 +153,7 @@ TEST(avl_rl_rotation)
     int vals[] = {1, 3, 2};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     ASSERT_EQ(2, avl_height(t));
     growing_arena_destroy(a);
@@ -170,7 +170,7 @@ TEST(avl_iter_in_order)
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
@@ -181,7 +181,7 @@ TEST(avl_iter_in_order)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     for (size_t i = 1; i < n; i++)
     {
@@ -215,7 +215,7 @@ TEST(avl_remove_leaf)
     int vals[] = {5, 3, 7};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int v = 3;
     ASSERT_EQ(SEQC_OK, avl_remove(t, &v));
@@ -233,7 +233,7 @@ TEST(avl_remove_root_two_children)
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int v = 5;
     ASSERT_EQ(SEQC_OK, avl_remove(t, &v));
@@ -250,7 +250,7 @@ TEST(avl_remove_root_two_children)
         ASSERT_LT(prev, cur);
         prev = cur;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -264,7 +264,7 @@ TEST(avl_remove_rebalances)
     avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 1; i <= 7; i++)
     {
-        avl_insert(t, &i);
+        avl_add(t, &i);
     }
     for (int i = 1; i <= 6; i++)
     {
@@ -298,7 +298,7 @@ TEST(avl_height_stays_logarithmic)
     avl_t *t = avl_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 0; i < 1000; i++)
     {
-        avl_insert(t, &i);
+        avl_add(t, &i);
     }
     ASSERT_EQ(1000, avl_len(t));
     /* AVL height bound: <= 1.44 * log2(n+2) - 0.328 */
@@ -319,11 +319,11 @@ TEST(avl_many_inserts_sorted_output)
                    23, 26, 29, 32, 35, 38, 41, 44, 47, 48, 49};
     for (int i = 0; i < 50; i++)
     {
-        avl_insert(t, &order[i]);
+        avl_add(t, &order[i]);
     }
     ASSERT_EQ(50, avl_len(t));
-    ASSERT_EQ(0, *(int *)avl_min(t));
-    ASSERT_EQ(49, *(int *)avl_max(t));
+    ASSERT_EQ(0, *(int *)avl_min_ptr(t));
+    ASSERT_EQ(49, *(int *)avl_max_ptr(t));
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
     iter_t it = avl_iter(t);
@@ -337,7 +337,7 @@ TEST(avl_many_inserts_sorted_output)
         prev = cur;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(50, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -352,7 +352,7 @@ TEST(avl_iter_rev_descending)
     int vals[] = {4, 2, 6, 1, 3, 5, 7};
     for (int i = 0; i < 7; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
@@ -367,7 +367,7 @@ TEST(avl_iter_rev_descending)
         prev = cur;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -382,7 +382,7 @@ TEST(avl_iter_range_mid)
     int vals[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     for (int i = 0; i < 10; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int lo = 3, hi = 7;
     iter_t it = avl_iter_range(t, &lo, &hi);
@@ -392,7 +392,7 @@ TEST(avl_iter_range_mid)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, n); /* 3,4,5,6,7 */
     ASSERT_EQ(3, collected[0]);
     ASSERT_EQ(7, collected[4]);
@@ -408,7 +408,7 @@ TEST(avl_iter_range_no_lo)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int hi = 3;
     iter_t it = avl_iter_range(t, NULL, &hi);
@@ -418,7 +418,7 @@ TEST(avl_iter_range_no_lo)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n); /* 1,2,3 */
     growing_arena_destroy(a);
 }
@@ -432,7 +432,7 @@ TEST(avl_iter_range_no_hi)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int lo = 3;
     iter_t it = avl_iter_range(t, &lo, NULL);
@@ -442,7 +442,7 @@ TEST(avl_iter_range_no_hi)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n); /* 3,4,5 */
     growing_arena_destroy(a);
 }
@@ -456,13 +456,13 @@ TEST(avl_iter_range_empty_result)
     int vals[] = {1, 5, 10};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     int lo = 6, hi = 9;
     iter_t it = avl_iter_range(t, &lo, &hi);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 
@@ -477,12 +477,12 @@ TEST(avl_clear_empties_tree)
     int vals[] = {3, 1, 5, 2, 4};
     for (int i = 0; i < 5; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     avl_clear(t);
     ASSERT_EQ(0, avl_len(t));
-    ASSERT_NULL(avl_min(t));
-    ASSERT_NULL(avl_max(t));
+    ASSERT_NULL(avl_min_ptr(t));
+    ASSERT_NULL(avl_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -495,11 +495,11 @@ TEST(avl_clear_allows_reuse)
     int vals[] = {3, 1, 5};
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &vals[i]);
+        avl_add(t, &vals[i]);
     }
     avl_clear(t);
     int x = 42;
-    ASSERT_EQ(SEQC_OK, avl_insert(t, &x));
+    ASSERT_EQ(SEQC_OK, avl_add(t, &x));
     ASSERT_EQ(1, avl_len(t));
     ASSERT_TRUE(avl_contains(t, &x));
     growing_arena_destroy(a);
@@ -515,13 +515,13 @@ TEST(avl_iter_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &i);
+        avl_add(t, &i);
     }
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = avl_iter(t);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    avl_free(t);
+    iter_destroy(&it);
+    avl_destroy(t);
 }
 
 TEST(avl_iter_rev_oom_returns_empty)
@@ -532,13 +532,13 @@ TEST(avl_iter_rev_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
     {
-        avl_insert(t, &i);
+        avl_add(t, &i);
     }
     ctx.remaining = 0;
     iter_t it = avl_iter_rev(t);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    avl_free(t);
+    iter_destroy(&it);
+    avl_destroy(t);
 }
 
 TEST(avl_iter_range_oom_returns_empty)
@@ -549,14 +549,14 @@ TEST(avl_iter_range_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 5; i++)
     {
-        avl_insert(t, &i);
+        avl_add(t, &i);
     }
     int lo = 1, hi = 3;
     ctx.remaining = 0;
     iter_t it = avl_iter_range(t, &lo, &hi);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    avl_free(t);
+    iter_destroy(&it);
+    avl_destroy(t);
 }
 
 int main(int argc, char *argv[])

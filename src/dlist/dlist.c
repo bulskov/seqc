@@ -165,12 +165,12 @@ seqc_status_t dlist_pop_back(dlist_t *l, void *out)
     return SEQC_OK;
 }
 
-void *dlist_front(const dlist_t *l)
+void *dlist_front_ptr(const dlist_t *l)
 {
     return (l && l->head) ? node_data(l->head) : NULL;
 }
 
-void *dlist_back(const dlist_t *l)
+void *dlist_back_ptr(const dlist_t *l)
 {
     return (l && l->tail) ? node_data(l->tail) : NULL;
 }
@@ -202,7 +202,7 @@ void dlist_clear(dlist_t *l)
     l->len = 0;
 }
 
-void dlist_free(dlist_t *l)
+void dlist_destroy(dlist_t *l)
 {
     if (!l)
     {
@@ -265,7 +265,7 @@ iter_t dlist_iter(const dlist_t *l)
     *s = (dlist_iter_state_t){l->head, l->elem_size};
     return (iter_t){
         .next = dlist_iter_next_fwd,
-        .drop = dlist_iter_drop,
+        .destroy = dlist_iter_drop,
         .state = s,
         .elem_size = l->elem_size,
         .allocator = l->allocator};
@@ -286,7 +286,7 @@ iter_t dlist_iter_rev(const dlist_t *l)
     *s = (dlist_iter_state_t){l->tail, l->elem_size};
     return (iter_t){
         .next = dlist_iter_next_rev,
-        .drop = dlist_iter_drop,
+        .destroy = dlist_iter_drop,
         .state = s,
         .elem_size = l->elem_size,
         .allocator = l->allocator};

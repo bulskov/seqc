@@ -13,8 +13,8 @@ static hashmap_t *make_str_map(growing_arena_t *a)
     return hashmap_create(
         sizeof(char *),
         sizeof(int),
-        hash_fnv1a_str,
-        hash_eq_str,
+        hash_cstr,
+        hash_eq_cstr,
         growing_arena_allocator(a));
 }
 
@@ -30,7 +30,7 @@ TEST(hashmap_str_set_and_get)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(123, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -50,7 +50,7 @@ TEST(hashmap_str_distinct_keys)
     ASSERT_EQ(1, got1);
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k2, &got2));
     ASSERT_EQ(2, got2);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -68,7 +68,7 @@ TEST(hashmap_str_update_existing)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(99, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -81,9 +81,9 @@ TEST(hashmap_str_delete)
     const char *k = "gone";
     int v = 7;
     hashmap_set(m, &k, &v);
-    ASSERT_EQ(SEQC_OK, hashmap_delete(m, &k));
+    ASSERT_EQ(SEQC_OK, hashmap_remove(m, &k));
     ASSERT_NE(SEQC_OK, hashmap_get(m, &k, NULL));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -103,7 +103,7 @@ TEST(hashmap_str_equal_content_different_pointer)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k2, &got));
     ASSERT_EQ(42, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -119,7 +119,7 @@ TEST(hashmap_create_is_empty)
         hash_eq_bytes,
         growing_arena_allocator(a));
     ASSERT_EQ(0, hashmap_len(m));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -139,7 +139,7 @@ TEST(hashmap_set_and_get)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(42, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -156,7 +156,7 @@ TEST(hashmap_get_missing_returns_null)
         growing_arena_allocator(a));
     int k = 99;
     ASSERT_NE(SEQC_OK, hashmap_get(m, &k, NULL));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -178,7 +178,7 @@ TEST(hashmap_set_updates_existing_key)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(20, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -195,10 +195,10 @@ TEST(hashmap_delete_existing)
         growing_arena_allocator(a));
     int k = 7, v = 77;
     hashmap_set(m, &k, &v);
-    ASSERT_EQ(SEQC_OK, hashmap_delete(m, &k));
+    ASSERT_EQ(SEQC_OK, hashmap_remove(m, &k));
     ASSERT_NE(SEQC_OK, hashmap_get(m, &k, NULL));
     ASSERT_EQ(0, hashmap_len(m));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -214,8 +214,8 @@ TEST(hashmap_delete_missing)
         hash_eq_bytes,
         growing_arena_allocator(a));
     int k = 5;
-    ASSERT_NE(SEQC_OK, hashmap_delete(m, &k));
-    hashmap_free(m);
+    ASSERT_NE(SEQC_OK, hashmap_remove(m, &k));
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -232,12 +232,12 @@ TEST(hashmap_delete_and_reinsert)
         growing_arena_allocator(a));
     int k = 3, v1 = 30, v2 = 300;
     hashmap_set(m, &k, &v1);
-    hashmap_delete(m, &k);
+    hashmap_remove(m, &k);
     hashmap_set(m, &k, &v2);
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(300, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -264,7 +264,7 @@ TEST(hashmap_many_entries_triggers_resize)
         ASSERT_EQ(SEQC_OK, hashmap_get(m, &i, &got));
         ASSERT_EQ(i * 10, got);
     }
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -295,7 +295,7 @@ TEST(hashmap_iter_foreach_sums_values)
     int sum = 0;
     iter_foreach(hashmap_iter(m), sum_values, &sum);
     ASSERT_EQ(100, sum); /* 10+20+30+40 */
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -324,7 +324,7 @@ TEST(hashmap_iter_filter_entries)
     }
     size_t count = iter_count(iter_filter(hashmap_iter(m), value_gt_20, NULL));
     ASSERT_EQ(2, count); /* 30 and 40 */
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -347,7 +347,7 @@ TEST(hashmap_delete_middle_of_cluster)
         hashmap_set(m, &i, &v);
     }
     int mid = 5;
-    hashmap_delete(m, &mid);
+    hashmap_remove(m, &mid);
     ASSERT_NE(SEQC_OK, hashmap_get(m, &mid, NULL));
     for (int i = 0; i < 10; i++)
     {
@@ -359,7 +359,7 @@ TEST(hashmap_delete_middle_of_cluster)
         ASSERT_EQ(SEQC_OK, hashmap_get(m, &i, &got));
         ASSERT_EQ(i, got);
     }
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -442,13 +442,13 @@ TEST(hashmap_iter_rev_visits_same_entries_in_reverse)
     {
         nf++;
     }
-    iter_drop(&it_fwd);
+    iter_destroy(&it_fwd);
     iter_t it_rev = hashmap_iter_rev(m);
     while (it_rev.next(&it_rev, &rev[nr]))
     {
         nr++;
     }
-    iter_drop(&it_rev);
+    iter_destroy(&it_rev);
     ASSERT_EQ(5, nf);
     ASSERT_EQ(5, nr);
     /* rev must be exactly the reverse of fwd */
@@ -474,8 +474,8 @@ TEST(hashmap_iter_rev_empty)
     iter_t it = hashmap_iter_rev(m);
     hashmap_entry_t e;
     ASSERT_TRUE(!it.next(&it, &e));
-    iter_drop(&it);
-    hashmap_free(m);
+    iter_destroy(&it);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -495,7 +495,7 @@ TEST(hashmap_contains_returns_true_for_existing_key)
     int k = 42, v = 99;
     hashmap_set(m, &k, &v);
     ASSERT_TRUE(hashmap_contains(m, &k));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -512,7 +512,7 @@ TEST(hashmap_contains_returns_false_for_missing_key)
         growing_arena_allocator(a));
     int k = 42;
     ASSERT_TRUE(!hashmap_contains(m, &k));
-    hashmap_free(m);
+    hashmap_destroy(m);
     growing_arena_destroy(a);
 }
 
@@ -637,7 +637,7 @@ TEST(hashmap_collision_delete_probe_and_backward_shift)
     /* key 3 sits at slot 2 (home=0); delete requires probing slots 0,1 first
      * and then backward-shifts key 4 into the vacated slot. */
     int k = 3;
-    ASSERT_EQ(SEQC_OK, hashmap_delete(m, &k));
+    ASSERT_EQ(SEQC_OK, hashmap_remove(m, &k));
     ASSERT_NE(SEQC_OK, hashmap_get(m, &k, NULL));
     for (int i = 1; i <= 4; i++)
     {
@@ -688,7 +688,7 @@ TEST(hashmap_create_invalid_args_returns_zero_map)
 /* ---- sys_allocator: exercises all allocator.free branches -------------- */
 
 /*
- * Use sys_allocator so that hashmap_free, hashmap_clear, hashmap_delete, and
+ * Use sys_allocator so that hashmap_destroy, hashmap_clear, hashmap_remove, and
  * hashmap_resize_and_rehash all exercise their allocator.free branches.
  */
 TEST(hashmap_sys_alloc_free_releases_memory)
@@ -702,7 +702,7 @@ TEST(hashmap_sys_alloc_free_releases_memory)
         hashmap_set(m, &i, &v);
     }
     ASSERT_EQ(5, hashmap_len(m));
-    hashmap_free(m);
+    hashmap_destroy(m);
     /* memory released — verified by sys_allocator not leaking */
 }
 
@@ -724,7 +724,7 @@ TEST(hashmap_sys_alloc_clear_frees_entries)
     int got;
     ASSERT_EQ(SEQC_OK, hashmap_get(m, &k, &got));
     ASSERT_EQ(42, got);
-    hashmap_free(m);
+    hashmap_destroy(m);
 }
 
 TEST(hashmap_sys_alloc_resize_frees_old_buckets)
@@ -748,7 +748,7 @@ TEST(hashmap_sys_alloc_resize_frees_old_buckets)
         ASSERT_EQ(SEQC_OK, hashmap_get(m, &i, &got));
         ASSERT_EQ(i, got);
     }
-    hashmap_free(m);
+    hashmap_destroy(m);
 }
 
 TEST(hashmap_is_healthy_normal_load)
@@ -828,7 +828,7 @@ TEST(hashmap_set_returns_oom_when_key_alloc_fails)
     int k = 1, v = 1;
     ASSERT_EQ(SEQC_OOM, hashmap_set(m, &k, &v));
     ASSERT_EQ(0, hashmap_len(m));
-    hashmap_free(m);
+    hashmap_destroy(m);
 }
 
 TEST(hashmap_set_returns_oom_when_val_alloc_fails)
@@ -842,7 +842,7 @@ TEST(hashmap_set_returns_oom_when_val_alloc_fails)
     int k = 1, v = 1;
     ASSERT_EQ(SEQC_OOM, hashmap_set(m, &k, &v));
     ASSERT_EQ(0, hashmap_len(m));
-    hashmap_free(m);
+    hashmap_destroy(m);
 }
 
 TEST(hashmap_iter_oom_returns_empty)
@@ -859,8 +859,8 @@ TEST(hashmap_iter_oom_returns_empty)
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = hashmap_iter(m);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    hashmap_free(m);
+    iter_destroy(&it);
+    hashmap_destroy(m);
 }
 
 TEST(hashmap_iter_rev_oom_returns_empty)
@@ -877,8 +877,8 @@ TEST(hashmap_iter_rev_oom_returns_empty)
     ctx.remaining = 0;
     iter_t it = hashmap_iter_rev(m);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    hashmap_free(m);
+    iter_destroy(&it);
+    hashmap_destroy(m);
 }
 
 int main(int argc, char *argv[])

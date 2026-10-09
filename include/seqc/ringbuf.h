@@ -8,7 +8,7 @@
 /* ringbuf_t — double-ended circular buffer
  *
  * All push/pop operations are amortised O(1).
- * Random access via ringbuf_at is O(1).
+ * Random access via ringbuf_get is O(1).
  * Iteration is front-to-back by default.
  *
  * Both ends are equally cheap to use, making it suitable as a deque,
@@ -32,7 +32,7 @@ seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out);
 /* O(1) indexed access — copies element at logical index i into *out.
  * Index 0 is the front element. out may be NULL to probe bounds only.
  * Returns SEQC_OK, or SEQC_NOT_FOUND if i >= len. */
-seqc_status_t ringbuf_at(const ringbuf_t *r, size_t i, void *out);
+seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out);
 
 size_t ringbuf_len(const ringbuf_t *r);
 size_t ringbuf_cap(const ringbuf_t *r);
@@ -42,4 +42,4 @@ iter_t ringbuf_iter(const ringbuf_t *r);     /* front→back */
 iter_t ringbuf_iter_rev(const ringbuf_t *r); /* back→front */
 
 void ringbuf_clear(ringbuf_t *r); /* empty buffer, keep allocation */
-void ringbuf_free(ringbuf_t *r);
+void ringbuf_destroy(ringbuf_t *r);

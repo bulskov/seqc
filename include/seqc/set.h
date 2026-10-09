@@ -18,13 +18,13 @@ bool set_contains(const set_t *s, const void *elem);
 seqc_status_t set_remove(set_t *s, const void *elem);
 size_t set_len(const set_t *s);
 bool set_is_empty(const set_t *s);
-void set_free(set_t *s);
+void set_destroy(set_t *s);
 void set_clear(set_t *s);
 iter_t set_iter(const set_t *s);     /* order unspecified */
 iter_t set_iter_rev(const set_t *s); /* reverse bucket-storage order */
 /* Drain iter, adding each element into s; SEQC_DUPLICATE is silently skipped.
  */
-seqc_status_t set_add_all(set_t *s, iter_t it);
+seqc_status_t set_extend(set_t *s, iter_t it);
 
 /* --- set_t algebra -------------------------------------------------------- */
 

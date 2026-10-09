@@ -359,13 +359,13 @@ void strbuf_clear(strbuf_t *sb)
     }
 }
 
-void strbuf_free(strbuf_t *sb)
+void strbuf_destroy(strbuf_t *sb)
 {
     if (!sb)
     {
         return;
     }
-    vec_free(sb->chars);
+    vec_destroy(sb->chars);
     mem_free(sb->allocator, sb, sizeof(strbuf_t));
 }
 
@@ -468,7 +468,7 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator)
         strbuf_append(sb, token);
         first = false;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     return strbuf_finish(sb);
 }
 
@@ -623,7 +623,7 @@ static iter_t split_make(
     *state = (split_state_t){s, delim, 0, anychar};
     return (iter_t){
         .next = split_next,
-        .drop = split_drop,
+        .destroy = split_drop,
         .state = state,
         .elem_size = sizeof(string_t),
         .allocator = allocator};

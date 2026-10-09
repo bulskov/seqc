@@ -449,7 +449,7 @@ static void free_subtree(omap_t *m, omap_node_t *node)
     mem_free(m->allocator, node, node_sz(m->key_size, m->val_size));
 }
 
-void omap_free(omap_t *m)
+void omap_destroy(omap_t *m)
 {
     if (!m)
     {
@@ -573,7 +573,7 @@ iter_t omap_iter(const omap_t *m)
         .allocator = m->allocator};
     return (iter_t){
         .next = omap_iter_next,
-        .drop = omap_iter_drop,
+        .destroy = omap_iter_drop,
         .state = s,
         .elem_size = sizeof(omap_entry_t),
         .allocator = m->allocator};
@@ -627,7 +627,7 @@ iter_t omap_iter_rev(const omap_t *m)
         .allocator = m->allocator};
     return (iter_t){
         .next = omap_iter_rev_next,
-        .drop = omap_iter_drop,
+        .destroy = omap_iter_drop,
         .state = s,
         .elem_size = sizeof(omap_entry_t),
         .allocator = m->allocator};
@@ -762,7 +762,7 @@ iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key)
     }
     return (iter_t){
         .next = omap_range_iter_next,
-        .drop = omap_range_iter_drop,
+        .destroy = omap_range_iter_drop,
         .state = s,
         .elem_size = sizeof(omap_entry_t),
         .allocator = m->allocator};

@@ -101,7 +101,7 @@ seqc_status_t queue_pop(queue_t *q, void *out)
     return SEQC_OK;
 }
 
-void *queue_peek(const queue_t *q)
+void *queue_front_ptr(const queue_t *q)
 {
     if (!q || q->len == 0)
     {
@@ -110,7 +110,7 @@ void *queue_peek(const queue_t *q)
     return q->buf + q->head * q->elem_size;
 }
 
-void *queue_back(const queue_t *q)
+void *queue_back_ptr(const queue_t *q)
 {
     if (!q || q->len == 0)
     {
@@ -139,7 +139,7 @@ void queue_clear(queue_t *q)
     }
 }
 
-void queue_free(queue_t *q)
+void queue_destroy(queue_t *q)
 {
     if (!q)
     {
@@ -197,7 +197,7 @@ iter_t queue_iter(const queue_t *q)
     *s = (queue_iter_state_t){q->buf, q->head, q->cap, q->len, q->elem_size};
     return (iter_t){
         .next = queue_iter_next,
-        .drop = queue_iter_drop,
+        .destroy = queue_iter_drop,
         .state = s,
         .elem_size = q->elem_size,
         .allocator = q->allocator};
@@ -248,7 +248,7 @@ iter_t queue_iter_rev(const queue_t *q)
     *s = (queue_iter_rev_state_t){q->buf, tail, q->cap, q->len, q->elem_size};
     return (iter_t){
         .next = queue_iter_rev_next,
-        .drop = queue_iter_rev_drop,
+        .destroy = queue_iter_rev_drop,
         .state = s,
         .elem_size = q->elem_size,
         .allocator = q->allocator};

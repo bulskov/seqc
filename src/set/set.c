@@ -240,7 +240,7 @@ bool set_is_empty(const set_t *s)
     return set_len(s) == 0;
 }
 
-void set_free(set_t *s)
+void set_destroy(set_t *s)
 {
     if (!s)
     {
@@ -363,7 +363,7 @@ iter_t set_iter(const set_t *s)
     *state = (set_iter_state_t){s->buckets, s->cap, 0, s->elem_size};
     return (iter_t){
         .next = set_iter_next,
-        .drop = set_iter_drop,
+        .destroy = set_iter_drop,
         .state = state,
         .elem_size = s->elem_size,
         .allocator = s->allocator};
@@ -412,7 +412,7 @@ iter_t set_iter_rev(const set_t *s)
     *state = (set_iter_rev_state_t){s->buckets, s->cap, s->cap, s->elem_size};
     return (iter_t){
         .next = set_iter_rev_next,
-        .drop = set_iter_rev_drop,
+        .destroy = set_iter_rev_drop,
         .state = state,
         .elem_size = s->elem_size,
         .allocator = s->allocator};
@@ -508,17 +508,17 @@ seqc_status_t set_difference(set_t *dest, const set_t *a, const set_t *b)
     return SEQC_OK;
 }
 
-seqc_status_t set_add_all(set_t *s, iter_t it)
+seqc_status_t set_extend(set_t *s, iter_t it)
 {
     if (!s)
     {
-        iter_drop(&it);
+        iter_destroy(&it);
         return SEQC_INVALID;
     }
     void *elem = mem_alloc(s->allocator, s->elem_size, SEQC_MAX_ALIGN);
     if (!elem)
     {
-        iter_drop(&it);
+        iter_destroy(&it);
         return SEQC_OOM;
     }
     seqc_status_t st = SEQC_OK;
@@ -531,7 +531,7 @@ seqc_status_t set_add_all(set_t *s, iter_t it)
         }
         st = SEQC_OK;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     mem_free(s->allocator, elem, s->elem_size);
     return st;
 }

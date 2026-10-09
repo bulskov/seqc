@@ -316,7 +316,7 @@ TEST(hashmap_with_case_insensitive_keys)
     ASSERT_EQ(SEQC_OK, hashmap_set(map, &other_case, &value2));
     ASSERT_EQ(1, hashmap_len(map));
 
-    hashmap_free(map);
+    hashmap_destroy(map);
     growing_arena_destroy(&arena);
 }
 

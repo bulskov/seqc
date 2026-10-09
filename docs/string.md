@@ -519,10 +519,10 @@ for (size_t i = 0; i < n; ++i) {
 }
 ```
 
-### `strbuf_free`
+### `strbuf_destroy`
 
 ```c
-void strbuf_free(strbuf_t *sb);
+void strbuf_destroy(strbuf_t *sb);
 ```
 
 Release the builder and its buffer through the allocator it was created with.
@@ -608,7 +608,7 @@ iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
 string_t  tok;
 while (it.next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
-iter_drop(&it);
+iter_destroy(&it);
 // prints: a / b / c
 ```
 
@@ -633,7 +633,7 @@ iter_t    it  = iter_filter(raw, non_empty_str, NULL);
 string_t  tok;
 while (it.next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
-iter_drop(&it);
+iter_destroy(&it);
 // prints: the / quick
 ```
 

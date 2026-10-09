@@ -109,9 +109,9 @@ TEST(iter_map_doubles_values)
         growing_arena_allocator(a));
 
     ASSERT_EQ(3, result.len);
-    ASSERT_EQ(2, *(int *)slice_get(result, 0));
-    ASSERT_EQ(4, *(int *)slice_get(result, 1));
-    ASSERT_EQ(6, *(int *)slice_get(result, 2));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(4, *(int *)slice_get_ptr(result, 1));
+    ASSERT_EQ(6, *(int *)slice_get_ptr(result, 2));
 
     growing_arena_destroy(a);
 }
@@ -131,7 +131,7 @@ TEST(iter_collect_produces_correct_slice)
     ASSERT_EQ(4, result.len);
     for (size_t i = 0; i < result.len; i++)
     {
-        ASSERT_EQ(data[i], *(int *)slice_get(result, i));
+        ASSERT_EQ(data[i], *(int *)slice_get_ptr(result, i));
     }
 
     growing_arena_destroy(a);
@@ -273,9 +273,9 @@ TEST(iter_filter_map_chain)
 
     /* 15→30, 22→44, 18→36 */
     ASSERT_EQ(3, result.len);
-    ASSERT_EQ(30, *(int *)slice_get(result, 0));
-    ASSERT_EQ(44, *(int *)slice_get(result, 1));
-    ASSERT_EQ(36, *(int *)slice_get(result, 2));
+    ASSERT_EQ(30, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(44, *(int *)slice_get_ptr(result, 1));
+    ASSERT_EQ(36, *(int *)slice_get_ptr(result, 2));
 
     growing_arena_destroy(a);
 }
@@ -314,8 +314,8 @@ TEST(iter_chain_collects_in_order)
     slice_t result = iter_collect(
         iter_chain(iter_from_slice(sa, al), iter_from_slice(sb, al)), al);
     ASSERT_EQ(4, result.len);
-    ASSERT_EQ(1, *(int *)slice_get(result, 0));
-    ASSERT_EQ(4, *(int *)slice_get(result, 3));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(4, *(int *)slice_get_ptr(result, 3));
     growing_arena_destroy(arena);
 }
 
@@ -365,7 +365,7 @@ TEST(iter_zip_pairs_elements)
         count++;
     }
     ASSERT_EQ(3, count);
-    iter_drop(&z);
+    iter_destroy(&z);
     growing_arena_destroy(arena);
 }
 
@@ -410,7 +410,7 @@ TEST(iter_sort_ascending)
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
     {
-        ASSERT_EQ((int)(i + 1), *(int *)slice_get(result, i));
+        ASSERT_EQ((int)(i + 1), *(int *)slice_get_ptr(result, i));
     }
     growing_arena_destroy(arena);
 }
@@ -426,8 +426,8 @@ TEST(iter_sort_already_sorted)
         iter_from_slice(s, growing_arena_allocator(arena)),
         int_cmp,
         growing_arena_allocator(arena));
-    ASSERT_EQ(1, *(int *)slice_get(result, 0));
-    ASSERT_EQ(3, *(int *)slice_get(result, 2));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(result, 2));
     growing_arena_destroy(arena);
 }
 
@@ -566,7 +566,7 @@ TEST(iter_enumerate_indices_and_values)
     ASSERT_EQ(2, e.index);
     ASSERT_EQ(30, *(int *)e.elem);
     ASSERT_FALSE(it.next(&it, &e));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -582,7 +582,7 @@ TEST(iter_enumerate_empty)
     iter_t it = iter_enumerate(iter_from_slice(s, scratch_allocator(&sc)));
     enum_entry_t e;
     ASSERT_FALSE(it.next(&it, &e));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -603,19 +603,19 @@ TEST(iter_window_basic)
     /* window [1,2,3] */
     ASSERT_TRUE(it.next(&it, &w));
     ASSERT_EQ(3, w.len);
-    ASSERT_EQ(1, *(int *)slice_get(w, 0));
-    ASSERT_EQ(2, *(int *)slice_get(w, 1));
-    ASSERT_EQ(3, *(int *)slice_get(w, 2));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(w, 0));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(w, 1));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(w, 2));
     /* window [2,3,4] */
     ASSERT_TRUE(it.next(&it, &w));
-    ASSERT_EQ(2, *(int *)slice_get(w, 0));
-    ASSERT_EQ(4, *(int *)slice_get(w, 2));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(w, 0));
+    ASSERT_EQ(4, *(int *)slice_get_ptr(w, 2));
     /* window [3,4,5] */
     ASSERT_TRUE(it.next(&it, &w));
-    ASSERT_EQ(3, *(int *)slice_get(w, 0));
-    ASSERT_EQ(5, *(int *)slice_get(w, 2));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(w, 0));
+    ASSERT_EQ(5, *(int *)slice_get_ptr(w, 2));
     ASSERT_FALSE(it.next(&it, &w));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -632,7 +632,7 @@ TEST(iter_window_source_too_short)
     iter_t it = iter_window(iter_from_slice(s, scratch_allocator(&sc)), 3);
     slice_t w;
     ASSERT_FALSE(it.next(&it, &w));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -684,18 +684,18 @@ TEST(iter_chunks_even)
     slice_t c;
     ASSERT_TRUE(it.next(&it, &c));
     ASSERT_EQ(2, c.len);
-    ASSERT_EQ(1, *(int *)slice_get(c, 0));
-    ASSERT_EQ(2, *(int *)slice_get(c, 1));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(c, 0));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(c, 1));
     ASSERT_TRUE(it.next(&it, &c));
     ASSERT_EQ(2, c.len);
-    ASSERT_EQ(3, *(int *)slice_get(c, 0));
-    ASSERT_EQ(4, *(int *)slice_get(c, 1));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(c, 0));
+    ASSERT_EQ(4, *(int *)slice_get_ptr(c, 1));
     ASSERT_TRUE(it.next(&it, &c));
     ASSERT_EQ(2, c.len);
-    ASSERT_EQ(5, *(int *)slice_get(c, 0));
-    ASSERT_EQ(6, *(int *)slice_get(c, 1));
+    ASSERT_EQ(5, *(int *)slice_get_ptr(c, 0));
+    ASSERT_EQ(6, *(int *)slice_get_ptr(c, 1));
     ASSERT_FALSE(it.next(&it, &c));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -717,9 +717,9 @@ TEST(iter_chunks_remainder)
     ASSERT_EQ(2, c.len);
     ASSERT_TRUE(it.next(&it, &c));
     ASSERT_EQ(1, c.len); /* remainder */
-    ASSERT_EQ(5, *(int *)slice_get(c, 0));
+    ASSERT_EQ(5, *(int *)slice_get_ptr(c, 0));
     ASSERT_FALSE(it.next(&it, &c));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -760,7 +760,7 @@ TEST(iter_flat_map_expand)
         ASSERT_EQ(expected[i], val);
     }
     ASSERT_FALSE(it.next(&it, &val));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -778,7 +778,7 @@ TEST(iter_flat_map_empty_source)
         iter_flat_map(iter_from_slice(s, alloc), repeat_n, &alloc, sizeof(int));
     int val;
     ASSERT_FALSE(it.next(&it, &val));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -872,8 +872,8 @@ TEST(iter_take_while_basic)
         scratch_allocator(&sc));
     /* gt10: 15 ✓, 22 ✓, 8 ✗ → stop */
     ASSERT_EQ(2, result.len);
-    ASSERT_EQ(15, *(int *)slice_get(result, 0));
-    ASSERT_EQ(22, *(int *)slice_get(result, 1));
+    ASSERT_EQ(15, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(22, *(int *)slice_get_ptr(result, 1));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -944,8 +944,8 @@ TEST(iter_skip_while_basic)
         scratch_allocator(&sc));
     /* gt10: 15 skip, 22 skip, 8 → yield, 30 → yield */
     ASSERT_EQ(2, result.len);
-    ASSERT_EQ(8, *(int *)slice_get(result, 0));
-    ASSERT_EQ(30, *(int *)slice_get(result, 1));
+    ASSERT_EQ(8, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(30, *(int *)slice_get_ptr(result, 1));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1015,9 +1015,9 @@ TEST(iter_skip_while_yields_all_after_first_miss)
         scratch_allocator(&sc));
     /* gt10: 15 skip, 3 → yield; then 22 and 8 must also be yielded */
     ASSERT_EQ(3, result.len);
-    ASSERT_EQ(3, *(int *)slice_get(result, 0));
-    ASSERT_EQ(22, *(int *)slice_get(result, 1));
-    ASSERT_EQ(8, *(int *)slice_get(result, 2));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(22, *(int *)slice_get_ptr(result, 1));
+    ASSERT_EQ(8, *(int *)slice_get_ptr(result, 2));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1050,7 +1050,7 @@ TEST(iter_generate_basic)
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
     {
-        ASSERT_EQ((int)i, *(int *)slice_get(result, i));
+        ASSERT_EQ((int)i, *(int *)slice_get_ptr(result, i));
     }
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -1103,7 +1103,7 @@ TEST(iter_range_basic)
     ASSERT_EQ(5, result.len);
     for (size_t i = 0; i < result.len; i++)
     {
-        ASSERT_EQ((long long)i, *(long long *)slice_get(result, i));
+        ASSERT_EQ((long long)i, *(long long *)slice_get_ptr(result, i));
     }
     scratch_end(&sc);
     growing_arena_destroy(arena);
@@ -1120,8 +1120,8 @@ TEST(iter_range_step_two)
         iter_range(0, 10, 2, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 0, 2, 4, 6, 8 */
     ASSERT_EQ(5, result.len);
-    ASSERT_EQ(0LL, *(long long *)slice_get(result, 0));
-    ASSERT_EQ(8LL, *(long long *)slice_get(result, 4));
+    ASSERT_EQ(0LL, *(long long *)slice_get_ptr(result, 0));
+    ASSERT_EQ(8LL, *(long long *)slice_get_ptr(result, 4));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1137,8 +1137,8 @@ TEST(iter_range_negative_step)
         iter_range(5, 0, -1, scratch_allocator(&sc)), scratch_allocator(&sc));
     /* 5, 4, 3, 2, 1 */
     ASSERT_EQ(5, result.len);
-    ASSERT_EQ(5LL, *(long long *)slice_get(result, 0));
-    ASSERT_EQ(1LL, *(long long *)slice_get(result, 4));
+    ASSERT_EQ(5LL, *(long long *)slice_get_ptr(result, 0));
+    ASSERT_EQ(1LL, *(long long *)slice_get_ptr(result, 4));
     scratch_end(&sc);
     growing_arena_destroy(arena);
 }
@@ -1202,7 +1202,7 @@ TEST(iter_peekable_peek_does_not_consume)
     ASSERT_EQ(10, got); /* peek did not consume */
     ASSERT_TRUE(it.next(&it, &got));
     ASSERT_EQ(20, got);
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -1220,7 +1220,7 @@ TEST(iter_peekable_peek_at_end_returns_false)
     int got;
     it.next(&it, &got); /* consume the only element */
     ASSERT_FALSE(iter_peek(&it, &got));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -1239,7 +1239,7 @@ TEST(iter_peekable_multiple_peeks_return_same)
     ASSERT_TRUE(iter_peek(&it, &p1));
     ASSERT_TRUE(iter_peek(&it, &p2));
     ASSERT_EQ(p2, p1); /* repeated peek returns same value */
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -1265,10 +1265,10 @@ TEST(iter_dedup_removes_consecutive_duplicates)
         iter_dedup(iter_from_slice(s, scratch_allocator(&sc)), int_cmp_dedup),
         scratch_allocator(&sc));
     ASSERT_EQ(4, result.len);
-    ASSERT_EQ(1, *(int *)slice_get(result, 0));
-    ASSERT_EQ(2, *(int *)slice_get(result, 1));
-    ASSERT_EQ(3, *(int *)slice_get(result, 2));
-    ASSERT_EQ(4, *(int *)slice_get(result, 3));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(result, 1));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(result, 2));
+    ASSERT_EQ(4, *(int *)slice_get_ptr(result, 3));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -1309,9 +1309,9 @@ TEST(iter_sort_then_dedup_unique_values)
             int_cmp_dedup),
         scratch_allocator(&sc));
     ASSERT_EQ(3, result.len);
-    ASSERT_EQ(1, *(int *)slice_get(result, 0));
-    ASSERT_EQ(2, *(int *)slice_get(result, 1));
-    ASSERT_EQ(3, *(int *)slice_get(result, 2));
+    ASSERT_EQ(1, *(int *)slice_get_ptr(result, 0));
+    ASSERT_EQ(2, *(int *)slice_get_ptr(result, 1));
+    ASSERT_EQ(3, *(int *)slice_get_ptr(result, 2));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }

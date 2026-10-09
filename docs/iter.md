@@ -16,7 +16,7 @@ Nothing allocates or runs until a terminal is called.
 ```c
 struct iter_t {
   bool (*next)(iter_t *it, void *out); /* write elem_size bytes; return true/false */
-  void (*drop)(iter_t *it);            /* free internal state; NULL is valid       */
+  void (*destroy)(iter_t *it);            /* free internal state; NULL is valid       */
   void      *state;
   size_t     elem_size;
   allocator_t  allocator;
@@ -24,13 +24,13 @@ struct iter_t {
 ```
 
 Adaptors that need to allocate state (window, chunks, flat_map, …) use
-`it.allocator`. The arena that owns the state is freed when `iter_drop()` is
+`it.allocator`. The arena that owns the state is freed when `iter_destroy()` is
 called, or implicitly by the terminal.
 
-### `iter_drop` (inline)
+### `iter_destroy` (inline)
 
 ```c
-static inline void iter_drop(iter_t *it);
+static inline void iter_destroy(iter_t *it);
 ```
 
 Release iterator resources without consuming elements. Call this when you want
@@ -335,7 +335,7 @@ iter_t it = iter_enumerate(list_iter(&l));
 enum_entry_t e;
 while (it.next(&it, &e))
     printf("[%zu] %d\n", e.index, *(int *)e.elem);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
@@ -376,10 +376,10 @@ Yields nothing if the source has fewer than `n` elements.
 iter_t it = iter_window(vec_iter(&v), 3);
 slice_t win;
 while (it.next(&it, &win))
-    printf("%d %d %d\n", *(int *)slice_get(win,0),
-                         *(int *)slice_get(win,1),
-                         *(int *)slice_get(win,2));
-iter_drop(&it);
+    printf("%d %d %d\n", *(int *)slice_get_ptr(win,0),
+                         *(int *)slice_get_ptr(win,1),
+                         *(int *)slice_get_ptr(win,2));
+iter_destroy(&it);
 ```
 
 ---

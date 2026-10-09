@@ -13,5 +13,5 @@ size_t hash_fnv1a(const void *key, size_t key_size);
 bool hash_eq_bytes(const void *a, const void *b, size_t key_size);
 
 /* string_t variants: key is a (char *), key_size is sizeof(char *) */
-size_t hash_fnv1a_str(const void *key, size_t key_size);
-bool hash_eq_str(const void *a, const void *b, size_t key_size);
+size_t hash_cstr(const void *key, size_t key_size);
+bool hash_eq_cstr(const void *a, const void *b, size_t key_size);

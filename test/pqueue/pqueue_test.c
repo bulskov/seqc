@@ -222,7 +222,7 @@ TEST(pqueue_iter_visits_all_elements)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, n);
     /* Verify all 5 values are present, regardless of order */
     int found[5] = {0};
@@ -255,7 +255,7 @@ TEST(pqueue_iter_empty)
     iter_t it = pqueue_iter(q);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 /* ---- pqueue_iter_rev --------------------------------------------------- */
@@ -278,13 +278,13 @@ TEST(pqueue_iter_rev_visits_all_elements)
     {
         nf++;
     }
-    iter_drop(&fwd);
+    iter_destroy(&fwd);
     iter_t rev = pqueue_iter_rev(q);
     while (rev.next(&rev, &seen_rev[nr]))
     {
         nr++;
     }
-    iter_drop(&rev);
+    iter_destroy(&rev);
     ASSERT_EQ(5, nf);
     ASSERT_EQ(5, nr);
     /* rev must be exactly the reverse of fwd */
@@ -304,10 +304,10 @@ TEST(pqueue_iter_rev_empty)
     iter_t it = pqueue_iter_rev(q);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
-/* ---- pqueue_build_from_vec --------------------------------------------- */
+/* ---- pqueue_create_from_vec --------------------------------------------- */
 TEST(pqueue_build_from_vec_pop_yields_ascending)
 {
     growing_arena_t _a_storage;
@@ -319,7 +319,7 @@ TEST(pqueue_build_from_vec_pop_yields_ascending)
     {
         vec_push(v, &vals[i]);
     }
-    pqueue_t *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
+    pqueue_t *q = pqueue_create_from_vec(v, int_cmp, growing_arena_allocator(a));
     ASSERT_EQ(10, pqueue_len(q));
     int peeked;
     ASSERT_EQ(SEQC_OK, pqueue_peek(q, &peeked));
@@ -345,12 +345,12 @@ TEST(pqueue_build_from_vec_does_not_modify_source)
     {
         vec_push(v, &vals[i]);
     }
-    pqueue_t *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
+    pqueue_t *q = pqueue_create_from_vec(v, int_cmp, growing_arena_allocator(a));
     /* Original vec must be unchanged */
     ASSERT_EQ(3, vec_len(v));
-    ASSERT_EQ(3, *(int *)vec_get(v, 0));
-    ASSERT_EQ(1, *(int *)vec_get(v, 1));
-    ASSERT_EQ(2, *(int *)vec_get(v, 2));
+    ASSERT_EQ(3, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 1));
+    ASSERT_EQ(2, *(int *)vec_get_ptr(v, 2));
     (void)q;
     growing_arena_destroy(a);
 }
@@ -360,7 +360,7 @@ TEST(pqueue_build_from_vec_empty)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 256);
     vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
-    pqueue_t *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
+    pqueue_t *q = pqueue_create_from_vec(v, int_cmp, growing_arena_allocator(a));
     ASSERT_TRUE(pqueue_is_empty(q));
     ASSERT_NE(SEQC_OK, pqueue_peek(q, NULL));
     growing_arena_destroy(a);
@@ -373,14 +373,14 @@ TEST(pqueue_build_from_vec_single)
     vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
-    pqueue_t *q = pqueue_build_from_vec(v, int_cmp, growing_arena_allocator(a));
+    pqueue_t *q = pqueue_create_from_vec(v, int_cmp, growing_arena_allocator(a));
     ASSERT_EQ(1, pqueue_len(q));
     int peeked;
     ASSERT_EQ(SEQC_OK, pqueue_peek(q, &peeked));
     ASSERT_EQ(42, peeked);
     growing_arena_destroy(a);
 }
-/* ---- sys_allocator: exercises pqueue_free ------------------------------ */
+/* ---- sys_allocator: exercises pqueue_destroy ------------------------------ */
 TEST(pqueue_sys_alloc_free_releases_memory)
 {
     allocator_t al = sys_allocator();
@@ -393,7 +393,7 @@ TEST(pqueue_sys_alloc_free_releases_memory)
     int peeked;
     ASSERT_EQ(SEQC_OK, pqueue_peek(q, &peeked));
     ASSERT_EQ(1, peeked);
-    pqueue_free(q);
+    pqueue_destroy(q);
     /* memory released — verified by sys_allocator not leaking */
 }
 /* ---- pqueue_drain ------------------------------------------------------ */
@@ -414,7 +414,7 @@ TEST(pqueue_drain_yields_sorted_slice)
     ASSERT_TRUE(pqueue_is_empty(q));
     for (size_t i = 1; i < s.len; i++)
     {
-        ASSERT_LE(*(int *)slice_get(s, i - 1), *(int *)slice_get(s, i));
+        ASSERT_LE(*(int *)slice_get_ptr(s, i - 1), *(int *)slice_get_ptr(s, i));
     }
     growing_arena_destroy(a);
 }

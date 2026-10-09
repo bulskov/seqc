@@ -116,7 +116,7 @@ TEST(ringbuf_pop_null_out_discards)
     growing_arena_destroy(a);
 }
 
-/* ---- ringbuf_at -------------------------------------------------------- */
+/* ---- ringbuf_get -------------------------------------------------------- */
 
 TEST(ringbuf_at_returns_correct_element)
 {
@@ -131,7 +131,7 @@ TEST(ringbuf_at_returns_correct_element)
     for (int i = 0; i < 5; i++)
     {
         int got;
-        ASSERT_EQ(SEQC_OK, ringbuf_at(r, (size_t)i, &got));
+        ASSERT_EQ(SEQC_OK, ringbuf_get(r, (size_t)i, &got));
         ASSERT_EQ(i, got);
     }
     growing_arena_destroy(a);
@@ -143,7 +143,7 @@ TEST(ringbuf_at_out_of_bounds_returns_null)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 256);
     ringbuf_t *r = ringbuf_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_EQ(SEQC_NOT_FOUND, ringbuf_at(r, 0, NULL));
+    ASSERT_EQ(SEQC_NOT_FOUND, ringbuf_get(r, 0, NULL));
     growing_arena_destroy(a);
 }
 
@@ -200,7 +200,7 @@ TEST(ringbuf_clear_allows_reuse)
     ringbuf_push_back(r, &v);
     ASSERT_EQ(1, ringbuf_len(r));
     int got99;
-    ASSERT_EQ(SEQC_OK, ringbuf_at(r, 0, &got99));
+    ASSERT_EQ(SEQC_OK, ringbuf_get(r, 0, &got99));
     ASSERT_EQ(99, got99);
     growing_arena_destroy(a);
 }
@@ -224,7 +224,7 @@ TEST(ringbuf_iter_forward)
         ASSERT_EQ(expected, val);
         expected++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, expected);
     growing_arena_destroy(a);
 }
@@ -248,7 +248,7 @@ TEST(ringbuf_iter_reverse)
         ASSERT_EQ(expected, val);
         expected--;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(-1, expected);
     growing_arena_destroy(a);
 }
@@ -278,7 +278,7 @@ TEST(ringbuf_push_front_wrap)
     for (int i = 0; i < 10; i++)
     {
         int got;
-        ASSERT_EQ(SEQC_OK, ringbuf_at(r, (size_t)i, &got));
+        ASSERT_EQ(SEQC_OK, ringbuf_get(r, (size_t)i, &got));
         ASSERT_EQ(expected[i], got);
     }
     growing_arena_destroy(a);
@@ -295,7 +295,7 @@ TEST(ringbuf_iter_empty)
     iter_t it = ringbuf_iter(r);
     int v;
     ASSERT_FALSE(it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 

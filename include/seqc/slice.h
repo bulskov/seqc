@@ -10,11 +10,11 @@ typedef struct
     size_t elem_size;
 } slice_t;
 
-void *slice_get(slice_t s, size_t i);
+void *slice_get_ptr(slice_t s, size_t i);
 
 /* Linear search. pred(elem, ctx) must return true to match.
  * Returns pointer to the first matching element, or NULL. */
 void *slice_find(
     slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);
-bool slice_contains(
+bool slice_any(
     slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);

@@ -198,7 +198,7 @@ TEST(omap_iter_ascending_order)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     for (size_t i = 1; i < n; i++)
     {
@@ -257,7 +257,7 @@ TEST(omap_string_keys)
     ASSERT_TRUE(string_equals(*(string_t *)e.key, STRING_LIT("banana")));
     it.next(&it, &e);
     ASSERT_TRUE(string_equals(*(string_t *)e.key, STRING_LIT("cherry")));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -309,7 +309,7 @@ TEST(omap_iter_rev_descending)
         prev_key = *(int *)e.key;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -342,7 +342,7 @@ TEST(omap_iter_range_mid)
         prev = k;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, n);
     growing_arena_destroy(a);
 }
@@ -367,7 +367,7 @@ TEST(omap_iter_range_no_lo)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n); /* 1,2,3 */
     growing_arena_destroy(a);
 }
@@ -389,7 +389,7 @@ TEST(omap_iter_range_empty_result)
     iter_t it = omap_iter_range(m, &lo, &hi);
     omap_entry_t e;
     ASSERT_TRUE(!it.next(&it, &e));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 
@@ -494,8 +494,8 @@ TEST(omap_iter_oom_returns_empty)
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = omap_iter(m);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    omap_free(m);
+    iter_destroy(&it);
+    omap_destroy(m);
 }
 
 TEST(omap_iter_rev_oom_returns_empty)
@@ -511,8 +511,8 @@ TEST(omap_iter_rev_oom_returns_empty)
     ctx.remaining = 0;
     iter_t it = omap_iter_rev(m);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    omap_free(m);
+    iter_destroy(&it);
+    omap_destroy(m);
 }
 
 TEST(omap_iter_range_oom_returns_empty)
@@ -529,8 +529,8 @@ TEST(omap_iter_range_oom_returns_empty)
     ctx.remaining = 0;
     iter_t it = omap_iter_range(m, &lo, &hi);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    omap_free(m);
+    iter_destroy(&it);
+    omap_destroy(m);
 }
 
 int main(int argc, char *argv[])

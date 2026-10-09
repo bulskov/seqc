@@ -49,5 +49,5 @@ iter_t omap_iter_rev(const omap_t *m);
  * NULL lo_key/hi_key means unbounded on that side. */
 iter_t omap_iter_range(const omap_t *m, const void *lo_key, const void *hi_key);
 
-void omap_free(omap_t *m);
+void omap_destroy(omap_t *m);
 void omap_clear(omap_t *m);

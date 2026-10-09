@@ -32,7 +32,7 @@ struct iter_t
     bool (*next)(
         iter_t *it,
         void *out); /* writes elem_size bytes; returns true or false */
-    void (*drop)(iter_t *it); /* frees internal state; NULL is valid     */
+    void (*destroy)(iter_t *it); /* frees internal state; NULL is valid     */
     bool (*peek)(iter_t *it, void *out); /* NULL if not peekable            */
     void *state;
     size_t elem_size;
@@ -40,11 +40,11 @@ struct iter_t
 };
 
 /* Inline drop — call to release resources without a terminal */
-static inline void iter_drop(iter_t *it)
+static inline void iter_destroy(iter_t *it)
 {
-    if (it && it->drop)
+    if (it && it->destroy)
     {
-        it->drop(it);
+        it->destroy(it);
     }
 }
 

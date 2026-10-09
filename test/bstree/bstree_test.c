@@ -24,8 +24,8 @@ TEST(bstree_empty_on_create)
     bstree_t *t =
         bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     ASSERT_EQ(0, bstree_len(t));
-    ASSERT_NULL(bstree_min(t));
-    ASSERT_NULL(bstree_max(t));
+    ASSERT_NULL(bstree_min_ptr(t));
+    ASSERT_NULL(bstree_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -39,7 +39,7 @@ TEST(bstree_insert_and_contains)
     int vals[] = {5, 3, 7, 1, 4};
     for (int i = 0; i < 5; i++)
     {
-        ASSERT_EQ(SEQC_OK, bstree_insert(t, &vals[i]));
+        ASSERT_EQ(SEQC_OK, bstree_add(t, &vals[i]));
     }
     ASSERT_EQ(5, bstree_len(t));
     for (int i = 0; i < 5; i++)
@@ -59,8 +59,8 @@ TEST(bstree_insert_duplicate_returns_0)
     bstree_t *t =
         bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int v = 10;
-    ASSERT_EQ(SEQC_OK, bstree_insert(t, &v));
-    ASSERT_NE(SEQC_OK, bstree_insert(t, &v));
+    ASSERT_EQ(SEQC_OK, bstree_add(t, &v));
+    ASSERT_NE(SEQC_OK, bstree_add(t, &v));
     ASSERT_EQ(1, bstree_len(t));
     growing_arena_destroy(a);
 }
@@ -75,10 +75,10 @@ TEST(bstree_min_max)
     int vals[] = {5, 1, 8, 3, 9, 2};
     for (int i = 0; i < 6; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
-    ASSERT_EQ(1, *(int *)bstree_min(t));
-    ASSERT_EQ(9, *(int *)bstree_max(t));
+    ASSERT_EQ(1, *(int *)bstree_min_ptr(t));
+    ASSERT_EQ(9, *(int *)bstree_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -92,7 +92,7 @@ TEST(bstree_iter_in_order)
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
@@ -103,7 +103,7 @@ TEST(bstree_iter_in_order)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     /* in-order traversal must yield ascending values */
     for (size_t i = 1; i < n; i++)
@@ -124,7 +124,7 @@ TEST(bstree_remove_leaf)
     int vals[] = {5, 3, 7};
     for (int i = 0; i < 3; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int v = 3;
     ASSERT_EQ(SEQC_OK, bstree_remove(t, &v));
@@ -143,7 +143,7 @@ TEST(bstree_remove_node_with_two_children)
     int vals[] = {5, 3, 7, 1, 4, 6, 8};
     for (int i = 0; i < 7; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int v = 5; /* root with two children */
     ASSERT_EQ(SEQC_OK, bstree_remove(t, &v));
@@ -161,7 +161,7 @@ TEST(bstree_remove_node_with_two_children)
         ASSERT_LT(prev, cur);
         prev = cur;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -206,7 +206,7 @@ TEST(bstree_many_inserts_sorted)
                    23, 26, 29, 32, 35, 38, 41, 44, 47, 48, 49};
     for (int i = 0; i < 50; i++)
     {
-        bstree_insert(t, &order[i]);
+        bstree_add(t, &order[i]);
     }
     ASSERT_EQ(50, bstree_len(t));
     scratch_t sc;
@@ -222,10 +222,10 @@ TEST(bstree_many_inserts_sorted)
         prev = cur;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(50, n);
-    ASSERT_EQ(0, *(int *)bstree_min(t));
-    ASSERT_EQ(49, *(int *)bstree_max(t));
+    ASSERT_EQ(0, *(int *)bstree_min_ptr(t));
+    ASSERT_EQ(49, *(int *)bstree_max_ptr(t));
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -240,7 +240,7 @@ TEST(bstree_iter_rev_descending)
     int vals[] = {4, 2, 6, 1, 3, 5, 7};
     for (int i = 0; i < 7; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     scratch_t sc;
     growing_arena_scratch_begin(&sc, a);
@@ -255,7 +255,7 @@ TEST(bstree_iter_rev_descending)
         prev = cur;
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(7, n);
     scratch_end(&sc);
     growing_arena_destroy(a);
@@ -271,7 +271,7 @@ TEST(bstree_iter_range_mid)
     int vals[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     for (int i = 0; i < 10; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int lo = 3, hi = 7;
     iter_t it = bstree_iter_range(t, &lo, &hi);
@@ -281,7 +281,7 @@ TEST(bstree_iter_range_mid)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, n); /* 3,4,5,6,7 */
     ASSERT_EQ(3, collected[0]);
     ASSERT_EQ(7, collected[4]);
@@ -298,7 +298,7 @@ TEST(bstree_iter_range_no_lo)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int hi = 3;
     iter_t it = bstree_iter_range(t, NULL, &hi);
@@ -308,7 +308,7 @@ TEST(bstree_iter_range_no_lo)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n); /* 1,2,3 */
     growing_arena_destroy(a);
 }
@@ -323,7 +323,7 @@ TEST(bstree_iter_range_no_hi)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int lo = 3;
     iter_t it = bstree_iter_range(t, &lo, NULL);
@@ -333,7 +333,7 @@ TEST(bstree_iter_range_no_hi)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n); /* 3,4,5 */
     growing_arena_destroy(a);
 }
@@ -348,13 +348,13 @@ TEST(bstree_iter_range_empty_result)
     int vals[] = {1, 5, 10};
     for (int i = 0; i < 3; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     int lo = 6, hi = 9;
     iter_t it = bstree_iter_range(t, &lo, &hi);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 
@@ -370,12 +370,12 @@ TEST(bstree_clear_empties_tree)
     int vals[] = {3, 1, 5, 2, 4};
     for (int i = 0; i < 5; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     bstree_clear(t);
     ASSERT_EQ(0, bstree_len(t));
-    ASSERT_NULL(bstree_min(t));
-    ASSERT_NULL(bstree_max(t));
+    ASSERT_NULL(bstree_min_ptr(t));
+    ASSERT_NULL(bstree_max_ptr(t));
     growing_arena_destroy(a);
 }
 
@@ -389,11 +389,11 @@ TEST(bstree_clear_allows_reuse)
     int vals[] = {3, 1, 5};
     for (int i = 0; i < 3; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     bstree_clear(t);
     int x = 42;
-    ASSERT_EQ(SEQC_OK, bstree_insert(t, &x));
+    ASSERT_EQ(SEQC_OK, bstree_add(t, &x));
     ASSERT_EQ(1, bstree_len(t));
     ASSERT_TRUE(bstree_contains(t, &x));
     growing_arena_destroy(a);
@@ -420,7 +420,7 @@ TEST(bstree_height_single_node_is_one)
     bstree_t *t =
         bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     int x = 5;
-    bstree_insert(t, &x);
+    bstree_add(t, &x);
     ASSERT_EQ(1, bstree_height(t));
     growing_arena_destroy(a);
 }
@@ -436,7 +436,7 @@ TEST(bstree_height_increases_with_depth)
     int vals[] = {1, 2, 3, 4, 5};
     for (int i = 0; i < 5; i++)
     {
-        bstree_insert(t, &vals[i]);
+        bstree_add(t, &vals[i]);
     }
     ASSERT_GE(bstree_height(t), 1);
     growing_arena_destroy(a);
@@ -452,7 +452,7 @@ TEST(bstree_sorted_input_produces_linear_height)
         bstree_create(sizeof(int), int_cmp, growing_arena_allocator(a));
     for (int i = 0; i < 1000; i++)
     {
-        bstree_insert(t, &i);
+        bstree_add(t, &i);
     }
     ASSERT_EQ(1000, bstree_len(t));
     ASSERT_EQ(1000, bstree_height(t));
@@ -469,13 +469,13 @@ TEST(bstree_iter_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
     {
-        bstree_insert(t, &i);
+        bstree_add(t, &i);
     }
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = bstree_iter(t);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    bstree_free(t);
+    iter_destroy(&it);
+    bstree_destroy(t);
 }
 
 TEST(bstree_iter_rev_oom_returns_empty)
@@ -486,13 +486,13 @@ TEST(bstree_iter_rev_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 3; i++)
     {
-        bstree_insert(t, &i);
+        bstree_add(t, &i);
     }
     ctx.remaining = 0;
     iter_t it = bstree_iter_rev(t);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    bstree_free(t);
+    iter_destroy(&it);
+    bstree_destroy(t);
 }
 
 TEST(bstree_iter_range_oom_returns_empty)
@@ -503,14 +503,14 @@ TEST(bstree_iter_range_oom_returns_empty)
     ASSERT_NOT_NULL(t);
     for (int i = 0; i < 5; i++)
     {
-        bstree_insert(t, &i);
+        bstree_add(t, &i);
     }
     int lo = 1, hi = 3;
     ctx.remaining = 0;
     iter_t it = bstree_iter_range(t, &lo, &hi);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    bstree_free(t);
+    iter_destroy(&it);
+    bstree_destroy(t);
 }
 
 int main(int argc, char *argv[])

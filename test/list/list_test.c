@@ -33,7 +33,7 @@ TEST(list_push_back_then_iter)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(1, got[0]);
     ASSERT_EQ(2, got[1]);
@@ -49,8 +49,8 @@ TEST(list_push_front_prepends)
     int two = 2, one = 1;
     list_push_back(l, &two);
     list_push_front(l, &one);
-    ASSERT_EQ(1, *(int *)list_front(l));
-    ASSERT_EQ(2, *(int *)list_back(l));
+    ASSERT_EQ(1, *(int *)list_front_ptr(l));
+    ASSERT_EQ(2, *(int *)list_back_ptr(l));
     growing_arena_destroy(a);
 }
 TEST(list_pop_front_dequeues)
@@ -67,7 +67,7 @@ TEST(list_pop_front_dequeues)
     int out;
     ASSERT_EQ(SEQC_OK, list_pop_front(l, &out));
     ASSERT_EQ(10, out);
-    ASSERT_EQ(20, *(int *)list_front(l));
+    ASSERT_EQ(20, *(int *)list_front_ptr(l));
     ASSERT_EQ(2, list_len(l));
     growing_arena_destroy(a);
 }
@@ -87,8 +87,8 @@ TEST(list_front_back_null_if_empty)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 64);
     list_t *l = list_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_NULL(list_front(l));
-    ASSERT_NULL(list_back(l));
+    ASSERT_NULL(list_front_ptr(l));
+    ASSERT_NULL(list_back_ptr(l));
     growing_arena_destroy(a);
 }
 TEST(list_single_element_front_equals_back)
@@ -99,8 +99,8 @@ TEST(list_single_element_front_equals_back)
     list_t *l = list_create(sizeof(int), growing_arena_allocator(a));
     int v = 42;
     list_push_back(l, &v);
-    ASSERT_EQ(42, *(int *)list_front(l));
-    ASSERT_EQ(42, *(int *)list_back(l));
+    ASSERT_EQ(42, *(int *)list_front_ptr(l));
+    ASSERT_EQ(42, *(int *)list_back_ptr(l));
     growing_arena_destroy(a);
 }
 TEST(list_free_does_not_crash)
@@ -112,7 +112,7 @@ TEST(list_free_does_not_crash)
     int v = 1;
     list_push_back(l, &v);
     list_push_back(l, &v);
-    list_free(l);
+    list_destroy(l);
     ASSERT_TRUE(list_is_empty(l));
     growing_arena_destroy(a);
 }
@@ -146,7 +146,7 @@ TEST(list_clear_allows_reuse)
     int x = 99;
     list_push_back(l, &x);
     ASSERT_EQ(1, list_len(l));
-    ASSERT_EQ(99, *(int *)list_front(l));
+    ASSERT_EQ(99, *(int *)list_front_ptr(l));
     growing_arena_destroy(a);
 }
 /* ---- list_pop_back ----------------------------------------------------- */
@@ -165,7 +165,7 @@ TEST(list_pop_back_removes_last)
     ASSERT_EQ(SEQC_OK, list_pop_back(l, &out));
     ASSERT_EQ(3, out);
     ASSERT_EQ(2, list_len(l));
-    ASSERT_EQ(2, *(int *)list_back(l));
+    ASSERT_EQ(2, *(int *)list_back_ptr(l));
     growing_arena_destroy(a);
 }
 TEST(list_pop_back_single_element)
@@ -180,8 +180,8 @@ TEST(list_pop_back_single_element)
     ASSERT_EQ(SEQC_OK, list_pop_back(l, &out));
     ASSERT_EQ(42, out);
     ASSERT_TRUE(list_is_empty(l));
-    ASSERT_NULL(list_front(l));
-    ASSERT_NULL(list_back(l));
+    ASSERT_NULL(list_front_ptr(l));
+    ASSERT_NULL(list_back_ptr(l));
     growing_arena_destroy(a);
 }
 TEST(list_pop_back_empty_returns_false)
@@ -215,10 +215,10 @@ TEST(list_sys_alloc_free_releases_nodes)
     {
         list_push_back(l, &i);
     }
-    /* list_free walks the list and frees each node (and the list handle
+    /* list_destroy walks the list and frees each node (and the list handle
      * itself); releasing every node is verified by the leak sanitizer.
      * `l` is dangling after this call, so it must not be dereferenced. */
-    list_free(l);
+    list_destroy(l);
 }
 TEST(list_sys_alloc_pop_front_frees_node)
 {
@@ -229,7 +229,7 @@ TEST(list_sys_alloc_pop_front_frees_node)
     int out;
     ASSERT_EQ(SEQC_OK, list_pop_front(l, &out));
     ASSERT_EQ(42, out);
-    list_free(l);
+    list_destroy(l);
 }
 TEST(list_sys_alloc_pop_back_frees_node)
 {
@@ -244,7 +244,7 @@ TEST(list_sys_alloc_pop_back_frees_node)
     ASSERT_EQ(SEQC_OK, list_pop_back(l, &out));
     ASSERT_EQ(3, out);
     ASSERT_EQ(2, list_len(l));
-    list_free(l);
+    list_destroy(l);
 }
 TEST(list_sys_alloc_clear_frees_all_nodes)
 {
@@ -260,7 +260,7 @@ TEST(list_sys_alloc_clear_frees_all_nodes)
     int x = 99;
     list_push_back(l, &x);
     ASSERT_EQ(1, list_len(l));
-    list_free(l);
+    list_destroy(l);
 }
 
 /* ---- OOM paths: an exhausted allocator must not crash ------------------ */
@@ -278,8 +278,8 @@ TEST(list_iter_oom_returns_empty)
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = list_iter(l);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    list_free(l);
+    iter_destroy(&it);
+    list_destroy(l);
 }
 
 int main(int argc, char *argv[])

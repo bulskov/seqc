@@ -17,11 +17,11 @@ seqc_status_t dlist_push_front(dlist_t *l, const void *elem);
 seqc_status_t dlist_push_back(dlist_t *l, const void *elem);
 seqc_status_t dlist_pop_front(dlist_t *l, void *out); /* out may be NULL */
 seqc_status_t dlist_pop_back(dlist_t *l, void *out);  /* out may be NULL */
-void *dlist_front(const dlist_t *l); /* pointer to head data; NULL if empty */
-void *dlist_back(const dlist_t *l);  /* pointer to tail data; NULL if empty */
+void *dlist_front_ptr(const dlist_t *l); /* pointer to head data; NULL if empty */
+void *dlist_back_ptr(const dlist_t *l);  /* pointer to tail data; NULL if empty */
 bool dlist_is_empty(const dlist_t *l);
 size_t dlist_len(const dlist_t *l);
 iter_t dlist_iter(const dlist_t *l);     /* front→back */
 iter_t dlist_iter_rev(const dlist_t *l); /* back→front */
 void dlist_clear(dlist_t *l);            /* remove all nodes */
-void dlist_free(dlist_t *l);
+void dlist_destroy(dlist_t *l);

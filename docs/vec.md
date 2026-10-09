@@ -35,10 +35,10 @@ Arena *a = arena_create(4096);
 vec_t   *v = vec_create(sizeof(int), arena_allocator(a));
 ```
 
-### `vec_create_size`
+### `vec_create_with_cap`
 
 ```c
-vec_t *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator);
+vec_t *vec_create_with_cap(size_t elem_size, size_t capacity, allocator_t allocator);
 ```
 
 Create a vec_t pre-allocated for at least `capacity` elements. Use this when the
@@ -92,10 +92,10 @@ while (vec_pop(v, &val) == SEQC_OK)
 
 ---
 
-### `vec_get`
+### `vec_get_ptr`
 
 ```c
-void *vec_get(const vec_t *v, size_t i);
+void *vec_get_ptr(const vec_t *v, size_t i);
 ```
 
 Return a pointer to element `i`. No bounds checking. The pointer is
@@ -103,24 +103,24 @@ invalidated by any operation that reallocates the buffer (`vec_push`,
 `vec_insert`, `vec_reserve`).
 
 ```c
-int *third = vec_get(v, 2);
+int *third = vec_get_ptr(v, 2);
 ```
 
 ---
 
-### `vec_get_copy`
+### `vec_get`
 
 ```c
-seqc_status_t vec_get_copy(const vec_t *v, size_t i, void *out);
+seqc_status_t vec_get(const vec_t *v, size_t i, void *out);
 ```
 
 Copy element `i` into `*out`. Returns `SEQC_OK` on success,
 `SEQC_NOT_FOUND` if `i >= len`, or `SEQC_INVALID` if `out` is `NULL`.
-Unlike `vec_get`, the copied value is not invalidated by later reallocations.
+Unlike `vec_get_ptr`, the copied value is not invalidated by later reallocations.
 
 ```c
 int val;
-if (vec_get_copy(v, 2, &val) == SEQC_OK)
+if (vec_get(v, 2, &val) == SEQC_OK)
     printf("%d\n", val);
 ```
 
@@ -243,10 +243,10 @@ int *p = vec_find(&v, is_negative, NULL);
 if (p) printf("first negative: %d\n", *p);
 ```
 
-### `vec_contains`
+### `vec_any`
 
 ```c
-bool vec_contains(const vec_t *v, pred_fn pred, void *ctx);
+bool vec_any(const vec_t *v, pred_fn pred, void *ctx);
 ```
 
 Return `true` if any element satisfies `pred`. Equivalent to
@@ -265,10 +265,10 @@ will not reallocate until capacity is exhausted again.
 
 ---
 
-### `vec_free`
+### `vec_destroy`
 
 ```c
-void vec_free(vec_t *v);
+void vec_destroy(vec_t *v);
 ```
 
 Free the vec_t's buffer and then the vec_t struct itself. Do not use `v` after
@@ -323,12 +323,12 @@ for (int i = 0; i < 10; i++)
 iter_t fwd = vec_iter(v);
 int x;
 while (fwd.next(&fwd, &x)) printf("%d ", x);
-iter_drop(&fwd);
+iter_destroy(&fwd);
 
 // reverse
 iter_t rev = vec_iter_rev(v);
 while (rev.next(&rev, &x)) printf("%d ", x);
-iter_drop(&rev);
+iter_destroy(&rev);
 
 arena_free(a);
 ```

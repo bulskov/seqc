@@ -28,10 +28,10 @@ and other terminals.
 
 ## Functions
 
-### `slice_get`
+### `slice_get_ptr`
 
 ```c
-void *slice_get(slice_t s, size_t i);
+void *slice_get_ptr(slice_t s, size_t i);
 ```
 
 Return a pointer to element `i`. No bounds checking.
@@ -40,7 +40,7 @@ Return a pointer to element `i`. No bounds checking.
 slice_t s = iter_collect(iter_from_slice(original, al));
 
 for (size_t i = 0; i < s.len; i++) {
-    int *val = slice_get(s, i);
+    int *val = slice_get_ptr(s, i);
     printf("%d\n", *val);
 }
 ```
@@ -67,10 +67,10 @@ slice_t s = {nums, 4, sizeof(int)};
 int *p = slice_find(s, is_negative, NULL);  // points to -1
 ```
 
-### `slice_contains`
+### `slice_any`
 
 ```c
-bool slice_contains(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);
+bool slice_any(slice_t s, bool (*pred)(const void *elem, void *ctx), void *ctx);
 ```
 
 Return `true` if any element satisfies `pred`. Equivalent to

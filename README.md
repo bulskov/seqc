@@ -229,7 +229,7 @@ int main(void) {
 
     // result == {0, 4, 8, 12, 16}
     for (size_t i = 0; i < result.len; i++)
-        printf("%d\n", *(int *)slice_get(result, i));
+        printf("%d\n", *(int *)slice_get_ptr(result, i));
 
     growing_arena_destroy(&arena);
 }
