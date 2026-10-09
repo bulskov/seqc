@@ -70,9 +70,11 @@ Copy `s` into allocator-owned memory and return an owning `string_t`. Safe to
 use when you cannot guarantee that the original cstr will remain valid.
 
 ```c
-Arena  *a = arena_create(256);
+growing_arena_t arena;
+growing_arena_init(&arena, 256);
+allocator_t a = growing_arena_allocator(&arena);
 char    buf[] = "hello";
-string_t  s = string_from_cstr(buf, arena_allocator(a));
+string_t  s = string_from_cstr(buf, a);
 buf[0] = 'X'; /* s.ptr[0] is still 'h' — independent copy */
 ```
 
@@ -282,11 +284,13 @@ Return a new arena-allocated `string_t` with all non-overlapping occurrences of
 `needle` is empty the original string is returned as a copy unchanged.
 
 ```c
-Arena  *a   = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 string_t  res = string_replace(STRING_LIT("a,b,c"), STRING_LIT(","),
-                             STRING_LIT(" | "), arena_allocator(a));
+                             STRING_LIT(" | "), a);
 // res == "a | b | c"
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ### `string_to_uppercase` / `string_to_lowercase`
@@ -302,10 +306,12 @@ unchanged, independent of the C locale. Returns `{NULL, 0}` if the allocation
 fails.
 
 ```c
-Arena  *a = arena_create(256);
-string_t  u = string_to_uppercase(STRING_LIT("Hello World!"), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 256);
+allocator_t a = growing_arena_allocator(&arena);
+string_t  u = string_to_uppercase(STRING_LIT("Hello World!"), a);
 // u == "HELLO WORLD!"
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ### `string_join`
@@ -316,15 +322,17 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator);
 
 Consume `it` (an iterator that yields `string_t` values), concatenate every
 token with `sep` inserted between consecutive tokens, and return the result as
-a new arena-allocated `string_t`. The iterator is dropped after the call.
+a new arena-allocated `string_t`. The iterator is destroyed after the call.
 
 ```c
-Arena  *a   = arena_create(512);
+growing_arena_t arena;
+growing_arena_init(&arena, 512);
+allocator_t a = growing_arena_allocator(&arena);
 iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
-                                  arena_allocator(a));
-string_t  res = string_join(it, STRING_LIT(" | "), arena_allocator(a));
+                                  a);
+string_t  res = string_join(it, STRING_LIT(" | "), a);
 // res == "a | b | c"
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ### `string_to_int`
@@ -476,8 +484,10 @@ Return a `string_t` view over the builder's buffer. The view is valid as long as
 the arena that backs the builder is alive. No copy is made.
 
 ```c
-Arena         *a  = arena_create(4096);
-strbuf_t *sb = strbuf_create(arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+strbuf_t *sb = strbuf_create(a);
 
 strbuf_append_cstr(sb, "x=");
 strbuf_append_int(sb, 42);
@@ -486,7 +496,7 @@ strbuf_append_fmt(sb, ", pi=%.4f", 3.14159);
 string_t result = strbuf_finish(sb);
 // result == "x=42, pi=3.1416"
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ### `strbuf_len`
@@ -532,6 +542,16 @@ allocator it is how the memory comes back.
 
 ---
 
+### `strbuf_is_empty`
+
+```c
+bool strbuf_is_empty(const strbuf_t *sb);
+```
+
+`true` if nothing has been appended since the last clear, or `sb` is `NULL`.
+
+---
+
 ## HashMap / Set helpers
 
 ```c
@@ -545,7 +565,7 @@ Pass these as `hash_fn` / `eq_fn` when the key type of a
 ```c
 hashmap_t *m = hashmap_create(sizeof(string_t), sizeof(int),
                              string_hash, string_key_eq,
-                             arena_allocator(a));
+                             a);
 string_t k = STRING_LIT("count");
 int    v = 7;
 hashmap_set(m, &k, &v);
@@ -566,7 +586,7 @@ together — equal keys must hash equal.
 hashmap_t *m = hashmap_create(sizeof(string_t), sizeof(int),
                              string_hash_case_insensitive,
                              string_key_eq_case_insensitive,
-                             arena_allocator(a));
+                             a);
 ```
 
 ---
@@ -604,7 +624,7 @@ per-character iteration.
 
 ```c
 iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
-                                  arena_allocator(a));
+                                  a);
 string_t  tok;
 while (it.next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
@@ -627,7 +647,7 @@ drop the empties:
 ```c
 // keep-empty split on any whitespace char
 iter_t    raw = string_split_any(STRING_LIT("  the\tquick \n"),
-                               STRING_LIT(" \t\n"), arena_allocator(a));
+                               STRING_LIT(" \t\n"), a);
 // skip-empty tokenisation = split + filter
 iter_t    it  = iter_filter(raw, non_empty_str, NULL);
 string_t  tok;

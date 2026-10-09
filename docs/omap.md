@@ -46,9 +46,11 @@ static int int_cmp(const void *a, const void *b) {
     return *(const int *)a - *(const int *)b;
 }
 
-Arena *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 omap_t  *m = omap_create(sizeof(int), sizeof(double),
-                        int_cmp, arena_allocator(a));
+                        int_cmp, a);
 ```
 
 ---
@@ -215,11 +217,54 @@ Free all nodes and then the omap_t struct itself. Do not use `m` after calling t
 
 ---
 
+### `omap_get_ptr`
+
+```c
+void *omap_get_ptr(const omap_t *m, const void *key);
+```
+
+Pointer to the value for `key`, `NULL` if absent — the pair of `omap_get`. Use it to update a value in place. Valid until that key is removed (removing others may move it). See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `omap_min_key_ptr` / `omap_max_key_ptr`
+
+```c
+void *omap_min_key_ptr(const omap_t *m);
+void *omap_max_key_ptr(const omap_t *m);
+```
+
+Pointers to the smallest / largest key, `NULL` if empty. Never write through them: the order depends on the keys.
+
+---
+
+### `omap_is_empty`
+
+```c
+bool omap_is_empty(const omap_t *m);
+```
+
+`true` if the map has no entries, or is `NULL`.
+
+---
+
+### `omap_extend`
+
+```c
+seqc_status_t omap_extend(omap_t *m, iter_t it);
+```
+
+`it` yields `omap_entry_t` (from `omap_iter` or `hashmap_iter`); each key/value pair is set. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-omap_t  *m = omap_create(sizeof(int), sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+omap_t  *m = omap_create(sizeof(int), sizeof(int), int_cmp, a);
 
 for (int i = 1; i <= 5; i++) {
     int v = i * 100;
@@ -238,5 +283,5 @@ while (it.next(&it, &e))
     printf("%d => %d\n", *(int *)e.key, *(int *)e.value);
 iter_destroy(&it);
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

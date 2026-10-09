@@ -178,7 +178,7 @@ TEST(stack_iter_rev_empty)
     growing_arena_destroy(a);
 }
 /* ---- sys_allocator: exercises stack_destroy ------------------------------- */
-TEST(stack_sys_alloc_free_releases_memory)
+TEST(stack_sys_alloc_destroy_releases_memory)
 {
     allocator_t al = sys_allocator();
     seqc_stack_t *s = stack_create(sizeof(int), al);

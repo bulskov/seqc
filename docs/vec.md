@@ -31,8 +31,10 @@ Create an empty vec_t with an initial small capacity. Returns `NULL` if
 `elem_size` is zero.
 
 ```c
-Arena *a = arena_create(4096);
-vec_t   *v = vec_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+vec_t   *v = vec_create(sizeof(int), a);
 ```
 
 ### `vec_create_with_cap`
@@ -55,6 +57,16 @@ size_t vec_elem_size(const vec_t *v);
 ```
 
 Accessors for the three key properties of the vec_t.
+
+---
+
+### `vec_is_empty`
+
+```c
+bool vec_is_empty(const vec_t *v);
+```
+
+`true` if `v` has no elements, or is `NULL`.
 
 ---
 
@@ -98,9 +110,11 @@ while (vec_pop(v, &val) == SEQC_OK)
 void *vec_get_ptr(const vec_t *v, size_t i);
 ```
 
-Return a pointer to element `i`. No bounds checking. The pointer is
-invalidated by any operation that reallocates the buffer (`vec_push`,
-`vec_insert`, `vec_reserve`).
+Return a pointer to element `i`, or `NULL` if `i >= len` (or `v` is `NULL`).
+The pointer is valid only until the next change to `v`: anything that may
+reallocate (`vec_push`, `vec_insert`, `vec_reserve`) or shift elements
+(`vec_insert`, `vec_remove`). Prefer `vec_get` unless you write through it or
+avoid a copy in a hot loop.
 
 ```c
 int *third = vec_get_ptr(v, 2);
@@ -114,9 +128,9 @@ int *third = vec_get_ptr(v, 2);
 seqc_status_t vec_get(const vec_t *v, size_t i, void *out);
 ```
 
-Copy element `i` into `*out`. Returns `SEQC_OK` on success,
-`SEQC_NOT_FOUND` if `i >= len`, or `SEQC_INVALID` if `out` is `NULL`.
-Unlike `vec_get_ptr`, the copied value is not invalidated by later reallocations.
+Copy element `i` into `*out` (`out` may be `NULL` to test the index). Returns
+`SEQC_OK`, `SEQC_NOT_FOUND` if `i >= len`, or `SEQC_INVALID` if `v` is `NULL`.
+Unlike `vec_get_ptr`, the copy is not affected by later changes to `v`.
 
 ```c
 int val;
@@ -201,7 +215,7 @@ Return a non-owning [`slice_t`](slice.md) view of the entire vec_t buffer.
 
 ```c
 slice_t s = vec_as_slice(v);
-slice_t sorted = iter_sort(iter_from_slice(s, arena_allocator(a)), int_cmp, arena_allocator(a));
+slice_t sorted = iter_sort(iter_from_slice(s, a), int_cmp, a);
 ```
 
 ---
@@ -284,11 +298,11 @@ seqc_status_t vec_extend(vec_t *v, iter_t it);
 
 Drain `it`, pushing each element into `v`. Stops and returns `SEQC_OOM` on
 the first allocation failure; all elements pushed before the failure remain.
-The iterator is always dropped before returning.
+The iterator is always destroyed before returning.
 
 ```c
 vec_t *src = /* ... */;
-vec_t *dst = vec_create(sizeof(int), arena_allocator(a));
+vec_t *dst = vec_create(sizeof(int), a);
 vec_extend(dst, vec_iter(src));  /* copy all elements from src */
 ```
 
@@ -313,8 +327,10 @@ vec_sort(v, int_cmp);  /* sort in-place; vec's buffer is modified directly */
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-vec_t   *v = vec_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+vec_t   *v = vec_create(sizeof(int), a);
 
 for (int i = 0; i < 10; i++)
     vec_push(v, &i);
@@ -330,5 +346,5 @@ iter_t rev = vec_iter_rev(v);
 while (rev.next(&rev, &x)) printf("%d ", x);
 iter_destroy(&rev);
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

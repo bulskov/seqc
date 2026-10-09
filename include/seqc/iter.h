@@ -29,7 +29,7 @@ struct iter_t
     allocator_t allocator; /* used by adaptors that need to allocate state */
 };
 
-/* Inline drop — call to release resources without a terminal */
+/* Release an iterator you did not hand to a terminal (or an adaptor). */
 static inline void iter_destroy(iter_t *it)
 {
     if (it && it->destroy)
@@ -128,7 +128,7 @@ iter_t iter_peekable(iter_t source);
  * Useful after iter_sort to yield only unique values. */
 iter_t iter_dedup(iter_t source, compare_fn cmp);
 
-/* --- Terminals (consume and drop the iterator) -------------------------- */
+/* --- Terminals (consume and destroy the iterator) ----------------------- */
 
 /* Materialise the iterator into an arena-owned slice_t.
  * `allocator` determines which arena owns the returned memory. */

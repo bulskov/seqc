@@ -182,7 +182,7 @@ TEST(hashmap_set_updates_existing_key)
     growing_arena_destroy(a);
 }
 
-TEST(hashmap_delete_existing)
+TEST(hashmap_remove_existing)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;
@@ -202,7 +202,7 @@ TEST(hashmap_delete_existing)
     growing_arena_destroy(a);
 }
 
-TEST(hashmap_delete_missing)
+TEST(hashmap_remove_missing)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;
@@ -219,7 +219,7 @@ TEST(hashmap_delete_missing)
     growing_arena_destroy(a);
 }
 
-TEST(hashmap_delete_and_reinsert)
+TEST(hashmap_remove_and_reinsert)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;
@@ -328,7 +328,7 @@ TEST(hashmap_iter_filter_entries)
     growing_arena_destroy(a);
 }
 
-TEST(hashmap_delete_middle_of_cluster)
+TEST(hashmap_remove_middle_of_cluster)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;

@@ -31,8 +31,10 @@ queue_t *queue_create(size_t elem_size, allocator_t allocator);
 Create an empty queue. Returns `NULL` if `elem_size` is zero.
 
 ```c
-Arena *a = arena_create(4096);
-queue_t *q = queue_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+queue_t *q = queue_create(sizeof(int), a);
 ```
 
 ---
@@ -146,11 +148,36 @@ Free the queue and all its internal storage. Do not use `q` after calling this.
 
 ---
 
+### `queue_front` / `queue_back` and their `_ptr` variants
+
+```c
+seqc_status_t queue_front(const queue_t *q, void *out);
+seqc_status_t queue_back(const queue_t *q, void *out);
+void *queue_front_ptr(const queue_t *q);
+void *queue_back_ptr(const queue_t *q);
+```
+
+The front element (what `queue_pop` returns next) and the back element (the last pushed). See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `queue_extend`
+
+```c
+seqc_status_t queue_extend(queue_t *q, iter_t it);
+```
+
+Push every element of `it` at the back, in order. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-queue_t *q = queue_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+queue_t *q = queue_create(sizeof(int), a);
 
 for (int i = 1; i <= 5; i++)
     queue_push(q, &i);
@@ -159,5 +186,5 @@ int v;
 while (queue_pop(q, &v) == SEQC_OK)
     printf("%d\n", v);  // prints 1 2 3 4 5
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

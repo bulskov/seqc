@@ -36,8 +36,10 @@ static int int_cmp(const void *a, const void *b) {
     return *(const int *)a - *(const int *)b;
 }
 
-Arena   *a = arena_create(4096);
-avl_t *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+avl_t *t = avl_create(sizeof(int), int_cmp, a);
 ```
 
 ---
@@ -152,11 +154,44 @@ Free all nodes and then the avl_t struct itself. Do not use `t` after calling th
 
 ---
 
+### `avl_min` / `avl_max`
+
+```c
+seqc_status_t avl_min(const avl_t *t, void *out);
+seqc_status_t avl_max(const avl_t *t, void *out);
+```
+
+Copy the smallest / largest element into `out`; `SEQC_NOT_FOUND` if empty. The pairs of `avl_min_ptr` / `avl_max_ptr`. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `avl_is_empty`
+
+```c
+bool avl_is_empty(const avl_t *t);
+```
+
+`true` if the tree has no elements, or is `NULL`.
+
+---
+
+### `avl_extend`
+
+```c
+seqc_status_t avl_extend(avl_t *t, iter_t it);
+```
+
+Add every element of `it`; duplicates are skipped, not errors. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena   *a = arena_create(4096);
-avl_t *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+avl_t *t = avl_create(sizeof(int), int_cmp, a);
 
 for (int i = 1; i <= 1000; i++)
     avl_add(t, &i);
@@ -168,5 +203,5 @@ printf("len=%zu contains(500)=%d\n",
        avl_len(t),
        avl_contains(t, &(int){500}));  // 0
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

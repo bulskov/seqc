@@ -30,8 +30,10 @@ seqc_stack_t *stack_create(size_t elem_size, allocator_t allocator);
 Create an empty stack. Returns `NULL` if `elem_size` is zero.
 
 ```c
-Arena *a = arena_create(4096);
-seqc_stack_t *s = stack_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+seqc_stack_t *s = stack_create(sizeof(int), a);
 ```
 
 ---
@@ -125,11 +127,34 @@ Free the stack and all its internal storage. Do not use `s` after calling this.
 
 ---
 
+### `stack_peek` / `stack_peek_ptr`
+
+```c
+seqc_status_t stack_peek(const seqc_stack_t *s, void *out);
+void *stack_peek_ptr(const seqc_stack_t *s);
+```
+
+The top element — what `stack_pop` would return — as a copy (`SEQC_NOT_FOUND` if empty) or a pointer (`NULL` if empty). See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `stack_extend`
+
+```c
+seqc_status_t stack_extend(seqc_stack_t *s, iter_t it);
+```
+
+Push every element of `it` in order (the last becomes the top). Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-seqc_stack_t *s = stack_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+seqc_stack_t *s = stack_create(sizeof(int), a);
 
 for (int i = 1; i <= 5; i++)
     stack_push(s, &i);
@@ -139,5 +164,5 @@ int v;
 while (stack_pop(s, &v) == SEQC_OK)
     printf("%d\n", v);  // prints 5 4 3 2 1
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

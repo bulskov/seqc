@@ -361,7 +361,7 @@ TEST(set_remove_absent_hits_empty_slot)
 
 /* ---- sys_allocator: exercises all allocator.free branches -------------- */
 
-TEST(set_sys_alloc_free_releases_memory)
+TEST(set_sys_alloc_destroy_releases_memory)
 {
     allocator_t al = sys_allocator();
     set_t *s = set_create(sizeof(int), int_hash, int_eq, al);
@@ -374,7 +374,7 @@ TEST(set_sys_alloc_free_releases_memory)
     /* memory released — verified by sys_allocator not leaking */
 }
 
-TEST(set_sys_alloc_empty_free_releases_struct)
+TEST(set_sys_alloc_empty_destroy_releases_struct)
 {
     allocator_t al = sys_allocator();
     set_t *s = set_create(sizeof(int), int_hash, int_eq, al);

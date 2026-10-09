@@ -94,10 +94,12 @@ hashmap_t *hashmap_create(size_t key_size, size_t val_size,
 Create an empty hash map. Returns `NULL` if `key_size` or `val_size` is zero, if `hash` or `eq` is `NULL`, if `allocator.alloc` is `NULL`, or if an allocation fails.
 
 ```c
-Arena   *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 hashmap_t *m = hashmap_create(sizeof(int), sizeof(double),
                              hash_fnv1a, hash_eq_bytes,
-                             arena_allocator(a));
+                             a);
 ```
 
 ---
@@ -223,7 +225,7 @@ seqc_status_t hashmap_extend(hashmap_t *map, iter_t it);
 
 Drain `it` (which must yield `hashmap_entry_t` values), inserting each key-value
 pair into `map`. Returns `SEQC_OOM` on the first allocation failure.
-Returns `SEQC_INVALID` if `map` is `NULL`. The iterator is always dropped.
+Returns `SEQC_INVALID` if `map` is `NULL`. The iterator is always destroyed.
 
 ```c
 /* Merge map b into map a */
@@ -320,15 +322,33 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 
 ---
 
+### `hashmap_get_ptr`
+
+```c
+void *hashmap_get_ptr(const hashmap_t *map, const void *key);
+```
+
+Pointer to the value for `key`, `NULL` if absent — the pair of `hashmap_get`. **Any** `hashmap_set` or `hashmap_remove`, also of other keys, may move every entry, so use it at once and let go:
+
+```c
+(*(int *)hashmap_get_ptr(counts, &word))++;
+```
+
+See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
 ## Example: string keys
 
 ```c
 #include "seqc/hashmap.h"
 
-Arena   *a = arena_create(4096);
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
 hashmap_t *m = hashmap_create(sizeof(char *), sizeof(int),
                              hash_cstr, hash_eq_cstr,
-                             arena_allocator(a));
+                             a);
 
 const char *keys[]   = {"apple", "banana", "cherry"};
 int         counts[] = {3, 1, 7};
@@ -341,5 +361,5 @@ int count;
 if (hashmap_get(m, &k, &count) == SEQC_OK)
     printf("%d\n", count);  // 1
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```

@@ -47,14 +47,14 @@ TEST(slice_find_returns_null_when_no_match)
     ASSERT_NULL(slice_find(s, int_gt_three, NULL));
 }
 
-TEST(slice_contains_true_when_match_exists)
+TEST(slice_any_true_when_match_exists)
 {
     int data[] = {1, 5, 2};
     slice_t s = {data, 3, sizeof(int)};
     ASSERT_TRUE(slice_any(s, int_gt_three, NULL));
 }
 
-TEST(slice_contains_false_when_no_match)
+TEST(slice_any_false_when_no_match)
 {
     int data[] = {1, 2, 3};
     slice_t s = {data, 3, sizeof(int)};

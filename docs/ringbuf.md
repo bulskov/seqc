@@ -38,8 +38,10 @@ Create an empty ring buffer. Returns `NULL` if `elem_size` is zero or the
 initial allocation fails.
 
 ```c
-Arena   *a = arena_create(4096);
-ringbuf_t *r = ringbuf_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+ringbuf_t *r = ringbuf_create(sizeof(int), a);
 ```
 
 ---
@@ -174,14 +176,40 @@ this.
 
 ---
 
+### `ringbuf_get_ptr`, `ringbuf_front`, `ringbuf_back` and their `_ptr` variants
+
+```c
+void *ringbuf_get_ptr(const ringbuf_t *r, size_t i);
+seqc_status_t ringbuf_front(const ringbuf_t *r, void *out);
+seqc_status_t ringbuf_back(const ringbuf_t *r, void *out);
+void *ringbuf_front_ptr(const ringbuf_t *r);
+void *ringbuf_back_ptr(const ringbuf_t *r);
+```
+
+The pointer to element `i` (the pair of `ringbuf_get`), and both ends. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `ringbuf_extend`
+
+```c
+seqc_status_t ringbuf_extend(ringbuf_t *r, iter_t it);
+```
+
+Push every element of `it` at the back, in order. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example: sliding window
 
 ```c
 #include "seqc/ringbuf.h"
 #include "seqc/arena.h"
 
-Arena   *a = arena_create(4096);
-ringbuf_t *w = ringbuf_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+ringbuf_t *w = ringbuf_create(sizeof(int), a);
 
 int stream[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 const size_t WINDOW = 4;
@@ -194,13 +222,13 @@ for (size_t i = 0; i < 10; i++) {
     /* window contains the last min(WINDOW, i+1) elements */
 }
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
 
 ## Example: deque
 
 ```c
-ringbuf_t *d = ringbuf_create(sizeof(int), arena_allocator(a));
+ringbuf_t *d = ringbuf_create(sizeof(int), a);
 
 int vals[] = {3, 4, 5};
 for (int i = 0; i < 3; i++) ringbuf_push_back(d, &vals[i]);

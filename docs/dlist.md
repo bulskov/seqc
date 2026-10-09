@@ -32,8 +32,10 @@ dlist_t *dlist_create(size_t elem_size, allocator_t allocator);
 Create an empty doubly-linked list. Returns `NULL` if `elem_size` is zero.
 
 ```c
-Arena *a = arena_create(4096);
-dlist_t *l = dlist_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+dlist_t *l = dlist_create(sizeof(int), a);
 ```
 
 ---
@@ -126,11 +128,36 @@ Free all nodes and then the dlist_t struct itself. Do not use `l` after calling 
 
 ---
 
+### `dlist_front` / `dlist_back` and their `_ptr` variants
+
+```c
+seqc_status_t dlist_front(const dlist_t *l, void *out);
+seqc_status_t dlist_back(const dlist_t *l, void *out);
+void *dlist_front_ptr(const dlist_t *l);
+void *dlist_back_ptr(const dlist_t *l);
+```
+
+The first and last element. Nodes never move, so a pointer stays valid until that element is removed or the list is cleared or destroyed. See [naming](naming.md#reading-elements-copy-or-pointer): the copy is yours, the pointer is valid only until the next change.
+
+---
+
+### `dlist_extend`
+
+```c
+seqc_status_t dlist_extend(dlist_t *l, iter_t it);
+```
+
+Push every element of `it` at the back, in order. Add every element of `it`, which is always consumed — also on error and for a `NULL` collection (`SEQC_INVALID`). Stops at the first error and returns it.
+
+---
+
 ## Example
 
 ```c
-Arena *a = arena_create(4096);
-dlist_t *l = dlist_create(sizeof(int), arena_allocator(a));
+growing_arena_t arena;
+growing_arena_init(&arena, 4096);
+allocator_t a = growing_arena_allocator(&arena);
+dlist_t *l = dlist_create(sizeof(int), a);
 
 for (int i = 1; i <= 5; i++)
     dlist_push_back(l, &i);
@@ -146,5 +173,5 @@ iter_t rev = dlist_iter_rev(l);
 while (rev.next(&rev, &v)) printf("%d ", v);
 iter_destroy(&rev);
 
-arena_free(a);
+growing_arena_destroy(&arena);
 ```
