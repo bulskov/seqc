@@ -59,19 +59,19 @@ bool hash_eq_bytes(const void *a, const void *b, size_t key_size);
 
 Bytewise equality. Suitable for any fixed-size type.
 
-### `hash_fnv1a_str`
+### `hash_cstr`
 
 ```c
-size_t hash_fnv1a_str(const void *key, size_t key_size);
+size_t hash_cstr(const void *key, size_t key_size);
 ```
 
 Hash a `char *` key by hashing the pointed-to string rather than the pointer
 value. Use when the key type is `char *` (i.e. `key_size = sizeof(char *)`).
 
-### `hash_eq_str`
+### `hash_eq_cstr`
 
 ```c
-bool hash_eq_str(const void *a, const void *b, size_t key_size);
+bool hash_eq_cstr(const void *a, const void *b, size_t key_size);
 ```
 
 `strcmp`-based equality for `char *` keys.
@@ -138,10 +138,10 @@ if (hashmap_get(m, &k, &val) == SEQC_OK)
 
 ---
 
-### `hashmap_delete`
+### `hashmap_remove`
 
 ```c
-seqc_status_t hashmap_delete(hashmap_t *map, const void *key);
+seqc_status_t hashmap_remove(hashmap_t *map, const void *key);
 ```
 
 Remove a key. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent,
@@ -200,7 +200,7 @@ hashmap_entry_t e;
 while (it.next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 }
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
@@ -215,10 +215,10 @@ Iterate over all key-value pairs in reverse bucket-storage order.
 
 ---
 
-### `hashmap_set_all`
+### `hashmap_extend`
 
 ```c
-seqc_status_t hashmap_set_all(hashmap_t *map, iter_t it);
+seqc_status_t hashmap_extend(hashmap_t *map, iter_t it);
 ```
 
 Drain `it` (which must yield `hashmap_entry_t` values), inserting each key-value
@@ -227,7 +227,7 @@ Returns `SEQC_INVALID` if `map` is `NULL`. The iterator is always dropped.
 
 ```c
 /* Merge map b into map a */
-hashmap_set_all(a, hashmap_iter(b));
+hashmap_extend(a, hashmap_iter(b));
 ```
 
 ---
@@ -245,10 +245,10 @@ threshold is reached again.
 
 ---
 
-### `hashmap_free`
+### `hashmap_destroy`
 
 ```c
-void hashmap_free(hashmap_t *map);
+void hashmap_destroy(hashmap_t *map);
 ```
 
 Free all key/value copies, the bucket array, and the hashmap_t struct itself.
@@ -327,7 +327,7 @@ printf("load=%.2f  max_psl=%u  mean_psl=%.2f  healthy=%s\n",
 
 Arena   *a = arena_create(4096);
 hashmap_t *m = hashmap_create(sizeof(char *), sizeof(int),
-                             hash_fnv1a_str, hash_eq_str,
+                             hash_cstr, hash_eq_cstr,
                              arena_allocator(a));
 
 const char *keys[]   = {"apple", "banana", "cherry"};

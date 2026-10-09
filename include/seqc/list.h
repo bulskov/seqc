@@ -18,10 +18,10 @@ seqc_status_t list_pop_front(
     list_t *l, void *out); /* SEQC_NOT_FOUND if empty; out may be NULL */
 seqc_status_t list_pop_back(
     list_t *l, void *out); /* O(n) — prefer dlist for frequent back-pops */
-void *list_front(const list_t *l); /* pointer to head data; NULL if empty */
-void *list_back(const list_t *l);  /* pointer to tail data; NULL if empty */
+void *list_front_ptr(const list_t *l); /* pointer to head data; NULL if empty */
+void *list_back_ptr(const list_t *l);  /* pointer to tail data; NULL if empty */
 bool list_is_empty(const list_t *l);
 size_t list_len(const list_t *l);
 iter_t list_iter(const list_t *l); /* front→back */
 void list_clear(list_t *l);        /* remove all nodes */
-void list_free(list_t *l);
+void list_destroy(list_t *l);

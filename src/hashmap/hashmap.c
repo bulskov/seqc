@@ -58,7 +58,7 @@ bool hash_eq_bytes(const void *a, const void *b, size_t key_size)
     return memcmp(a, b, key_size) == 0;
 }
 
-size_t hash_fnv1a_str(const void *key, size_t key_size)
+size_t hash_cstr(const void *key, size_t key_size)
 {
     if (key_size != sizeof(char *) || key == NULL)
     {
@@ -78,7 +78,7 @@ size_t hash_fnv1a_str(const void *key, size_t key_size)
     return (size_t)hash;
 }
 
-bool hash_eq_str(const void *a, const void *b, size_t key_size)
+bool hash_eq_cstr(const void *a, const void *b, size_t key_size)
 {
     if (key_size != sizeof(char *) || a == NULL || b == NULL)
     {
@@ -239,7 +239,7 @@ hashmap_t *hashmap_create(
     return m;
 }
 
-void hashmap_free(hashmap_t *map)
+void hashmap_destroy(hashmap_t *map)
 {
     if (!map)
     {
@@ -361,7 +361,7 @@ seqc_status_t hashmap_get(const hashmap_t *map, const void *key, void *out)
     }
 }
 
-seqc_status_t hashmap_delete(hashmap_t *map, const void *key)
+seqc_status_t hashmap_remove(hashmap_t *map, const void *key)
 {
     if (!map || !map->buckets || !key)
     {
@@ -476,7 +476,7 @@ iter_t hashmap_iter(const hashmap_t *map)
     *s = (hashmap_iter_state_t){map, 0};
     return (iter_t){
         .next = hashmap_iter_next,
-        .drop = hashmap_iter_drop,
+        .destroy = hashmap_iter_drop,
         .state = s,
         .elem_size = sizeof(hashmap_entry_t),
         .allocator = map->allocator};
@@ -500,17 +500,17 @@ iter_t hashmap_iter_rev(const hashmap_t *map)
     *s = (hashmap_iter_state_t){map, map->cap}; /* start past the last slot */
     return (iter_t){
         .next = hashmap_iter_rev_next,
-        .drop = hashmap_iter_drop,
+        .destroy = hashmap_iter_drop,
         .state = s,
         .elem_size = sizeof(hashmap_entry_t),
         .allocator = map->allocator};
 }
 
-seqc_status_t hashmap_set_all(hashmap_t *map, iter_t it)
+seqc_status_t hashmap_extend(hashmap_t *map, iter_t it)
 {
     if (!map)
     {
-        iter_drop(&it);
+        iter_destroy(&it);
         return SEQC_INVALID;
     }
     hashmap_entry_t e;
@@ -523,6 +523,6 @@ seqc_status_t hashmap_set_all(hashmap_t *map, iter_t it)
             break;
         }
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     return st;
 }

@@ -146,7 +146,7 @@ void strbuf_clear(strbuf_t *sb);
  * (string_copy).  NULL is a no-op.  With an arena this frees nothing that
  * destroying the arena would not; with a malloc-style allocator it is how
  * the memory comes back. */
-void strbuf_free(strbuf_t *sb);
+void strbuf_destroy(strbuf_t *sb);
 
 /* --- hashmap_t helpers ---------------------------------------------------- */
 

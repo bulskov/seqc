@@ -188,7 +188,7 @@ iter_t      it = omap_iter_range(m, &lo, &hi);
 omap_entry_t e;
 while (it.next(&it, &e))
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
@@ -205,10 +205,10 @@ valid and can be reused immediately.
 
 ---
 
-### `omap_free`
+### `omap_destroy`
 
 ```c
-void omap_free(omap_t *m);
+void omap_destroy(omap_t *m);
 ```
 
 Free all nodes and then the omap_t struct itself. Do not use `m` after calling this.
@@ -236,7 +236,7 @@ iter_t      it = omap_iter(m);
 omap_entry_t e;
 while (it.next(&it, &e))
     printf("%d => %d\n", *(int *)e.key, *(int *)e.value);
-iter_drop(&it);
+iter_destroy(&it);
 
 arena_free(a);
 ```

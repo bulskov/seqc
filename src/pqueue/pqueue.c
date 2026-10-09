@@ -41,11 +41,11 @@ static void sift_up(pqueue_t *q, size_t i)
     while (i > 0)
     {
         size_t parent = (i - 1) / 2;
-        if (q->cmp(vec_get(q->data, i), vec_get(q->data, parent)) < 0)
+        if (q->cmp(vec_get_ptr(q->data, i), vec_get_ptr(q->data, parent)) < 0)
         {
             swap_elems(
-                vec_get(q->data, i),
-                vec_get(q->data, parent),
+                vec_get_ptr(q->data, i),
+                vec_get_ptr(q->data, parent),
                 vec_elem_size(q->data));
             i = parent;
         }
@@ -65,12 +65,12 @@ static void sift_down(pqueue_t *q, size_t i)
         size_t left = 2 * i + 1;
         size_t right = 2 * i + 2;
         if (left < n
-            && q->cmp(vec_get(q->data, left), vec_get(q->data, smallest)) < 0)
+            && q->cmp(vec_get_ptr(q->data, left), vec_get_ptr(q->data, smallest)) < 0)
         {
             smallest = left;
         }
         if (right < n
-            && q->cmp(vec_get(q->data, right), vec_get(q->data, smallest)) < 0)
+            && q->cmp(vec_get_ptr(q->data, right), vec_get_ptr(q->data, smallest)) < 0)
         {
             smallest = right;
         }
@@ -79,8 +79,8 @@ static void sift_down(pqueue_t *q, size_t i)
             break;
         }
         swap_elems(
-            vec_get(q->data, i),
-            vec_get(q->data, smallest),
+            vec_get_ptr(q->data, i),
+            vec_get_ptr(q->data, smallest),
             vec_elem_size(q->data));
         i = smallest;
     }
@@ -88,7 +88,7 @@ static void sift_down(pqueue_t *q, size_t i)
 
 /* ---- public API -------------------------------------------------------- */
 
-pqueue_t *pqueue_build_from_vec(
+pqueue_t *pqueue_create_from_vec(
     const vec_t *v, compare_fn cmp, allocator_t allocator)
 {
     slice_t s = vec_as_slice(v);
@@ -137,14 +137,14 @@ seqc_status_t pqueue_pop(pqueue_t *q, void *out)
     }
     if (out)
     {
-        memcpy(out, vec_get(q->data, 0), vec_elem_size(q->data));
+        memcpy(out, vec_get_ptr(q->data, 0), vec_elem_size(q->data));
     }
     size_t last = vec_len(q->data) - 1;
     if (last > 0)
     {
         memcpy(
-            vec_get(q->data, 0),
-            vec_get(q->data, last),
+            vec_get_ptr(q->data, 0),
+            vec_get_ptr(q->data, last),
             vec_elem_size(q->data));
     }
     vec_pop(q->data, NULL);
@@ -163,7 +163,7 @@ seqc_status_t pqueue_peek(const pqueue_t *q, void *out)
     }
     if (out)
     {
-        memcpy(out, vec_get(q->data, 0), vec_elem_size(q->data));
+        memcpy(out, vec_get_ptr(q->data, 0), vec_elem_size(q->data));
     }
     return SEQC_OK;
 }
@@ -185,13 +185,13 @@ void pqueue_clear(pqueue_t *q)
     }
 }
 
-void pqueue_free(pqueue_t *q)
+void pqueue_destroy(pqueue_t *q)
 {
     if (!q)
     {
         return;
     }
-    vec_free(q->data);
+    vec_destroy(q->data);
     allocator_t al = q->allocator;
     mem_free(al, q, sizeof(pqueue_t));
 }

@@ -37,7 +37,7 @@ vec_t *vec_create(size_t elem_size, allocator_t allocator)
     return v;
 }
 
-vec_t *vec_create_size(size_t elem_size, size_t capacity, allocator_t allocator)
+vec_t *vec_create_with_cap(size_t elem_size, size_t capacity, allocator_t allocator)
 {
     if (elem_size == 0 || capacity == 0 || !allocator.vt)
     {
@@ -109,7 +109,7 @@ seqc_status_t vec_push(vec_t *v, const void *elem)
     return SEQC_OK;
 }
 
-void *vec_get(const vec_t *v, size_t i)
+void *vec_get_ptr(const vec_t *v, size_t i)
 {
     if (!v || i >= v->len)
     {
@@ -118,7 +118,7 @@ void *vec_get(const vec_t *v, size_t i)
     return (char *)v->data + i * v->elem_size;
 }
 
-seqc_status_t vec_get_copy(const vec_t *v, size_t i, void *out)
+seqc_status_t vec_get(const vec_t *v, size_t i, void *out)
 {
     if (!v || !out)
     {
@@ -273,12 +273,12 @@ void *vec_find(const vec_t *v, pred_fn pred, void *ctx)
     return NULL;
 }
 
-bool vec_contains(const vec_t *v, pred_fn pred, void *ctx)
+bool vec_any(const vec_t *v, pred_fn pred, void *ctx)
 {
     return vec_find(v, pred, ctx) != NULL;
 }
 
-void vec_free(vec_t *v)
+void vec_destroy(vec_t *v)
 {
     if (!v)
     {
@@ -305,13 +305,13 @@ seqc_status_t vec_extend(vec_t *v, iter_t it)
 {
     if (!v)
     {
-        iter_drop(&it);
+        iter_destroy(&it);
         return SEQC_INVALID;
     }
     void *elem = mem_alloc(v->allocator, v->elem_size, SEQC_MAX_ALIGN);
     if (!elem)
     {
-        iter_drop(&it);
+        iter_destroy(&it);
         return SEQC_OOM;
     }
     seqc_status_t st = SEQC_OK;
@@ -323,7 +323,7 @@ seqc_status_t vec_extend(vec_t *v, iter_t it)
             break;
         }
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     mem_free(v->allocator, elem, v->elem_size);
     return st;
 }

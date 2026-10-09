@@ -33,7 +33,7 @@ hash function and an equality function. `hash_fn` and `eq_fn` are defined in
 [`iter/iter.h`](iter.md#function-pointer-types) (included transitively).
 For integer-sized keys use `hash_fnv1a` / `hash_eq_bytes` from
 [`iter/hash.h`](hashmap.md#built-in-hash--equality-helpers). For `char *` keys
-use `hash_fnv1a_str` / `hash_eq_str`.
+use `hash_cstr` / `hash_eq_cstr`.
 
 ```c
 #include "seqc/hash.h"
@@ -100,7 +100,7 @@ iter_t it = set_iter(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ### `set_iter_rev`
@@ -118,15 +118,15 @@ iter_t it = set_iter_rev(s);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
 
-### `set_add_all`
+### `set_extend`
 
 ```c
-seqc_status_t set_add_all(set_t *s, iter_t it);
+seqc_status_t set_extend(set_t *s, iter_t it);
 ```
 
 Drain `it`, adding each element into `s`. Duplicates are silently skipped.
@@ -134,7 +134,7 @@ Returns `SEQC_OOM` if an allocation fails; the iterator is always dropped.
 
 ```c
 /* Copy all elements from another set */
-set_add_all(dst, set_iter(src));
+set_extend(dst, set_iter(src));
 ```
 
 ---
@@ -187,10 +187,10 @@ again.
 
 ---
 
-### `set_free`
+### `set_destroy`
 
 ```c
-void set_free(set_t *s);
+void set_destroy(set_t *s);
 ```
 
 Free all key copies, the bucket array, and the set struct itself.

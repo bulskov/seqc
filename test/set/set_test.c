@@ -206,7 +206,7 @@ TEST(set_iter_rev_yields_all_elements)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(5, n);
     growing_arena_destroy(a);
 }
@@ -221,7 +221,7 @@ TEST(set_iter_rev_empty_set)
     iter_t it = set_iter_rev(s);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 
@@ -370,7 +370,7 @@ TEST(set_sys_alloc_free_releases_memory)
         set_add(s, &i);
     }
     ASSERT_EQ(5, set_len(s));
-    set_free(s);
+    set_destroy(s);
     /* memory released — verified by sys_allocator not leaking */
 }
 
@@ -379,9 +379,9 @@ TEST(set_sys_alloc_empty_free_releases_struct)
     allocator_t al = sys_allocator();
     set_t *s = set_create(sizeof(int), int_hash, int_eq, al);
     ASSERT_NOT_NULL(s);
-    /* No adds: the bucket array is never allocated, but set_free must still
+    /* No adds: the bucket array is never allocated, but set_destroy must still
      * release the set struct itself (else it leaks). */
-    set_free(s);
+    set_destroy(s);
 }
 
 TEST(set_sys_alloc_clear_frees_keys)
@@ -398,7 +398,7 @@ TEST(set_sys_alloc_clear_frees_keys)
     int x = 42;
     ASSERT_EQ(SEQC_OK, set_add(s, &x));
     ASSERT_TRUE(set_contains(s, &x));
-    set_free(s);
+    set_destroy(s);
 }
 
 TEST(set_sys_alloc_remove_frees_key)
@@ -409,7 +409,7 @@ TEST(set_sys_alloc_remove_frees_key)
     set_add(s, &v);
     ASSERT_EQ(SEQC_OK, set_remove(s, &v));
     ASSERT_TRUE(!set_contains(s, &v));
-    set_free(s);
+    set_destroy(s);
 }
 
 TEST(set_is_healthy_normal_load)
@@ -764,7 +764,7 @@ TEST(set_add_returns_oom_when_bucket_alloc_fails)
     int v = 1;
     ASSERT_EQ(SEQC_OOM, set_add(s, &v));
     ASSERT_EQ(0, set_len(s));
-    set_free(s); /* oom_free ignores remaining count, so this is safe */
+    set_destroy(s); /* oom_free ignores remaining count, so this is safe */
 }
 
 TEST(set_add_returns_oom_when_key_alloc_fails)
@@ -778,7 +778,7 @@ TEST(set_add_returns_oom_when_key_alloc_fails)
     int v = 1;
     ASSERT_EQ(SEQC_OOM, set_add(s, &v));
     ASSERT_EQ(0, set_len(s));
-    set_free(s); /* oom_free ignores remaining count, so this is safe */
+    set_destroy(s); /* oom_free ignores remaining count, so this is safe */
 }
 
 int main(int argc, char *argv[])

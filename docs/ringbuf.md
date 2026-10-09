@@ -1,7 +1,7 @@
 # ringbuf
 
 Double-ended circular buffer (deque). All push/pop operations are amortised
-O(1). Random access via `ringbuf_at` is O(1). The buffer grows automatically
+O(1). Random access via `ringbuf_get` is O(1). The buffer grows automatically
 when full.
 
 Because both ends are equally cheap to use, `ringbuf_t` can serve as a FIFO
@@ -94,10 +94,10 @@ Returns `SEQC_OK` on success, `SEQC_NOT_FOUND` if empty.
 
 ---
 
-### `ringbuf_at`
+### `ringbuf_get`
 
 ```c
-seqc_status_t ringbuf_at(const ringbuf_t *r, size_t i, void *out);
+seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out);
 ```
 
 Copy the element at logical index `i` (0 = front) into `*out`. `out` may be
@@ -106,8 +106,8 @@ if `i >= len`.
 
 ```c
 int front, back;
-ringbuf_at(r, 0, &front);
-ringbuf_at(r, ringbuf_len(r) - 1, &back);
+ringbuf_get(r, 0, &front);
+ringbuf_get(r, ringbuf_len(r) - 1, &back);
 ```
 
 ---
@@ -139,7 +139,7 @@ iter_t it = ringbuf_iter(r);
 int  v;
 while (it.next(&it, &v))
     printf("%d\n", v);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ### `ringbuf_iter_rev`
@@ -163,10 +163,10 @@ will not reallocate until capacity is exhausted again.
 
 ---
 
-### `ringbuf_free`
+### `ringbuf_destroy`
 
 ```c
-void ringbuf_free(ringbuf_t *r);
+void ringbuf_destroy(ringbuf_t *r);
 ```
 
 Free the buffer and the `ringbuf_t` struct itself. Do not use `r` after calling

@@ -43,7 +43,7 @@ TEST(queue_peek_does_not_consume)
     queue_t *q = queue_create(sizeof(int), growing_arena_allocator(a));
     int v = 99;
     queue_push(q, &v);
-    ASSERT_EQ(99, *(int *)queue_peek(q));
+    ASSERT_EQ(99, *(int *)queue_front_ptr(q));
     ASSERT_EQ(1, queue_len(q));
     growing_arena_destroy(a);
 }
@@ -53,7 +53,7 @@ TEST(queue_peek_empty_returns_null)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 64);
     queue_t *q = queue_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_NULL(queue_peek(q));
+    ASSERT_NULL(queue_front_ptr(q));
     growing_arena_destroy(a);
 }
 TEST(queue_pop_empty_returns_0)
@@ -138,7 +138,7 @@ TEST(queue_iter_front_to_back)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(10, got[0]);
     ASSERT_EQ(20, got[1]);
@@ -202,7 +202,7 @@ TEST(queue_iter_rev_back_to_front)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(30, got[0]);
     ASSERT_EQ(20, got[1]);
@@ -235,7 +235,7 @@ TEST(queue_iter_rev_wraps_ring_buffer)
     {
         n++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, n);
     ASSERT_EQ(5, got[0]);
     ASSERT_EQ(4, got[1]);
@@ -252,10 +252,10 @@ TEST(queue_iter_rev_empty)
     iter_t it = queue_iter_rev(q);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
-/* ---- queue_back --------------------------------------------------------- */
+/* ---- queue_back_ptr --------------------------------------------------------- */
 TEST(queue_back_returns_last_pushed)
 {
     growing_arena_t _a_storage;
@@ -267,7 +267,7 @@ TEST(queue_back_returns_last_pushed)
     {
         queue_push(q, &vals[i]);
     }
-    ASSERT_EQ(30, *(int *)queue_back(q));
+    ASSERT_EQ(30, *(int *)queue_back_ptr(q));
     growing_arena_destroy(a);
 }
 TEST(queue_back_differs_from_front_after_pop)
@@ -283,8 +283,8 @@ TEST(queue_back_differs_from_front_after_pop)
     }
     int discard;
     queue_pop(q, &discard); /* remove 1 */
-    ASSERT_EQ(2, *(int *)queue_peek(q));
-    ASSERT_EQ(4, *(int *)queue_back(q));
+    ASSERT_EQ(2, *(int *)queue_front_ptr(q));
+    ASSERT_EQ(4, *(int *)queue_back_ptr(q));
     growing_arena_destroy(a);
 }
 /* queue_pop with NULL out: element is consumed but not copied. */
@@ -301,20 +301,20 @@ TEST(queue_pop_null_out_discards_element)
     }
     ASSERT_EQ(SEQC_OK, queue_pop(q, NULL)); /* discard front element */
     ASSERT_EQ(2, queue_len(q));
-    ASSERT_EQ(20, *(int *)queue_peek(q)); /* 10 is gone */
+    ASSERT_EQ(20, *(int *)queue_front_ptr(q)); /* 10 is gone */
     growing_arena_destroy(a);
 }
-/* queue_back on an empty queue must return NULL. */
+/* queue_back_ptr on an empty queue must return NULL. */
 TEST(queue_back_empty_returns_null)
 {
     growing_arena_t _a_storage;
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 64);
     queue_t *q = queue_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_NULL(queue_back(q));
+    ASSERT_NULL(queue_back_ptr(q));
     growing_arena_destroy(a);
 }
-/* ---- sys_allocator: exercises queue_free ------------------------------- */
+/* ---- sys_allocator: exercises queue_destroy ------------------------------- */
 TEST(queue_sys_alloc_free_releases_memory)
 {
     allocator_t al = sys_allocator();
@@ -325,8 +325,8 @@ TEST(queue_sys_alloc_free_releases_memory)
         queue_push(q, &vals[i]);
     }
     ASSERT_EQ(3, queue_len(q));
-    queue_free(q);
-    /* queue_free releases all memory — verified by sys_allocator not leaking */
+    queue_destroy(q);
+    /* queue_destroy releases all memory — verified by sys_allocator not leaking */
 }
 
 /* ---- OOM paths: an exhausted allocator must not crash ------------------ */
@@ -344,8 +344,8 @@ TEST(queue_iter_oom_returns_empty)
     ctx.remaining = 0; /* exhaust: the iterator's state alloc must fail */
     iter_t it = queue_iter(q);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
-    queue_free(q);
+    iter_destroy(&it);
+    queue_destroy(q);
 }
 
 TEST(queue_iter_rev_oom_returns_empty)
@@ -361,8 +361,8 @@ TEST(queue_iter_rev_oom_returns_empty)
     ctx.remaining = 0;
     iter_t it = queue_iter_rev(q);
     ASSERT_NULL(it.next);
-    iter_drop(&it);
-    queue_free(q);
+    iter_destroy(&it);
+    queue_destroy(q);
 }
 
 int main(int argc, char *argv[])

@@ -68,7 +68,7 @@ bstree_t *bstree_create(size_t elem_size, compare_fn cmp, allocator_t allocator)
     return t;
 }
 
-seqc_status_t bstree_insert(bstree_t *t, const void *elem)
+seqc_status_t bstree_add(bstree_t *t, const void *elem)
 {
     if (!t || !elem)
     {
@@ -188,7 +188,7 @@ seqc_status_t bstree_remove(bstree_t *t, const void *elem)
     return removed ? SEQC_OK : SEQC_NOT_FOUND;
 }
 
-void *bstree_min(const bstree_t *t)
+void *bstree_min_ptr(const bstree_t *t)
 {
     if (!t || !t->root)
     {
@@ -202,7 +202,7 @@ void *bstree_min(const bstree_t *t)
     return node_data(cur);
 }
 
-void *bstree_max(const bstree_t *t)
+void *bstree_max_ptr(const bstree_t *t)
 {
     if (!t || !t->root)
     {
@@ -248,7 +248,7 @@ static void free_subtree(bstree_t *t, bstree_node_t *node)
     mem_free(t->allocator, node, node_alloc_size(t->elem_size));
 }
 
-void bstree_free(bstree_t *t)
+void bstree_destroy(bstree_t *t)
 {
     if (!t)
     {
@@ -372,7 +372,7 @@ iter_t bstree_iter(const bstree_t *t)
         .allocator = t->allocator};
     return (iter_t){
         .next = bstree_iter_next,
-        .drop = bstree_iter_drop,
+        .destroy = bstree_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
@@ -425,7 +425,7 @@ iter_t bstree_iter_rev(const bstree_t *t)
         .allocator = t->allocator};
     return (iter_t){
         .next = bstree_iter_rev_next,
-        .drop = bstree_iter_drop,
+        .destroy = bstree_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
@@ -560,7 +560,7 @@ iter_t bstree_iter_range(const bstree_t *t, const void *lo, const void *hi)
     }
     return (iter_t){
         .next = bstree_range_iter_next,
-        .drop = bstree_range_iter_drop,
+        .destroy = bstree_range_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};

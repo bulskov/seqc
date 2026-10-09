@@ -21,7 +21,7 @@ pqueue_t *pqueue_create(
 /* Build a heap from a copy of v's elements in O(n) using Floyd's algorithm.
  * The vec_t's element size must match elem_size; behaviour is undefined
  * otherwise. The returned pqueue_t owns its own allocation independent of v. */
-pqueue_t *pqueue_build_from_vec(
+pqueue_t *pqueue_create_from_vec(
     const vec_t *v, compare_fn cmp, allocator_t allocator);
 
 /* Push a copy of elem and restore the heap property. */
@@ -43,7 +43,7 @@ iter_t pqueue_iter(
     const pqueue_t *q); /* heap-storage order (unspecified priority order) */
 iter_t pqueue_iter_rev(const pqueue_t *q); /* reverse heap-storage order */
 void pqueue_clear(pqueue_t *q);            /* empty the queue, keep buffer */
-void pqueue_free(pqueue_t *q);
+void pqueue_destroy(pqueue_t *q);
 
 /* Pop all elements in priority order into an allocator-owned slice_t.
  * The queue is empty after this call; the pqueue_t itself is not freed. */

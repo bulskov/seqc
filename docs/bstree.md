@@ -45,10 +45,10 @@ bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 
 ---
 
-### `bstree_insert`
+### `bstree_add`
 
 ```c
-seqc_status_t bstree_insert(bstree_t *t, const void *elem);
+seqc_status_t bstree_add(bstree_t *t, const void *elem);
 ```
 
 Insert a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
@@ -76,11 +76,11 @@ Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
-### `bstree_min` / `bstree_max`
+### `bstree_min_ptr` / `bstree_max_ptr`
 
 ```c
-void *bstree_min(const bstree_t *t);
-void *bstree_max(const bstree_t *t);
+void *bstree_min_ptr(const bstree_t *t);
+void *bstree_max_ptr(const bstree_t *t);
 ```
 
 Pointer to the minimum / maximum element. Returns `NULL` if empty.
@@ -109,7 +109,7 @@ height can be as large as `n` on sorted input.
 bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
-    bstree_insert(t, &vals[i]);
+    bstree_add(t, &vals[i]);
 printf("height=%d\n", bstree_height(t));  // 3
 ```
 
@@ -144,7 +144,7 @@ iter_t it = bstree_iter_range(t, &lo, &hi);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);  // 3 4 5 6 7
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
@@ -161,10 +161,10 @@ and can be reused immediately.
 
 ---
 
-### `bstree_free`
+### `bstree_destroy`
 
 ```c
-void bstree_free(bstree_t *t);
+void bstree_destroy(bstree_t *t);
 ```
 
 Free all nodes and then the bstree_t struct itself. Do not use `t` after calling this.
@@ -179,18 +179,18 @@ bstree_t *t = bstree_create(sizeof(int), int_cmp, arena_allocator(a));
 
 int vals[] = {5, 3, 7, 1, 4, 6, 8};
 for (int i = 0; i < 7; i++)
-    bstree_insert(t, &vals[i]);
+    bstree_add(t, &vals[i]);
 
 printf("min=%d max=%d len=%zu\n",
-       *(int *)bstree_min(t),   // 1
-       *(int *)bstree_max(t),   // 8
+       *(int *)bstree_min_ptr(t),   // 1
+       *(int *)bstree_max_ptr(t),   // 8
        bstree_len(t));           // 7
 
 // ascending
 iter_t it = bstree_iter(t);
 int v;
 while (it.next(&it, &v)) printf("%d ", v);
-iter_drop(&it);
+iter_destroy(&it);
 // 1 3 4 5 6 7 8
 
 arena_free(a);

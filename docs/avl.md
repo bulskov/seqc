@@ -42,10 +42,10 @@ avl_t *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 
 ---
 
-### `avl_insert`
+### `avl_add`
 
 ```c
-seqc_status_t avl_insert(avl_t *t, const void *elem);
+seqc_status_t avl_add(avl_t *t, const void *elem);
 ```
 
 Insert a copy of `elem`. Returns `SEQC_OK` if inserted, `SEQC_DUPLICATE` if
@@ -71,11 +71,11 @@ Remove `elem`. Returns `SEQC_OK` if removed, `SEQC_NOT_FOUND` if absent.
 
 ---
 
-### `avl_min` / `avl_max`
+### `avl_min_ptr` / `avl_max_ptr`
 
 ```c
-void *avl_min(const avl_t *t);
-void *avl_max(const avl_t *t);
+void *avl_min_ptr(const avl_t *t);
+void *avl_max_ptr(const avl_t *t);
 ```
 
 Pointer to the minimum / maximum element. Returns `NULL` if empty.
@@ -125,7 +125,7 @@ iter_t it = avl_iter_range(t, &lo, &hi);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);
-iter_drop(&it);
+iter_destroy(&it);
 ```
 
 ---
@@ -142,10 +142,10 @@ and can be reused immediately.
 
 ---
 
-### `avl_free`
+### `avl_destroy`
 
 ```c
-void avl_free(avl_t *t);
+void avl_destroy(avl_t *t);
 ```
 
 Free all nodes and then the avl_t struct itself. Do not use `t` after calling this.
@@ -159,7 +159,7 @@ Arena   *a = arena_create(4096);
 avl_t *t = avl_create(sizeof(int), int_cmp, arena_allocator(a));
 
 for (int i = 1; i <= 1000; i++)
-    avl_insert(t, &i);
+    avl_add(t, &i);
 
 printf("height=%d (log2(1000)~10)\n", avl_height(t));
 

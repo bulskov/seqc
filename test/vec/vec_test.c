@@ -13,7 +13,7 @@ TEST(vec_create_is_empty)
     vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
     ASSERT_EQ(0, vec_len(v));
 
-    vec_free(v);
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -26,7 +26,7 @@ TEST(vec_push_increments_len)
     int x = 42;
     vec_push(v, &x);
     ASSERT_EQ(1, vec_len(v));
-    vec_free(v);
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -38,8 +38,8 @@ TEST(vec_get_returns_pushed_value)
     vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 99;
     vec_push(v, &x);
-    ASSERT_EQ(99, *(int *)vec_get(v, 0));
-    vec_free(v);
+    ASSERT_EQ(99, *(int *)vec_get_ptr(v, 0));
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -56,9 +56,9 @@ TEST(vec_push_many_preserves_values)
     ASSERT_EQ(100, vec_len(v));
     for (int i = 0; i < 100; i++)
     {
-        ASSERT_EQ(i, *(int *)vec_get(v, (size_t)i));
+        ASSERT_EQ(i, *(int *)vec_get_ptr(v, (size_t)i));
     }
-    vec_free(v);
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -75,8 +75,8 @@ TEST(vec_as_slice_reflects_contents)
 
     slice_t s = vec_as_slice(v);
     ASSERT_EQ(3, s.len);
-    ASSERT_EQ(8, *(int *)slice_get(s, 1));
-    vec_free(v);
+    ASSERT_EQ(8, *(int *)slice_get_ptr(s, 1));
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -92,7 +92,7 @@ TEST(vec_iter_counts_all_elements)
     }
 
     ASSERT_EQ(5, iter_count(vec_iter(v)));
-    vec_free(v);
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -112,10 +112,10 @@ TEST(vec_iter_collect_round_trip)
     ASSERT_EQ(4, result.len);
     for (int i = 0; i < 4; i++)
     {
-        ASSERT_EQ(i, *(int *)slice_get(result, (size_t)i));
+        ASSERT_EQ(i, *(int *)slice_get_ptr(result, (size_t)i));
     }
 
-    vec_free(v);
+    vec_destroy(v);
     growing_arena_destroy(a);
 }
 
@@ -137,7 +137,7 @@ TEST(vec_iter_rev_yields_reverse_order)
         ASSERT_EQ(expected, val);
     }
     ASSERT_FALSE(it.next(&it, &val));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
 
@@ -197,9 +197,9 @@ TEST(vec_set_overwrites_element)
     }
     int val = 99;
     vec_set(v, 1, &val);
-    ASSERT_EQ(0, *(int *)vec_get(v, 0));
-    ASSERT_EQ(99, *(int *)vec_get(v, 1));
-    ASSERT_EQ(2, *(int *)vec_get(v, 2));
+    ASSERT_EQ(0, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(99, *(int *)vec_get_ptr(v, 1));
+    ASSERT_EQ(2, *(int *)vec_get_ptr(v, 2));
     growing_arena_destroy(a);
 }
 
@@ -244,9 +244,9 @@ TEST(vec_insert_at_beginning)
     int val = 0;
     vec_insert(v, 0, &val);
     ASSERT_EQ(4, vec_len(v));
-    ASSERT_EQ(0, *(int *)vec_get(v, 0));
-    ASSERT_EQ(1, *(int *)vec_get(v, 1));
-    ASSERT_EQ(3, *(int *)vec_get(v, 3));
+    ASSERT_EQ(0, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 1));
+    ASSERT_EQ(3, *(int *)vec_get_ptr(v, 3));
     growing_arena_destroy(a);
 }
 
@@ -262,9 +262,9 @@ TEST(vec_insert_in_middle)
     int mid = 2;
     vec_insert(v, 1, &mid);
     ASSERT_EQ(3, vec_len(v));
-    ASSERT_EQ(1, *(int *)vec_get(v, 0));
-    ASSERT_EQ(2, *(int *)vec_get(v, 1));
-    ASSERT_EQ(3, *(int *)vec_get(v, 2));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(2, *(int *)vec_get_ptr(v, 1));
+    ASSERT_EQ(3, *(int *)vec_get_ptr(v, 2));
     growing_arena_destroy(a);
 }
 
@@ -281,7 +281,7 @@ TEST(vec_insert_at_end_equals_push)
     int val = 99;
     vec_insert(v, vec_len(v), &val);
     ASSERT_EQ(4, vec_len(v));
-    ASSERT_EQ(99, *(int *)vec_get(v, 3));
+    ASSERT_EQ(99, *(int *)vec_get_ptr(v, 3));
     growing_arena_destroy(a);
 }
 
@@ -299,8 +299,8 @@ TEST(vec_remove_first_element)
     }
     vec_remove(v, 0);
     ASSERT_EQ(2, vec_len(v));
-    ASSERT_EQ(1, *(int *)vec_get(v, 0));
-    ASSERT_EQ(2, *(int *)vec_get(v, 1));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(2, *(int *)vec_get_ptr(v, 1));
     growing_arena_destroy(a);
 }
 
@@ -316,9 +316,9 @@ TEST(vec_remove_middle_element)
     }
     vec_remove(v, 2);
     ASSERT_EQ(3, vec_len(v));
-    ASSERT_EQ(0, *(int *)vec_get(v, 0));
-    ASSERT_EQ(1, *(int *)vec_get(v, 1));
-    ASSERT_EQ(3, *(int *)vec_get(v, 2));
+    ASSERT_EQ(0, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 1));
+    ASSERT_EQ(3, *(int *)vec_get_ptr(v, 2));
     growing_arena_destroy(a);
 }
 
@@ -334,7 +334,7 @@ TEST(vec_remove_last_element)
     }
     vec_remove(v, 2);
     ASSERT_EQ(2, vec_len(v));
-    ASSERT_EQ(1, *(int *)vec_get(v, 1));
+    ASSERT_EQ(1, *(int *)vec_get_ptr(v, 1));
     growing_arena_destroy(a);
 }
 
@@ -371,11 +371,11 @@ TEST(vec_clear_allows_reuse)
     int x = 42;
     vec_push(v, &x);
     ASSERT_EQ(1, vec_len(v));
-    ASSERT_EQ(42, *(int *)vec_get(v, 0));
+    ASSERT_EQ(42, *(int *)vec_get_ptr(v, 0));
     growing_arena_destroy(a);
 }
 
-/* ---- vec_find / vec_contains ------------------------------------------- */
+/* ---- vec_find / vec_any ------------------------------------------- */
 
 static bool int_gt_three(const void *elem, void *ctx)
 {
@@ -426,7 +426,7 @@ TEST(vec_contains_returns_true_when_match_exists)
     {
         vec_push(v, &vals[i]);
     }
-    ASSERT_TRUE(vec_contains(v, int_gt_three, NULL));
+    ASSERT_TRUE(vec_any(v, int_gt_three, NULL));
     growing_arena_destroy(a);
 }
 
@@ -441,11 +441,11 @@ TEST(vec_contains_returns_false_when_no_match)
     {
         vec_push(v, &vals[i]);
     }
-    ASSERT_TRUE(!vec_contains(v, int_gt_three, NULL));
+    ASSERT_TRUE(!vec_any(v, int_gt_three, NULL));
     growing_arena_destroy(a);
 }
 
-/* vec_get with an out-of-bounds index must return NULL. */
+/* vec_get_ptr with an out-of-bounds index must return NULL. */
 TEST(vec_get_out_of_bounds_returns_null)
 {
     growing_arena_t _a_storage;
@@ -454,8 +454,8 @@ TEST(vec_get_out_of_bounds_returns_null)
     vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
     int x = 42;
     vec_push(v, &x);
-    ASSERT_NULL(vec_get(v, 1)); /* only index 0 is valid */
-    ASSERT_NULL(vec_get(v, 99));
+    ASSERT_NULL(vec_get_ptr(v, 1)); /* only index 0 is valid */
+    ASSERT_NULL(vec_get_ptr(v, 99));
     growing_arena_destroy(a);
 }
 
@@ -474,8 +474,8 @@ TEST(vec_insert_when_full_triggers_grow)
     ASSERT_EQ(vec_cap(v), vec_len(v)); /* at capacity before insert */
     int newval = 99;
     vec_insert(v, 0, &newval); /* insert at front triggers grow */
-    ASSERT_EQ(99, *(int *)vec_get(v, 0));
-    ASSERT_EQ(0, *(int *)vec_get(v, 1));
+    ASSERT_EQ(99, *(int *)vec_get_ptr(v, 0));
+    ASSERT_EQ(0, *(int *)vec_get_ptr(v, 1));
     ASSERT_EQ(17, vec_len(v));
     growing_arena_destroy(a);
 }
@@ -523,7 +523,7 @@ TEST(vec_sort_orders_elements)
     vec_sort(v, int_cmp);
     for (size_t i = 1; i < vec_len(v); i++)
     {
-        ASSERT_LE(*(int *)vec_get(v, i - 1), *(int *)vec_get(v, i));
+        ASSERT_LE(*(int *)vec_get_ptr(v, i - 1), *(int *)vec_get_ptr(v, i));
     }
     growing_arena_destroy(a);
 }
@@ -548,7 +548,7 @@ TEST(vec_sort_single_element_is_noop)
     int x = 42;
     vec_push(v, &x);
     vec_sort(v, int_cmp);
-    ASSERT_EQ(42, *(int *)vec_get(v, 0));
+    ASSERT_EQ(42, *(int *)vec_get_ptr(v, 0));
     growing_arena_destroy(a);
 }
 

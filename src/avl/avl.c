@@ -202,7 +202,7 @@ static avl_node_t *do_insert(
     return rebalance(node);
 }
 
-seqc_status_t avl_insert(avl_t *t, const void *elem)
+seqc_status_t avl_add(avl_t *t, const void *elem)
 {
     if (!t || !elem)
     {
@@ -324,7 +324,7 @@ seqc_status_t avl_remove(avl_t *t, const void *elem)
 
 /* --- min / max ---------------------------------------------------------- */
 
-void *avl_min(const avl_t *t)
+void *avl_min_ptr(const avl_t *t)
 {
     if (!t || !t->root)
     {
@@ -338,7 +338,7 @@ void *avl_min(const avl_t *t)
     return node_data(cur);
 }
 
-void *avl_max(const avl_t *t)
+void *avl_max_ptr(const avl_t *t)
 {
     if (!t || !t->root)
     {
@@ -374,7 +374,7 @@ static void free_subtree(avl_t *t, avl_node_t *node)
     mem_free(t->allocator, node, node_alloc_size(t->elem_size));
 }
 
-void avl_free(avl_t *t)
+void avl_destroy(avl_t *t)
 {
     if (!t)
     {
@@ -496,7 +496,7 @@ iter_t avl_iter(const avl_t *t)
         .allocator = t->allocator};
     return (iter_t){
         .next = avl_iter_next,
-        .drop = avl_iter_drop,
+        .destroy = avl_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
@@ -549,7 +549,7 @@ iter_t avl_iter_rev(const avl_t *t)
         .allocator = t->allocator};
     return (iter_t){
         .next = avl_iter_rev_next,
-        .drop = avl_iter_drop,
+        .destroy = avl_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
@@ -683,7 +683,7 @@ iter_t avl_iter_range(const avl_t *t, const void *lo, const void *hi)
     }
     return (iter_t){
         .next = avl_range_iter_next,
-        .drop = avl_range_iter_drop,
+        .destroy = avl_range_iter_drop,
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};

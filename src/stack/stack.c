@@ -45,13 +45,13 @@ seqc_status_t stack_pop(seqc_stack_t *s, void *out)
     return vec_pop(s->vec, out);
 }
 
-void *stack_peek(const seqc_stack_t *s)
+void *stack_peek_ptr(const seqc_stack_t *s)
 {
     if (!s || vec_len(s->vec) == 0)
     {
         return NULL;
     }
-    return vec_get(s->vec, vec_len(s->vec) - 1);
+    return vec_get_ptr(s->vec, vec_len(s->vec) - 1);
 }
 
 bool stack_is_empty(const seqc_stack_t *s)
@@ -90,13 +90,13 @@ void stack_clear(seqc_stack_t *s)
     }
 }
 
-void stack_free(seqc_stack_t *s)
+void stack_destroy(seqc_stack_t *s)
 {
     if (!s)
     {
         return;
     }
-    vec_free(s->vec);
+    vec_destroy(s->vec);
     allocator_t al = s->allocator;
     mem_free(al, s, sizeof(seqc_stack_t));
 }

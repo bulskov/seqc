@@ -65,10 +65,10 @@ while (queue_pop(q, &v) == SEQC_OK)
 
 ---
 
-### `queue_peek`
+### `queue_front_ptr`
 
 ```c
-void *queue_peek(const queue_t *q);
+void *queue_front_ptr(const queue_t *q);
 ```
 
 Return a pointer to the front element without removing it. Returns `NULL` if
@@ -76,10 +76,10 @@ empty.
 
 ---
 
-### `queue_back`
+### `queue_back_ptr`
 
 ```c
-void *queue_back(const queue_t *q);
+void *queue_back_ptr(const queue_t *q);
 ```
 
 Return a pointer to the back (most recently enqueued) element without
@@ -91,8 +91,8 @@ queue_push(q, &(int){1});
 queue_push(q, &(int){2});
 queue_push(q, &(int){3});
 printf("front=%d back=%d\n",
-       *(int *)queue_peek(q),   // 1
-       *(int *)queue_back(q));  // 3
+       *(int *)queue_front_ptr(q),   // 1
+       *(int *)queue_back_ptr(q));  // 3
 ```
 
 ---
@@ -136,10 +136,10 @@ Empty the queue. The ring-buffer is retained and `head` is reset to zero.
 
 ---
 
-### `queue_free`
+### `queue_destroy`
 
 ```c
-void queue_free(queue_t *q);
+void queue_destroy(queue_t *q);
 ```
 
 Free the queue and all its internal storage. Do not use `q` after calling this.

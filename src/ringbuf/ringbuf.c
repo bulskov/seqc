@@ -165,7 +165,7 @@ seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out)
     return SEQC_OK;
 }
 
-seqc_status_t ringbuf_at(const ringbuf_t *r, size_t i, void *out)
+seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out)
 {
     if (!r || i >= r->len)
     {
@@ -203,7 +203,7 @@ void ringbuf_clear(ringbuf_t *r)
     r->head = 0;
 }
 
-void ringbuf_free(ringbuf_t *r)
+void ringbuf_destroy(ringbuf_t *r)
 {
     if (!r)
     {
@@ -269,7 +269,7 @@ iter_t ringbuf_iter(const ringbuf_t *r)
     *st = (ringbuf_iter_state_t){r, 0};
     return (iter_t){
         .next = ringbuf_iter_next,
-        .drop = ringbuf_iter_drop,
+        .destroy = ringbuf_iter_drop,
         .state = st,
         .elem_size = r->elem_size,
         .allocator = r->allocator,
@@ -291,7 +291,7 @@ iter_t ringbuf_iter_rev(const ringbuf_t *r)
     *st = (ringbuf_iter_state_t){r, r->len}; /* starts past the last element */
     return (iter_t){
         .next = ringbuf_iter_rev_next,
-        .drop = ringbuf_iter_drop,
+        .destroy = ringbuf_iter_drop,
         .state = st,
         .elem_size = r->elem_size,
         .allocator = r->allocator,

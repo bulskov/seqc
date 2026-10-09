@@ -49,7 +49,7 @@ TEST(stack_peek_does_not_consume)
     seqc_stack_t *s = stack_create(sizeof(int), growing_arena_allocator(a));
     int v = 42;
     stack_push(s, &v);
-    ASSERT_EQ(42, *(int *)stack_peek(s));
+    ASSERT_EQ(42, *(int *)stack_peek_ptr(s));
     ASSERT_EQ(1, stack_len(s)); /* peek didn't pop */
     growing_arena_destroy(a);
 }
@@ -59,7 +59,7 @@ TEST(stack_peek_empty_returns_null)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 64);
     seqc_stack_t *s = stack_create(sizeof(int), growing_arena_allocator(a));
-    ASSERT_NULL(stack_peek(s));
+    ASSERT_NULL(stack_peek_ptr(s));
     growing_arena_destroy(a);
 }
 TEST(stack_pop_empty_returns_0)
@@ -88,7 +88,7 @@ TEST(stack_iter_bottom_to_top)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, i);
     ASSERT_EQ(10, got[0]);
     ASSERT_EQ(20, got[1]);
@@ -158,7 +158,7 @@ TEST(stack_iter_rev_top_to_bottom)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, i);
     ASSERT_EQ(30, got[0]);
     ASSERT_EQ(20, got[1]);
@@ -174,10 +174,10 @@ TEST(stack_iter_rev_empty)
     iter_t it = stack_iter_rev(s);
     int v;
     ASSERT_TRUE(!it.next(&it, &v));
-    iter_drop(&it);
+    iter_destroy(&it);
     growing_arena_destroy(a);
 }
-/* ---- sys_allocator: exercises stack_free ------------------------------- */
+/* ---- sys_allocator: exercises stack_destroy ------------------------------- */
 TEST(stack_sys_alloc_free_releases_memory)
 {
     allocator_t al = sys_allocator();
@@ -187,8 +187,8 @@ TEST(stack_sys_alloc_free_releases_memory)
         stack_push(s, &i);
     }
     ASSERT_EQ(4, stack_len(s));
-    stack_free(s);
-    /* stack_free releases all memory — verified by sys_allocator not leaking */
+    stack_destroy(s);
+    /* stack_destroy releases all memory — verified by sys_allocator not leaking */
 }
 
 int main(int argc, char *argv[])

@@ -75,11 +75,11 @@ both ends.
 
 ---
 
-### `list_front` / `list_back`
+### `list_front_ptr` / `list_back_ptr`
 
 ```c
-void *list_front(const list_t *l);
-void *list_back(const list_t *l);
+void *list_front_ptr(const list_t *l);
+void *list_back_ptr(const list_t *l);
 ```
 
 Pointer to the head / tail element data. Returns `NULL` if empty.
@@ -116,10 +116,10 @@ arena allocators). After clearing, `len == 0` and `head == tail == NULL`.
 
 ---
 
-### `list_free`
+### `list_destroy`
 
 ```c
-void list_free(list_t *l);
+void list_destroy(list_t *l);
 ```
 
 Free all nodes and then the list struct itself. Do not use `l` after calling this.
@@ -139,7 +139,7 @@ iter_t it = list_iter(l);
 int  v;
 while (it.next(&it, &v))
     printf("%d ", v);  // 1 2 3 4 5
-iter_drop(&it);
+iter_destroy(&it);
 
 arena_free(a);
 ```

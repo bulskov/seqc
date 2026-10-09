@@ -53,10 +53,10 @@ pqueue_t *max_heap = pqueue_create(sizeof(int), int_cmp_desc, arena_allocator(a)
 
 ---
 
-### `pqueue_build_from_vec`
+### `pqueue_create_from_vec`
 
 ```c
-pqueue_t *pqueue_build_from_vec(const vec_t *v, compare_fn cmp, allocator_t allocator);
+pqueue_t *pqueue_create_from_vec(const vec_t *v, compare_fn cmp, allocator_t allocator);
 ```
 
 Build a priority queue from a copy of `v`'s elements using Floyd's O(n)
@@ -71,7 +71,7 @@ int data[] = {9, 3, 7, 1, 5, 8, 2, 6, 4, 0};
 for (int i = 0; i < 10; i++)
     vec_push(v, &data[i]);
 
-pqueue_t *q = pqueue_build_from_vec(v, int_cmp, arena_allocator(a));
+pqueue_t *q = pqueue_create_from_vec(v, int_cmp, arena_allocator(a));
 // Identical to pushing all elements one-by-one but O(n) instead of O(n log n)
 
 int v_out;
@@ -185,15 +185,15 @@ fails.
 /* drain and iterate in sorted order */
 slice_t sorted = pqueue_drain(q, arena_allocator(a));
 for (size_t i = 0; i < sorted.len; i++)
-    printf("%d\n", *(int *)slice_get(sorted, i));
+    printf("%d\n", *(int *)slice_get_ptr(sorted, i));
 ```
 
 ---
 
-### `pqueue_free`
+### `pqueue_destroy`
 
 ```c
-void pqueue_free(pqueue_t *q);
+void pqueue_destroy(pqueue_t *q);
 ```
 
 Free the pqueue_t and all its internal storage. Do not use `q` after calling this.

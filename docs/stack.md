@@ -64,10 +64,10 @@ if (stack_pop(s, &val) == SEQC_OK)
 
 ---
 
-### `stack_peek`
+### `stack_peek_ptr`
 
 ```c
-void *stack_peek(const seqc_stack_t *s);
+void *stack_peek_ptr(const seqc_stack_t *s);
 ```
 
 Return a pointer to the top element without removing it. Returns `NULL` if
@@ -115,10 +115,10 @@ Empty the stack. The underlying vec_t buffer is retained.
 
 ---
 
-### `stack_free`
+### `stack_destroy`
 
 ```c
-void stack_free(seqc_stack_t *s);
+void stack_destroy(seqc_stack_t *s);
 ```
 
 Free the stack and all its internal storage. Do not use `s` after calling this.

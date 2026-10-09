@@ -157,12 +157,12 @@ seqc_status_t list_pop_back(list_t *l, void *out)
     return SEQC_OK;
 }
 
-void *list_front(const list_t *l)
+void *list_front_ptr(const list_t *l)
 {
     return (l && l->head) ? node_data(l->head) : NULL;
 }
 
-void *list_back(const list_t *l)
+void *list_back_ptr(const list_t *l)
 {
     return (l && l->tail) ? node_data(l->tail) : NULL;
 }
@@ -194,7 +194,7 @@ void list_clear(list_t *l)
     l->len = 0;
 }
 
-void list_free(list_t *l)
+void list_destroy(list_t *l)
 {
     if (!l)
     {
@@ -245,7 +245,7 @@ iter_t list_iter(const list_t *l)
     *s = (list_iter_state_t){l->head, l->elem_size};
     return (iter_t){
         .next = list_iter_next,
-        .drop = list_iter_drop,
+        .destroy = list_iter_drop,
         .state = s,
         .elem_size = l->elem_size,
         .allocator = l->allocator};

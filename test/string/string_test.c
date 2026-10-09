@@ -281,7 +281,7 @@ TEST(string_builder_clear_keeps_capacity)
     growing_arena_destroy(&arena);
 }
 
-/* strbuf_free gives back everything strbuf_create and the appends took. */
+/* strbuf_destroy gives back everything strbuf_create and the appends took. */
 TEST(string_builder_free_releases_everything)
 {
     growing_arena_t arena;
@@ -295,7 +295,7 @@ TEST(string_builder_free_releases_everything)
         strbuf_append(sb, STRING_LIT("grow the buffer "));
     }
     ASSERT_GT(debug_allocator_stats(&dbg).bytes_live, 0u);
-    strbuf_free(sb);
+    strbuf_destroy(sb);
     ASSERT_EQ(0u, debug_allocator_stats(&dbg).bytes_live);
     growing_arena_destroy(&arena);
 }
@@ -303,7 +303,7 @@ TEST(string_builder_free_releases_everything)
 TEST(string_builder_clear_and_free_accept_null)
 {
     strbuf_clear(NULL);
-    strbuf_free(NULL);
+    strbuf_destroy(NULL);
 }
 
 /* An allocator that fails returns NULL from strbuf_create — and does not
@@ -361,7 +361,7 @@ TEST(string_chars_rev_yields_reverse_order)
     it.next(&it, &c);
     ASSERT_EQ('a', c);
     ASSERT_FALSE(it.next(&it, &c));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -381,7 +381,7 @@ TEST(string_split_basic)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
     ASSERT_TRUE(string_equals(parts[1], STRING_LIT("b")));
@@ -417,7 +417,7 @@ TEST(string_split_no_delim)
     ASSERT_TRUE(it.next(&it, &token));
     ASSERT_TRUE(string_equals(token, STRING_LIT("hello")));
     ASSERT_FALSE(it.next(&it, &token));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -439,7 +439,7 @@ TEST(string_split_null_string_yields_one_empty_token)
     ASSERT_TRUE(it.next(&it, &token));
     ASSERT_EQ(0u, token.len);
     ASSERT_FALSE(it.next(&it, &token));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -457,7 +457,7 @@ TEST(string_split_substr_empty_delim_yields_whole)
     ASSERT_TRUE(it.next(&it, &token));
     ASSERT_TRUE(string_equals(token, STRING_LIT("abc")));
     ASSERT_FALSE(it.next(&it, &token));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -478,7 +478,7 @@ TEST(string_split_any_charset)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
     ASSERT_TRUE(string_equals(parts[1], STRING_LIT("b")));
@@ -504,7 +504,7 @@ TEST(string_split_any_keeps_empties_each_char_is_boundary)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("a")));
     ASSERT_EQ(0u, parts[1].len);
@@ -548,7 +548,7 @@ TEST(string_split_any_whitespace_tokenize_with_filter)
     {
         i++;
     }
-    iter_drop(&it);
+    iter_destroy(&it);
     ASSERT_EQ(3u, i);
     ASSERT_TRUE(string_equals(parts[0], STRING_LIT("the")));
     ASSERT_TRUE(string_equals(parts[1], STRING_LIT("quick")));
@@ -570,7 +570,7 @@ TEST(string_split_any_empty_set_yields_whole)
     ASSERT_TRUE(it.next(&it, &token));
     ASSERT_TRUE(string_equals(token, STRING_LIT("abc")));
     ASSERT_FALSE(it.next(&it, &token));
-    iter_drop(&it);
+    iter_destroy(&it);
     scratch_end(&sc);
     growing_arena_destroy(a);
 }
@@ -581,7 +581,7 @@ TEST(string_split_any_oom_returns_empty)
     allocator_t al = oom_after_allocator(0, &ctx); /* state alloc fails */
     iter_t it = string_split_any(STRING_LIT("a b c"), STRING_LIT(" "), al);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
+    iter_destroy(&it);
 }
 
 /* --- hashmap_t with string_t keys -------------------------------------------
@@ -618,7 +618,7 @@ TEST(string_hashmap_string_keys)
     ASSERT_EQ(SEQC_OK, hashmap_get(map, &k1_copy, &g1c));
     ASSERT_EQ(1, g1c);
 
-    hashmap_free(map);
+    hashmap_destroy(map);
     growing_arena_destroy(a);
 }
 
@@ -961,7 +961,7 @@ TEST(string_split_oom_returns_empty)
     allocator_t al = oom_after_allocator(0, &ctx); /* state alloc fails */
     iter_t it = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","), al);
     ASSERT_NULL(it.next); /* empty iterator, not a NULL deref */
-    iter_drop(&it);
+    iter_destroy(&it);
 }
 
 /* --- printf interop (STRING_FMT / STRING_ARG) --------------------------- */
