@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-09
+
+A consistent API: every collection names the same operation the same way.
+See [docs/naming.md](docs/naming.md). **Breaking** — every program using
+seqc needs the renames below; most are a search and replace.
+
+### Changed (renamed)
+
+| 2.x | 3.0 |
+|---|---|
+| `X_free` (every collection, `strbuf`) | `X_destroy` |
+| `iter_drop`, the `iter_t` field `drop` | `iter_destroy`, field `destroy` |
+| `vec_create_size` | `vec_create_with_cap` |
+| `vec_get` (pointer) | `vec_get_ptr` |
+| `vec_get_copy` | `vec_get` |
+| `slice_get` (pointer) | `slice_get_ptr` |
+| `stack_peek` (pointer) | `stack_peek_ptr` |
+| `queue_peek`, `queue_back` (pointers) | `queue_front_ptr`, `queue_back_ptr` |
+| `list_front/back`, `dlist_front/back` (pointers) | `…_front_ptr`, `…_back_ptr` |
+| `avl_min/max`, `bstree_min/max` (pointers) | `…_min_ptr`, `…_max_ptr` |
+| `ringbuf_at` | `ringbuf_get` |
+| `avl_insert`, `bstree_insert` | `avl_add`, `bstree_add` |
+| `hashmap_delete` | `hashmap_remove` |
+| `set_add_all`, `hashmap_set_all` | `set_extend`, `hashmap_extend` |
+| `pqueue_build_from_vec` | `pqueue_create_from_vec` |
+| `vec_contains`, `slice_contains` (predicates) | `vec_any`, `slice_any` |
+| `hash_fnv1a_str`, `hash_eq_str` (`char *` keys) | `hash_cstr`, `hash_eq_cstr` |
+
+Watch out for the names that now mean something else: `vec_get`,
+`slice_get`, `stack_peek`, `list_front` and the other plain accessors used to
+return a pointer and now **copy into `out`** and return a status.
+
+### Added
+
+- Accessor pairs everywhere — the plain name copies (not affected by later
+  changes), `_ptr` returns a pointer valid until the next change:
+  `slice_get`, `stack_peek`, `queue_front`, `queue_back`, `list_front/back`,
+  `dlist_front/back`, `ringbuf_get_ptr`, `ringbuf_front/back` (+`_ptr`),
+  `pqueue_peek_ptr`, `avl_min/max`, `bstree_min/max`, `omap_get_ptr`,
+  `omap_min_key_ptr`, `omap_max_key_ptr`, `hashmap_get_ptr`.
+- `X_is_empty` for `vec`, `avl`, `bstree`, `omap`, `strbuf`.
+- `X_extend(x, it)` for `stack`, `queue`, `list`, `dlist`, `ringbuf`,
+  `pqueue`, `avl`, `bstree`, `omap`.
+- `seqc/status.h`: `seqc_status_t` in its own header.
+- `docs/naming.md`: the conventions, and the guide for moving from 2.x.
+
+### Fixed
+
+- A `NULL` collection is `SEQC_INVALID` for every copy accessor (`ringbuf_get`
+  and `pqueue_peek` said `SEQC_NOT_FOUND`); `vec_get` accepts `out == NULL`
+  like the others; `hashmap_get` on a map that never held an entry is
+  `SEQC_NOT_FOUND`, not `SEQC_INVALID`.
+- Docs: the examples used an arena API that no longer exists
+  (`arena_create`, `arena_free`); they now use `growing_arena_*`.
+  `vec_get_ptr` was documented as unchecked; it returns `NULL` out of range.
+
 ## [2.4.0] - 2026-10-09
 
 ### Added
