@@ -1,4 +1,5 @@
 add_library(seqc STATIC
+    collection.c
     slice/slice.c
     iter/iter.c
     vec/vec.c

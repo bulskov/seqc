@@ -31,18 +31,23 @@ seqc_status_t pqueue_push(pqueue_t *q, const void *elem);
  * Returns SEQC_OK on success, SEQC_NOT_FOUND if the queue is empty. */
 seqc_status_t pqueue_pop(pqueue_t *q, void *out);
 
-/* Copy the minimum element into out (may be NULL to test for non-empty).
- * Returns SEQC_OK if non-empty, SEQC_NOT_FOUND if empty.
- * Invalidated by pqueue_push (may reallocate the backing buffer) or
- * pqueue_pop (reorders the heap). */
+/* The minimum element (what pqueue_pop would return).  Copies into out (may be
+ * NULL to test only), so it is not affected by later changes. SEQC_NOT_FOUND if
+ * empty. */
 seqc_status_t pqueue_peek(const pqueue_t *q, void *out);
+/* Pointer to the minimum element, NULL if empty — valid only until the next
+ * change to the queue (pqueue_push may reallocate, pqueue_pop reorders the
+ * heap). */
+void *pqueue_peek_ptr(const pqueue_t *q);
 
 size_t pqueue_len(const pqueue_t *q);
 bool pqueue_is_empty(const pqueue_t *q);
 iter_t pqueue_iter(
     const pqueue_t *q); /* heap-storage order (unspecified priority order) */
 iter_t pqueue_iter_rev(const pqueue_t *q); /* reverse heap-storage order */
-void pqueue_clear(pqueue_t *q);            /* empty the queue, keep buffer */
+/* Push every element of it (consumed); stops at the first error. */
+seqc_status_t pqueue_extend(pqueue_t *q, iter_t it);
+void pqueue_clear(pqueue_t *q); /* empty the queue, keep buffer */
 void pqueue_destroy(pqueue_t *q);
 
 /* Pop all elements in priority order into an allocator-owned slice_t.

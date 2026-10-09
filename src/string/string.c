@@ -398,6 +398,11 @@ string_t strbuf_finish(const strbuf_t *sb)
     return (string_t){(const char *)s.ptr, s.len};
 }
 
+bool strbuf_is_empty(const strbuf_t *sb)
+{
+    return !sb || vec_is_empty(sb->chars);
+}
+
 size_t strbuf_len(const strbuf_t *sb)
 {
     return vec_len(sb->chars);

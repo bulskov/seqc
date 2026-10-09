@@ -29,10 +29,22 @@ seqc_status_t ringbuf_pop_front(ringbuf_t *r, void *out);
  * Returns SEQC_NOT_FOUND if empty. */
 seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out);
 
-/* O(1) indexed access — copies element at logical index i into *out.
- * Index 0 is the front element. out may be NULL to probe bounds only.
- * Returns SEQC_OK, or SEQC_NOT_FOUND if i >= len. */
+/* Element at logical index i (0 is the front), O(1).  Copies into out (may be
+ * NULL to test only), so it is not affected by later changes. SEQC_NOT_FOUND if
+ * i >= len. */
 seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out);
+/* Pointer to element i, NULL if i >= len — valid only until the next change to
+ * the buffer. */
+void *ringbuf_get_ptr(const ringbuf_t *r, size_t i);
+
+/* The front / back element.  Copies into out (may be NULL to test only), so it
+ * is not affected by later changes.  SEQC_NOT_FOUND if empty. */
+seqc_status_t ringbuf_front(const ringbuf_t *r, void *out);
+seqc_status_t ringbuf_back(const ringbuf_t *r, void *out);
+/* Pointers to the front / back element, NULL if empty — valid only until the
+ * next change to the buffer. */
+void *ringbuf_front_ptr(const ringbuf_t *r);
+void *ringbuf_back_ptr(const ringbuf_t *r);
 
 size_t ringbuf_len(const ringbuf_t *r);
 size_t ringbuf_cap(const ringbuf_t *r);
@@ -41,5 +53,8 @@ bool ringbuf_is_empty(const ringbuf_t *r);
 iter_t ringbuf_iter(const ringbuf_t *r);     /* front→back */
 iter_t ringbuf_iter_rev(const ringbuf_t *r); /* back→front */
 
+/* Push every element of it (consumed) at the back; stops at the first
+ * error. */
+seqc_status_t ringbuf_extend(ringbuf_t *r, iter_t it);
 void ringbuf_clear(ringbuf_t *r); /* empty buffer, keep allocation */
 void ringbuf_destroy(ringbuf_t *r);

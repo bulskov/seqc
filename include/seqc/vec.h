@@ -12,19 +12,19 @@ vec_t *vec_create(size_t elem_size, allocator_t allocator);
 vec_t *vec_create_with_cap(
     size_t elem_size, size_t capacity, allocator_t allocator);
 size_t vec_len(const vec_t *v);
+bool vec_is_empty(const vec_t *v);
 size_t vec_elem_size(const vec_t *v);
 size_t vec_cap(const vec_t *v);
 seqc_status_t vec_push(vec_t *v, const void *elem);
 seqc_status_t vec_pop(
     vec_t *v, void *out); /* out may be NULL; SEQC_NOT_FOUND if empty */
-/* Returns pointer into the backing buffer at index i.
- * Invalidated by any call that may reallocate (vec_push, vec_insert,
- * vec_reserve) or shift elements (vec_insert, vec_remove). */
-void *vec_get_ptr(const vec_t *v, size_t i);
-/* Safe copy-out variant: copies element at i into out.
- * Returns SEQC_OK, SEQC_NOT_FOUND (out of bounds), or SEQC_INVALID (NULL out).
- */
+/* Element i.  Copies into out (may be NULL to test only), so it is not affected
+ * by later changes. SEQC_NOT_FOUND if i >= len, SEQC_INVALID if v is NULL. */
 seqc_status_t vec_get(const vec_t *v, size_t i, void *out);
+/* Pointer to element i, NULL if i >= len — valid only until the next change to
+ * the vec: anything that may reallocate (vec_push, vec_insert, vec_reserve) or
+ * shift elements (vec_insert, vec_remove). */
+void *vec_get_ptr(const vec_t *v, size_t i);
 void vec_set(vec_t *v, size_t i, const void *elem); /* overwrite element at i */
 seqc_status_t vec_insert(
     vec_t *v, size_t i, const void *elem); /* shift [i..] right */

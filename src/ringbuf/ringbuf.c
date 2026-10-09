@@ -1,4 +1,5 @@
 #include "seqc/ringbuf.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <assert.h>
@@ -165,17 +166,22 @@ seqc_status_t ringbuf_pop_back(ringbuf_t *r, void *out)
     return SEQC_OK;
 }
 
-seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out)
+void *ringbuf_get_ptr(const ringbuf_t *r, size_t i)
 {
     if (!r || i >= r->len)
     {
-        return SEQC_NOT_FOUND;
+        return NULL;
     }
-    if (out)
+    return rb_ptr(r, rb_slot(r, i));
+}
+
+seqc_status_t ringbuf_get(const ringbuf_t *r, size_t i, void *out)
+{
+    if (!r)
     {
-        memcpy(out, rb_ptr(r, rb_slot(r, i)), r->elem_size);
+        return SEQC_INVALID;
     }
-    return SEQC_OK;
+    return seqc_copy_out(ringbuf_get_ptr(r, i), r->elem_size, out);
 }
 
 size_t ringbuf_len(const ringbuf_t *r)
@@ -296,4 +302,47 @@ iter_t ringbuf_iter_rev(const ringbuf_t *r)
         .elem_size = r->elem_size,
         .allocator = r->allocator,
     };
+}
+
+void *ringbuf_front_ptr(const ringbuf_t *r)
+{
+    return ringbuf_get_ptr(r, 0);
+}
+
+void *ringbuf_back_ptr(const ringbuf_t *r)
+{
+    return r && r->len > 0 ? ringbuf_get_ptr(r, r->len - 1) : NULL;
+}
+
+seqc_status_t ringbuf_front(const ringbuf_t *r, void *out)
+{
+    if (!r)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(ringbuf_front_ptr(r), r->elem_size, out);
+}
+
+seqc_status_t ringbuf_back(const ringbuf_t *r, void *out)
+{
+    if (!r)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(ringbuf_back_ptr(r), r->elem_size, out);
+}
+
+static seqc_status_t add_push_back(void *r, const void *elem)
+{
+    return ringbuf_push_back(r, elem);
+}
+
+seqc_status_t ringbuf_extend(ringbuf_t *r, iter_t it)
+{
+    if (!r)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(r, add_push_back, r->elem_size, r->allocator, it);
 }

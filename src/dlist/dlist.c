@@ -1,4 +1,5 @@
 #include "seqc/dlist.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <stdbool.h>
@@ -290,4 +291,37 @@ iter_t dlist_iter_rev(const dlist_t *l)
         .state = s,
         .elem_size = l->elem_size,
         .allocator = l->allocator};
+}
+
+seqc_status_t dlist_front(const dlist_t *l, void *out)
+{
+    if (!l)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(dlist_front_ptr(l), l->elem_size, out);
+}
+
+seqc_status_t dlist_back(const dlist_t *l, void *out)
+{
+    if (!l)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(dlist_back_ptr(l), l->elem_size, out);
+}
+
+static seqc_status_t add_push_back(void *l, const void *elem)
+{
+    return dlist_push_back(l, elem);
+}
+
+seqc_status_t dlist_extend(dlist_t *l, iter_t it)
+{
+    if (!l)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(l, add_push_back, l->elem_size, l->allocator, it);
 }

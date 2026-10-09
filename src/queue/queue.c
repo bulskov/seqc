@@ -1,4 +1,5 @@
 #include "seqc/queue.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <stdbool.h>
@@ -252,4 +253,37 @@ iter_t queue_iter_rev(const queue_t *q)
         .state = s,
         .elem_size = q->elem_size,
         .allocator = q->allocator};
+}
+
+seqc_status_t queue_front(const queue_t *q, void *out)
+{
+    if (!q)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(queue_front_ptr(q), q->elem_size, out);
+}
+
+seqc_status_t queue_back(const queue_t *q, void *out)
+{
+    if (!q)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(queue_back_ptr(q), q->elem_size, out);
+}
+
+static seqc_status_t add_push(void *q, const void *elem)
+{
+    return queue_push(q, elem);
+}
+
+seqc_status_t queue_extend(queue_t *q, iter_t it)
+{
+    if (!q)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(q, add_push, q->elem_size, q->allocator, it);
 }

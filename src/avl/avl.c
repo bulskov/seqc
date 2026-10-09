@@ -1,4 +1,5 @@
 #include "seqc/avl.h"
+#include "collection.h"
 
 #include "max_align.h"
 #include <string.h>
@@ -687,4 +688,42 @@ iter_t avl_iter_range(const avl_t *t, const void *lo, const void *hi)
         .state = s,
         .elem_size = t->elem_size,
         .allocator = t->allocator};
+}
+
+seqc_status_t avl_min(const avl_t *t, void *out)
+{
+    if (!t)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(avl_min_ptr(t), t->elem_size, out);
+}
+
+seqc_status_t avl_max(const avl_t *t, void *out)
+{
+    if (!t)
+    {
+        return SEQC_INVALID;
+    }
+    return seqc_copy_out(avl_max_ptr(t), t->elem_size, out);
+}
+
+bool avl_is_empty(const avl_t *t)
+{
+    return !t || t->len == 0;
+}
+
+static seqc_status_t add_add(void *t, const void *elem)
+{
+    return avl_add(t, elem);
+}
+
+seqc_status_t avl_extend(avl_t *t, iter_t it)
+{
+    if (!t)
+    {
+        iter_destroy(&it);
+        return SEQC_INVALID;
+    }
+    return seqc_extend(t, add_add, t->elem_size, t->allocator, it);
 }
