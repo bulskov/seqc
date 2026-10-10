@@ -68,6 +68,12 @@ the pointer, not what it points at.
 
 `X_pop…` always copies (the element is gone afterwards).
 
+The same split holds for whole strings: a function named `to_…` with an
+allocator returns a copy that is yours (`string_to_cstr`, `strbuf_to_string`),
+a `view` borrows (`string_view_cstr`, `strbuf_view`). Every returned copy is a
+plain allocation of exactly its length, freed with `mem_free` — see
+[Who owns a result](string.md#who-owns-a-result).
+
 ## Changing
 
 | Verb | Used for |

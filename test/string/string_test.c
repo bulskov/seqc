@@ -217,7 +217,7 @@ TEST(string_builder_append_str)
     strbuf_append(sb, STRING_LIT("hello"));
     strbuf_append_char(sb, ' ');
     strbuf_append_cstr(sb, "world");
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(string_equals(result, STRING_LIT("hello world")));
     growing_arena_destroy(a);
 }
@@ -234,7 +234,7 @@ TEST(string_builder_len_tracks_appends)
     strbuf_append_char(sb, ' ');
     strbuf_append_int(sb, 42);
     ASSERT_EQ(8u, strbuf_len(sb));
-    ASSERT_EQ(strbuf_finish(sb).len, strbuf_len(sb));
+    ASSERT_EQ(strbuf_view(sb).len, strbuf_len(sb));
     growing_arena_destroy(a);
 }
 
@@ -247,7 +247,7 @@ TEST(string_builder_clear_empties_it)
     strbuf_append(sb, STRING_LIT("hello"));
     strbuf_clear(sb);
     ASSERT_EQ(0u, strbuf_len(sb));
-    ASSERT_EQ(0u, strbuf_finish(sb).len);
+    ASSERT_EQ(0u, strbuf_view(sb).len);
     growing_arena_destroy(a);
 }
 
@@ -260,7 +260,7 @@ TEST(string_builder_is_reusable_after_clear)
     strbuf_append(sb, STRING_LIT("first"));
     strbuf_clear(sb);
     strbuf_append(sb, STRING_LIT("second"));
-    ASSERT_TRUE(string_equals(strbuf_finish(sb), STRING_LIT("second")));
+    ASSERT_TRUE(string_equals(strbuf_view(sb), STRING_LIT("second")));
     growing_arena_destroy(a);
 }
 
@@ -324,7 +324,7 @@ TEST(string_builder_empty)
     growing_arena_t *a = &_a_storage;
     growing_arena_init(a, 256);
     strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_EQ(0, result.len);
     growing_arena_destroy(a);
 }
@@ -632,7 +632,7 @@ TEST(string_strbuf_append_int_positive)
     growing_arena_init(a, 256);
     strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
     strbuf_append_int(sb, 42);
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(string_equals(result, STRING_LIT("42")));
     growing_arena_destroy(a);
 }
@@ -644,7 +644,7 @@ TEST(string_strbuf_append_int_negative)
     growing_arena_init(a, 256);
     strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
     strbuf_append_int(sb, -123);
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(string_equals(result, STRING_LIT("-123")));
     growing_arena_destroy(a);
 }
@@ -656,7 +656,7 @@ TEST(string_strbuf_append_int_zero)
     growing_arena_init(a, 256);
     strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
     strbuf_append_int(sb, 0);
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(string_equals(result, STRING_LIT("0")));
     growing_arena_destroy(a);
 }
@@ -668,7 +668,7 @@ TEST(string_strbuf_append_fmt_basic)
     growing_arena_init(a, 512);
     strbuf_t *sb = strbuf_create(growing_arena_allocator(a));
     strbuf_append_fmt(sb, "hello %s, you are %d years old", "world", 30);
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(
         string_equals(result, STRING_LIT("hello world, you are 30 years old")));
     growing_arena_destroy(a);
@@ -684,7 +684,7 @@ TEST(string_strbuf_append_fmt_compose)
     strbuf_append_fmt(sb, "%d", 7);
     strbuf_append_cstr(sb, ", y=");
     strbuf_append_fmt(sb, "%.2f", 3.14);
-    string_t result = strbuf_finish(sb);
+    string_t result = strbuf_view(sb);
     ASSERT_TRUE(string_equals(result, STRING_LIT("x=7, y=3.14")));
     growing_arena_destroy(a);
 }
@@ -1023,6 +1023,164 @@ TEST(string_to_cstr_buf_null_buf_or_zero_size)
     char buf[4];
     ASSERT_NULL(string_to_cstr_buf(STRING_LIT("a"), NULL, 4));
     ASSERT_NULL(string_to_cstr_buf(STRING_LIT("a"), buf, 0));
+}
+
+/* --- Results are plain allocations ----------------------------------------
+ *
+ * Every function that returns a new string returns a plain allocation of
+ * exactly len bytes, freed with mem_free(alloc, ptr, len) — not a view into
+ * some internal buffer.  These use the malloc-based sys_allocator, so
+ * ./test.sh asan catches a wrong pointer (free of a non-malloc'd address),
+ * a wrong size, or anything left behind (LeakSanitizer). */
+
+static void free_string(allocator_t alloc, string_t s)
+{
+    mem_free(alloc, (void *)s.ptr, s.len);
+}
+
+TEST(string_strbuf_to_string_is_an_owned_copy)
+{
+    allocator_t heap = sys_allocator();
+    strbuf_t *sb = strbuf_create(heap);
+    strbuf_append(sb, STRING_LIT("hello"));
+    string_t out = strbuf_to_string(sb, heap);
+    strbuf_append(sb, STRING_LIT(" world, long enough to move the buffer"));
+    strbuf_destroy(sb);
+    ASSERT_TRUE(string_equals(out, STRING_LIT("hello")));
+    free_string(heap, out);
+}
+
+TEST(string_strbuf_to_string_empty_and_null)
+{
+    allocator_t heap = sys_allocator();
+    strbuf_t *sb = strbuf_create(heap);
+    string_t out = strbuf_to_string(sb, heap);
+    ASSERT_NULL(out.ptr);
+    ASSERT_EQ(0u, out.len);
+    strbuf_destroy(sb);
+    ASSERT_EQ(0u, strbuf_to_string(NULL, heap).len);
+    ASSERT_EQ(0u, strbuf_view(NULL).len);
+}
+
+TEST(string_strbuf_to_string_oom)
+{
+    allocator_t heap = sys_allocator();
+    strbuf_t *sb = strbuf_create(heap);
+    strbuf_append(sb, STRING_LIT("hello"));
+    string_t out = strbuf_to_string(sb, ALLOCATOR_NULL);
+    ASSERT_NULL(out.ptr);
+    ASSERT_EQ(0u, out.len);
+    strbuf_destroy(sb);
+}
+
+TEST(string_strbuf_finish_is_strbuf_view)
+{
+    allocator_t heap = sys_allocator();
+    strbuf_t *sb = strbuf_create(heap);
+    strbuf_append(sb, STRING_LIT("abc"));
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+    string_t old = strbuf_finish(sb);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+    string_t view = strbuf_view(sb);
+    ASSERT_TRUE(old.ptr == view.ptr && old.len == view.len);
+    strbuf_destroy(sb);
+}
+
+TEST(string_replace_result_is_plain_allocation)
+{
+    allocator_t heap = sys_allocator();
+    string_t r = string_replace(
+        STRING_LIT("a.b.c"), STRING_LIT("."), STRING_LIT("::"), heap);
+    ASSERT_TRUE(string_equals(r, STRING_LIT("a::b::c")));
+    free_string(heap, r);
+
+    r = string_replace(
+        STRING_LIT("abc"), STRING_LIT(""), STRING_LIT("x"), heap);
+    ASSERT_TRUE(string_equals(r, STRING_LIT("abc")));
+    free_string(heap, r);
+
+    r = string_replace(
+        STRING_LIT("aaa"), STRING_LIT("a"), STRING_LIT(""), heap);
+    ASSERT_EQ(0u, r.len);
+    free_string(heap, r);
+}
+
+TEST(string_replace_oom_returns_empty)
+{
+    for (size_t n = 0; n < 8; ++n)
+    {
+        oom_ctx_t ctx = {0};
+        allocator_t al = oom_after_allocator(n, &ctx);
+        string_t r = string_replace(
+            STRING_LIT("a.b.c"), STRING_LIT("."), STRING_LIT("::"), al);
+        if (r.ptr)
+        {
+            ASSERT_TRUE(string_equals(r, STRING_LIT("a::b::c")));
+            free_string(al, r);
+        }
+        else
+        {
+            ASSERT_EQ(0u, r.len);
+        }
+    }
+}
+
+TEST(string_join_result_is_plain_allocation)
+{
+    allocator_t heap = sys_allocator();
+    iter_t it = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","), heap);
+    string_t r = string_join(it, STRING_LIT(" - "), heap);
+    ASSERT_TRUE(string_equals(r, STRING_LIT("a - b - c")));
+    free_string(heap, r);
+}
+
+TEST(string_join_oom_returns_empty)
+{
+    allocator_t heap = sys_allocator();
+    for (size_t n = 0; n < 8; ++n)
+    {
+        oom_ctx_t ctx = {0};
+        allocator_t al = oom_after_allocator(n, &ctx);
+        iter_t it =
+            string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","), heap);
+        string_t r = string_join(it, STRING_LIT("-"), al);
+        if (r.ptr)
+        {
+            ASSERT_TRUE(string_equals(r, STRING_LIT("a-b-c")));
+            free_string(al, r);
+        }
+        else
+        {
+            ASSERT_EQ(0u, r.len);
+        }
+    }
+}
+
+TEST(string_copies_are_plain_allocations)
+{
+    allocator_t heap = sys_allocator();
+    string_t c = string_copy(STRING_LIT("Mixed"), heap);
+    string_t f = string_from_cstr("Mixed", heap);
+    string_t u = string_to_uppercase(STRING_LIT("Mixed"), heap);
+    string_t l = string_to_lowercase(STRING_LIT("Mixed"), heap);
+    ASSERT_TRUE(string_equals(u, STRING_LIT("MIXED")));
+    ASSERT_TRUE(string_equals(l, STRING_LIT("mixed")));
+    free_string(heap, c);
+    free_string(heap, f);
+    free_string(heap, u);
+    free_string(heap, l);
+    const char *z = string_to_cstr(STRING_LIT("Mixed"), heap);
+    mem_free(heap, (void *)z, 6); /* len + the NUL */
 }
 
 int main(int argc, char *argv[])

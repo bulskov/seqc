@@ -8,6 +8,16 @@
 
 #include <stdarg.h>
 
+/* Marks a function that is kept for compatibility and will be removed in
+ * the next major version: using it gives a compiler warning. */
+#if defined(__GNUC__) || defined(__clang__)
+#define SEQC_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#elif defined(_MSC_VER)
+#define SEQC_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#define SEQC_DEPRECATED(msg)
+#endif
+
 typedef struct
 {
     const char *ptr;
@@ -79,18 +89,23 @@ size_t string_rfind_char(string_t s, char c);
 /* --- Transformation ----------------------------------------------------- */
 
 /* Return a new string_t with all non-overlapping occurrences of needle replaced
- * by replacement.  The result is arena-allocated via allocator. */
+ * by replacement.  The result is a plain allocation of exactly len bytes from
+ * allocator: free it with mem_free(allocator, (void *)r.ptr, r.len).  An empty
+ * result, or running out of memory, gives {NULL, 0}. */
 string_t string_replace(
     string_t s, string_t needle, string_t replacement, allocator_t allocator);
 
-/* Return a new arena-allocated copy of s with all ASCII letters uppercased. */
+/* Return a new copy of s (exactly s.len bytes from allocator) with all ASCII
+ * letters uppercased. */
 string_t string_to_uppercase(string_t s, allocator_t allocator);
 
-/* Return a new arena-allocated copy of s with all ASCII letters lowercased. */
+/* Return a new copy of s (exactly s.len bytes from allocator) with all ASCII
+ * letters lowercased. */
 string_t string_to_lowercase(string_t s, allocator_t allocator);
 
-/* Join all string_t values yielded by it, separated by sep.
- * Consumes and drops the iterator.  Result is arena-allocated via allocator. */
+/* Join all string_t values yielded by it, separated by sep.  Consumes and
+ * destroys the iterator.  The result is a plain allocation of exactly len
+ * bytes from allocator, like string_replace. */
 string_t string_join(iter_t it, string_t sep, allocator_t allocator);
 
 /* Parse a base-10 integer from s.  Writes to *out and returns true on success.
@@ -133,20 +148,38 @@ seqc_status_t strbuf_append_char(strbuf_t *sb, char c);
 seqc_status_t strbuf_append_cstr(strbuf_t *sb, const char *s);
 seqc_status_t strbuf_append_int(strbuf_t *sb, long long value);
 seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
-string_t strbuf_finish(const strbuf_t *sb); /* view — no copy      */
 size_t strbuf_len(const strbuf_t *sb);
 bool strbuf_is_empty(const strbuf_t *sb);
 
+/* A copy of what has been built: a plain allocation of exactly len bytes
+ * from allocator, yours to keep after strbuf_clear and strbuf_destroy.  Free
+ * it with mem_free(allocator, (void *)s.ptr, s.len).  An empty builder, a
+ * NULL builder or running out of memory gives {NULL, 0}.
+ *
+ *     string_t out = strbuf_to_string(sb, alloc);
+ *     strbuf_destroy(sb);
+ */
+string_t strbuf_to_string(const strbuf_t *sb, allocator_t allocator);
+
+/* A view of what has been built — no copy.  Valid only until the next
+ * append, strbuf_clear or strbuf_destroy (an append may move the buffer).
+ * Use it to look at or print the result; use strbuf_to_string to keep it. */
+string_t strbuf_view(const strbuf_t *sb);
+
+/* Deprecated since 3.1: the old name of strbuf_view.  Removed in 4.0. */
+SEQC_DEPRECATED("use strbuf_view, or strbuf_to_string for a copy")
+string_t strbuf_finish(const strbuf_t *sb);
+
 /* Empty the builder for reuse.  Keeps its memory, so building again does
  * not allocate until the old capacity is exceeded.  Views returned by
- * strbuf_finish before the clear see the bytes that are appended next. */
+ * strbuf_view before the clear see the bytes that are appended next. */
 void strbuf_clear(strbuf_t *sb);
 
 /* Release the builder and its buffer through its allocator.  Views
- * returned by strbuf_finish become invalid — copy what you keep first
- * (string_copy).  NULL is a no-op.  With an arena this frees nothing that
- * destroying the arena would not; with a malloc-style allocator it is how
- * the memory comes back. */
+ * returned by strbuf_view become invalid — take a strbuf_to_string first
+ * if you keep the result.  NULL is a no-op.  With an arena this frees
+ * nothing that destroying the arena would not; with a malloc-style
+ * allocator it is how the memory comes back. */
 void strbuf_destroy(strbuf_t *sb);
 
 /* --- hashmap_t helpers ---------------------------------------------------- */

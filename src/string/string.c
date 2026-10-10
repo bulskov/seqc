@@ -264,28 +264,37 @@ string_t string_trim(string_t s)
 string_t string_replace(
     string_t s, string_t needle, string_t replacement, allocator_t allocator)
 {
-    strbuf_t *sb = strbuf_create(allocator);
     if (needle.len == 0)
     {
-        /* Empty needle: return a copy unchanged */
-        strbuf_append(sb, s);
-        return strbuf_finish(sb);
+        return string_copy(s, allocator); /* nothing to replace */
     }
+    strbuf_t *sb = strbuf_create(allocator);
+    if (!sb)
+    {
+        return (string_t){NULL, 0};
+    }
+    seqc_status_t st = SEQC_OK;
     size_t pos = 0;
-    while (pos < s.len)
+    while (st == SEQC_OK && pos < s.len)
     {
         string_t remaining = string_slice(s, pos, s.len);
         size_t found = string_find(remaining, needle);
         if (found == STRING_NOT_FOUND)
         {
-            strbuf_append(sb, remaining);
+            st = strbuf_append(sb, remaining);
             break;
         }
-        strbuf_append(sb, string_slice(remaining, 0, found));
-        strbuf_append(sb, replacement);
+        st = strbuf_append(sb, string_slice(remaining, 0, found));
+        if (st == SEQC_OK)
+        {
+            st = strbuf_append(sb, replacement);
+        }
         pos += found + needle.len;
     }
-    return strbuf_finish(sb);
+    string_t result =
+        st == SEQC_OK ? strbuf_to_string(sb, allocator) : (string_t){NULL, 0};
+    strbuf_destroy(sb);
+    return result;
 }
 
 /* --- Transformation (case / join) --------------------------------------- */
@@ -392,10 +401,24 @@ seqc_status_t strbuf_append_cstr(strbuf_t *sb, const char *s)
     return strbuf_append(sb, string_view_cstr(s));
 }
 
-string_t strbuf_finish(const strbuf_t *sb)
+string_t strbuf_view(const strbuf_t *sb)
 {
+    if (!sb)
+    {
+        return (string_t){NULL, 0};
+    }
     slice_t s = vec_as_slice(sb->chars);
     return (string_t){(const char *)s.ptr, s.len};
+}
+
+string_t strbuf_to_string(const strbuf_t *sb, allocator_t allocator)
+{
+    return string_copy(strbuf_view(sb), allocator);
+}
+
+string_t strbuf_finish(const strbuf_t *sb)
+{
+    return strbuf_view(sb);
 }
 
 bool strbuf_is_empty(const strbuf_t *sb)
@@ -462,19 +485,31 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...)
 string_t string_join(iter_t it, string_t sep, allocator_t allocator)
 {
     strbuf_t *sb = strbuf_create(allocator);
+    if (!sb)
+    {
+        iter_destroy(&it);
+        return (string_t){NULL, 0};
+    }
+    seqc_status_t st = SEQC_OK;
     string_t token;
     bool first = true;
-    while (it.next(&it, &token))
+    while (st == SEQC_OK && it.next(&it, &token))
     {
         if (!first)
         {
-            strbuf_append(sb, sep);
+            st = strbuf_append(sb, sep);
         }
-        strbuf_append(sb, token);
+        if (st == SEQC_OK)
+        {
+            st = strbuf_append(sb, token);
+        }
         first = false;
     }
     iter_destroy(&it);
-    return strbuf_finish(sb);
+    string_t result =
+        st == SEQC_OK ? strbuf_to_string(sb, allocator) : (string_t){NULL, 0};
+    strbuf_destroy(sb);
+    return result;
 }
 
 /* --- string_to_int ------------------------------------------------------ */

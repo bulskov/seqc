@@ -279,9 +279,13 @@ string_t string_replace(string_t s, string_t needle, string_t replacement,
                       allocator_t allocator);
 ```
 
-Return a new arena-allocated `string_t` with all non-overlapping occurrences of
-`needle` replaced by `replacement`. Replacements proceed left-to-right. If
-`needle` is empty the original string is returned as a copy unchanged.
+Return a new `string_t` with all non-overlapping occurrences of `needle`
+replaced by `replacement`. Replacements proceed left-to-right. If `needle` is
+empty the original string is returned as a copy unchanged. An empty result, or
+running out of memory, gives `{NULL, 0}`.
+
+The result is a plain allocation of exactly `len` bytes — see
+[Who owns a result](#who-owns-a-result).
 
 ```c
 growing_arena_t arena;
@@ -300,7 +304,7 @@ string_t string_to_uppercase(string_t s, allocator_t allocator);
 string_t string_to_lowercase(string_t s, allocator_t allocator);
 ```
 
-Return a new arena-allocated `string_t` with every ASCII letter converted to
+Return a new `string_t` (exactly `s.len` bytes) with every ASCII letter converted to
 upper or lower case. All other bytes — including UTF-8 sequences — are copied
 unchanged, independent of the C locale. Returns `{NULL, 0}` if the allocation
 fails.
@@ -322,7 +326,8 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator);
 
 Consume `it` (an iterator that yields `string_t` values), concatenate every
 token with `sep` inserted between consecutive tokens, and return the result as
-a new arena-allocated `string_t`. The iterator is destroyed after the call.
+a new `string_t`. The iterator is destroyed after the call. Like
+`string_replace`, the result is a plain allocation of exactly `len` bytes.
 
 ```c
 growing_arena_t arena;
@@ -471,33 +476,73 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...);
 ```
 
 `printf`-style formatting. Uses a 256-byte stack buffer for short results;
-falls back to an arena allocation for longer output. Returns `SEQC_OOM` on
+falls back to a temporary allocation from the builder's allocator for longer
+output. Returns `SEQC_OOM` on
 allocation failure.
 
-### `strbuf_finish`
+### `strbuf_to_string`
+
+```c
+string_t strbuf_to_string(const strbuf_t *sb, allocator_t allocator);
+```
+
+Return a **copy** of what has been built: a plain allocation of exactly `len`
+bytes from `allocator`. It is yours — it stays valid after `strbuf_clear` and
+`strbuf_destroy`. Free it with `mem_free(allocator, (void *)s.ptr, s.len)`. An
+empty builder, a `NULL` builder or running out of memory gives `{NULL, 0}`.
+This is the usual way to finish building:
+
+```c
+strbuf_t *sb = strbuf_create(alloc);
+strbuf_append_cstr(sb, "x=");
+strbuf_append_int(sb, 42);
+strbuf_append_fmt(sb, ", pi=%.4f", 3.14159);
+
+string_t result = strbuf_to_string(sb, alloc);   // "x=42, pi=3.1416"
+strbuf_destroy(sb);
+// ... use result ...
+mem_free(alloc, (void *)result.ptr, result.len);
+```
+
+### `strbuf_view`
+
+```c
+string_t strbuf_view(const strbuf_t *sb);
+```
+
+Return a **view** of the builder's buffer — no copy. It is valid only until the
+next append, `strbuf_clear` or `strbuf_destroy`: an append may move the buffer.
+Use it to look at, compare or print the result; use `strbuf_to_string` to keep
+it. `NULL` gives `{NULL, 0}`.
+
+```c
+strbuf_append_cstr(sb, "hello");
+string_println(strbuf_view(sb));   // fine: used before the next change
+```
+
+### `strbuf_finish` (deprecated)
 
 ```c
 string_t strbuf_finish(const strbuf_t *sb);
 ```
 
-Return a `string_t` view over the builder's buffer. The view is valid as long as
-the arena that backs the builder is alive. No copy is made.
+The 3.0 name of `strbuf_view`, kept so existing code still builds; using it
+gives a deprecation warning. Replace it with `strbuf_view`, or with
+`strbuf_to_string` where the result is kept. Removed in 4.0.
+
+### Who owns a result
+
+Every `string_*` and `strbuf_*` function that takes an `allocator_t` and returns
+a `string_t` returns a plain allocation of exactly `len` bytes from that
+allocator, which works with any allocator — an arena, or `malloc`:
 
 ```c
-growing_arena_t arena;
-growing_arena_init(&arena, 4096);
-allocator_t a = growing_arena_allocator(&arena);
-strbuf_t *sb = strbuf_create(a);
-
-strbuf_append_cstr(sb, "x=");
-strbuf_append_int(sb, 42);
-strbuf_append_fmt(sb, ", pi=%.4f", 3.14159);
-
-string_t result = strbuf_finish(sb);
-// result == "x=42, pi=3.1416"
-
-growing_arena_destroy(&arena);
+mem_free(allocator, (void *)s.ptr, s.len);
 ```
+
+`string_to_cstr` allocates `len + 1` (the NUL). An empty result is `{NULL, 0}`,
+and freeing it is a no-op. With an arena there is nothing to free — destroying
+the arena releases everything.
 
 ### `strbuf_len`
 
@@ -505,7 +550,7 @@ growing_arena_destroy(&arena);
 size_t strbuf_len(const strbuf_t *sb);
 ```
 
-Return the number of bytes appended so far. Equal to `strbuf_finish(sb).len`,
+Return the number of bytes appended so far. Equal to `strbuf_view(sb).len`,
 without building the view.
 
 ### `strbuf_clear`
@@ -516,16 +561,16 @@ void strbuf_clear(strbuf_t *sb);
 
 Empty the builder so it can be reused. Its buffer is kept, so building again
 allocates nothing until the old capacity is exceeded — handy in a loop that
-builds one string per iteration. A view from an earlier `strbuf_finish` points
-into that same buffer and sees whatever is appended next; copy it first
-(`string_copy`) if you need to keep it.
+builds one string per iteration. A view from an earlier `strbuf_view` points
+into that same buffer and sees whatever is appended next; take a
+`strbuf_to_string` first if you need to keep it.
 
 ```c
 strbuf_t *sb = strbuf_create(alloc);
 for (size_t i = 0; i < n; ++i) {
     strbuf_clear(sb);
     strbuf_append_fmt(sb, "item-%zu", i);
-    use(strbuf_finish(sb));          // valid until the next clear
+    use(strbuf_view(sb));            // valid until the next clear
 }
 ```
 
@@ -536,7 +581,7 @@ void strbuf_destroy(strbuf_t *sb);
 ```
 
 Release the builder and its buffer through the allocator it was created with.
-Views from `strbuf_finish` become invalid. `NULL` is a no-op. With an arena
+Views from `strbuf_view` become invalid. `NULL` is a no-op. With an arena
 this frees nothing that destroying the arena would not; with a malloc-style
 allocator it is how the memory comes back.
 
