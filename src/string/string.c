@@ -368,6 +368,14 @@ void strbuf_clear(strbuf_t *sb)
     }
 }
 
+void strbuf_truncate(strbuf_t *sb, size_t len)
+{
+    if (sb)
+    {
+        vec_truncate(sb->chars, len);
+    }
+}
+
 void strbuf_destroy(strbuf_t *sb)
 {
     if (!sb)

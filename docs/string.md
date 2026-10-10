@@ -574,6 +574,31 @@ for (size_t i = 0; i < n; ++i) {
 }
 ```
 
+### `strbuf_truncate`
+
+```c
+void strbuf_truncate(strbuf_t *sb, size_t len);
+```
+
+Shorten the builder to its first `len` bytes; the buffer is kept. A `len` at
+or past `strbuf_len(sb)` changes nothing, `NULL` is a no-op. Use it to undo
+appends back to a length you saved — for an all-or-nothing append, or to cut
+a path back to its parent directory:
+
+```c
+size_t mark = strbuf_len(sb);
+if (strbuf_append(sb, dir) != SEQC_OK
+    || strbuf_append_char(sb, '/') != SEQC_OK
+    || strbuf_append(sb, name) != SEQC_OK)
+{
+    strbuf_truncate(sb, mark);   // sb is exactly as before
+    return SEQC_OOM;
+}
+```
+
+A view from `strbuf_view` still points at the same buffer; it sees the shorter
+contents only through a new `strbuf_view`.
+
 ### `strbuf_destroy`
 
 ```c

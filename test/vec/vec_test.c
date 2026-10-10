@@ -357,6 +357,31 @@ TEST(vec_clear_resets_len)
     growing_arena_destroy(a);
 }
 
+TEST(vec_truncate_shortens_and_keeps_buffer)
+{
+    growing_arena_t _a_storage;
+    growing_arena_t *a = &_a_storage;
+    growing_arena_init(a, 256);
+    vec_t *v = vec_create(sizeof(int), growing_arena_allocator(a));
+    for (int i = 0; i < 5; i++)
+    {
+        vec_push(v, &i);
+    }
+    size_t cap = vec_cap(v);
+    vec_truncate(v, 2);
+    ASSERT_EQ(2u, vec_len(v));
+    ASSERT_EQ(cap, vec_cap(v));
+    int x = -1;
+    ASSERT_EQ(SEQC_OK, vec_get(v, 1, &x));
+    ASSERT_EQ(1, x);
+    vec_truncate(v, 10); /* never grows */
+    ASSERT_EQ(2u, vec_len(v));
+    vec_truncate(v, 0);
+    ASSERT_TRUE(vec_is_empty(v));
+    vec_truncate(NULL, 0);
+    growing_arena_destroy(a);
+}
+
 TEST(vec_clear_allows_reuse)
 {
     growing_arena_t _a_storage;

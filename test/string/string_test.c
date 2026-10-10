@@ -251,6 +251,25 @@ TEST(string_builder_clear_empties_it)
     growing_arena_destroy(a);
 }
 
+TEST(string_builder_truncate_undoes_appends)
+{
+    allocator_t heap = sys_allocator();
+    strbuf_t *sb = strbuf_create(heap);
+    strbuf_append(sb, STRING_LIT("/home"));
+    size_t mark = strbuf_len(sb);
+    strbuf_append(sb, STRING_LIT("/me/projects"));
+    strbuf_truncate(sb, mark);
+    ASSERT_TRUE(string_equals(strbuf_view(sb), STRING_LIT("/home")));
+    strbuf_truncate(sb, 100); /* never grows */
+    ASSERT_EQ(5u, strbuf_len(sb));
+    strbuf_append(sb, STRING_LIT("/you"));
+    ASSERT_TRUE(string_equals(strbuf_view(sb), STRING_LIT("/home/you")));
+    strbuf_truncate(sb, 0);
+    ASSERT_TRUE(strbuf_is_empty(sb));
+    strbuf_truncate(NULL, 0);
+    strbuf_destroy(sb);
+}
+
 TEST(string_builder_is_reusable_after_clear)
 {
     growing_arena_t _a_storage;

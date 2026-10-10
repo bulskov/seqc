@@ -277,6 +277,16 @@ void vec_clear(vec_t *v);
 Reset `len` to zero. The allocated buffer is retained, so subsequent pushes
 will not reallocate until capacity is exhausted again.
 
+### `vec_truncate`
+
+```c
+void vec_truncate(vec_t *v, size_t len);
+```
+
+Shorten `v` to its first `len` elements. The buffer is retained, as with
+`vec_clear` (which is `vec_truncate(v, 0)`). A `len` at or past `vec_len(v)`
+changes nothing — `vec_truncate` never grows. `NULL` is a no-op.
+
 ---
 
 ### `vec_destroy`

@@ -253,6 +253,14 @@ void vec_clear(vec_t *v)
     }
 }
 
+void vec_truncate(vec_t *v, size_t len)
+{
+    if (v && len < v->len)
+    {
+        v->len = len;
+    }
+}
+
 void *vec_find(const vec_t *v, pred_fn pred, void *ctx)
 {
     if (!v || !pred)

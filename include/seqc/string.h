@@ -175,6 +175,16 @@ string_t strbuf_finish(const strbuf_t *sb);
  * strbuf_view before the clear see the bytes that are appended next. */
 void strbuf_clear(strbuf_t *sb);
 
+/* Shorten the builder to its first len bytes, keeping its memory — undo
+ * appends back to a length saved with strbuf_len.  A len at or past
+ * strbuf_len(sb) changes nothing; NULL is a no-op.
+ *
+ *     size_t mark = strbuf_len(sb);
+ *     if (strbuf_append(sb, a) != SEQC_OK || strbuf_append(sb, b) != SEQC_OK)
+ *         strbuf_truncate(sb, mark);   // all or nothing
+ */
+void strbuf_truncate(strbuf_t *sb, size_t len);
+
 /* Release the builder and its buffer through its allocator.  Views
  * returned by strbuf_view become invalid — take a strbuf_to_string first
  * if you keep the result.  NULL is a no-op.  With an arena this frees

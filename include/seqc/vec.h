@@ -42,4 +42,7 @@ iter_t vec_iter_rev(const vec_t *v);
 seqc_status_t vec_extend(vec_t *v, iter_t it);
 void vec_sort(vec_t *v, compare_fn cmp); /* sort in-place; no allocation */
 void vec_clear(vec_t *v);                /* reset len to 0, keep buffer */
+/* Shorten v to its first len elements, keeping the buffer.  A len at or
+ * past vec_len(v) changes nothing; NULL is a no-op. */
+void vec_truncate(vec_t *v, size_t len);
 void vec_destroy(vec_t *v);
