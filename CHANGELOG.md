@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-10
+
+### Added
+
+- `vec_truncate(v, len)` and `strbuf_truncate(sb, len)` — shorten to the
+  first `len` elements / bytes, keeping the buffer. Undo appends back to a
+  saved length: all-or-nothing appends, or cutting a path back to its parent.
+
 ## [3.1.0] - 2026-10-10
 
 Every string result is now a plain allocation that works with any allocator,
