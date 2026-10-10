@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-10
+
+Every string result is now a plain allocation that works with any allocator,
+not only with an arena.
+
+### Added
+
+- `strbuf_to_string(sb, allocator)` — a copy of what has been built, yours
+  after `strbuf_clear` / `strbuf_destroy`.
+- `strbuf_view(sb)` — the new name of `strbuf_finish`: a view, valid until the
+  next change to the builder. `strbuf_view(NULL)` gives `{NULL, 0}`.
+- docs: [Who owns a result](docs/string.md#who-owns-a-result).
+
+### Fixed
+
+- `string_replace` and `string_join` returned a view into an internal builder
+  that was never released: with a malloc-style allocator the result could not
+  be freed and the builder leaked. They now return a plain allocation of
+  exactly `len` bytes and release the builder. An allocation failure gives
+  `{NULL, 0}` instead of a partial result.
+
+### Deprecated
+
+- `strbuf_finish` — use `strbuf_view`, or `strbuf_to_string` for a copy. It
+  still works, with a compiler warning, and is removed in 4.0.
+
 ## [3.0.0] - 2026-10-09
 
 A consistent API: every collection names the same operation the same way.
