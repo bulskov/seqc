@@ -188,7 +188,7 @@ Pass `NULL` for either bound to leave it open.
 int lo = 10, hi = 20;
 iter_t      it = omap_iter_range(m, &lo, &hi);
 omap_entry_t e;
-while (it.next(&it, &e))
+while (iter_next(&it, &e))
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 iter_destroy(&it);
 ```
@@ -279,7 +279,7 @@ printf("min=%d max=%d\n", min_k, max_k);  // 1, 5
 // iterate all in ascending order
 iter_t      it = omap_iter(m);
 omap_entry_t e;
-while (it.next(&it, &e))
+while (iter_next(&it, &e))
     printf("%d => %d\n", *(int *)e.key, *(int *)e.value);
 iter_destroy(&it);
 

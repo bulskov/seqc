@@ -199,7 +199,7 @@ live bucket storage. Do not modify the map while iterating.
 ```c
 iter_t         it = hashmap_iter(m);
 hashmap_entry_t e;
-while (it.next(&it, &e)) {
+while (iter_next(&it, &e)) {
     printf("%d => %.2f\n", *(int *)e.key, *(double *)e.value);
 }
 iter_destroy(&it);

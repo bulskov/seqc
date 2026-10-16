@@ -492,7 +492,7 @@ seqc_status_t strbuf_append_fmt(strbuf_t *sb, const char *fmt, ...)
 /* string_join is defined after the builder because it uses strbuf_t. */
 string_t string_join(iter_t it, string_t sep, allocator_t allocator)
 {
-    strbuf_t *sb = strbuf_create(allocator);
+    strbuf_t *sb = iter_is_valid(&it) ? strbuf_create(allocator) : NULL;
     if (!sb)
     {
         iter_destroy(&it);
@@ -501,7 +501,7 @@ string_t string_join(iter_t it, string_t sep, allocator_t allocator)
     seqc_status_t st = SEQC_OK;
     string_t token;
     bool first = true;
-    while (st == SEQC_OK && it.next(&it, &token))
+    while (st == SEQC_OK && iter_next(&it, &token))
     {
         if (!first)
         {

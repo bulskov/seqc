@@ -27,6 +27,74 @@ Adaptors that need to allocate state (window, chunks, flat_map, …) use
 `it.allocator`. The arena that owns the state is freed when `iter_destroy()` is
 called, or implicitly by the terminal.
 
+### Failed iterators: `iter_is_valid`, `iter_next` (inline)
+
+```c
+static inline bool iter_is_valid(const iter_t *it);
+static inline bool iter_next(iter_t *it, void *out);
+```
+
+Every function that makes an iterator — sources, adaptors, the `X_iter`
+functions of the collections — returns the zero `iter_t` when it cannot make
+one (out of memory, invalid argument). That is a **failed iterator**, and
+`iter_is_valid` tells it apart:
+
+- **It passes through.** An adaptor given a failed source returns a failed
+  iterator; an adaptor that cannot allocate its own state destroys its source
+  (nothing leaks) and fails. So one check of the finished pipeline covers
+  every step:
+
+  ```c
+  iter_t it = iter_map(iter_filter(vec_iter(v), keep, NULL), f, NULL, size);
+  if (!iter_is_valid(&it))
+  {
+      /* some step ran out of memory; nothing to clean up */
+  }
+  ```
+
+- **It is safe.** `iter_next` returns `false` for it, terminals treat it as
+  empty (`iter_all` as false), `iter_destroy` does nothing, and the `*_extend`
+  functions return `SEQC_INVALID`.
+
+Loop with `iter_next` rather than calling `it.next` yourself:
+
+```c
+int x;
+while (iter_next(&it, &x)) { ... }
+iter_destroy(&it);
+```
+
+**Terminals cannot report failure** — `iter_count` returns a number, not a
+status. Check `iter_is_valid` before handing a pipeline to a terminal, or use
+an `*_extend` function (`vec_extend`, …), which returns a status. If
+`iter_collect` runs out of memory half-way it gives `{NULL, 0}`, never a
+partial result.
+
+Two failures stay quiet: a terminal whose elements are larger than 512 bytes
+needs a scratch buffer from `it.allocator` and acts as if the iterator were
+empty if it cannot get one, and `iter_flat_map` treats a sub-iterator that
+failed as empty.
+
+#### Sources that can fail while running
+
+Some sources fail for reasons of their own while they run — reading a
+directory, a file, a socket. `iter_t` has no error channel (a terminal
+consumes the iterator, so there is nothing left to ask afterwards), so they
+follow one convention:
+
+> A source that can fail takes a pointer to its own error type (`E *err`,
+> which may be `NULL`). It ends the iteration on the first error and writes
+> it to `*err`; at a clean end it writes "OK". When it cannot even start, it
+> writes the error and returns an iterator that yields nothing.
+
+The caller owns the error slot and checks it after the loop:
+
+```c
+fs_err_t err;
+size_t n = iter_count(fs_dir_iter(path, 0, a, &err));
+if (!fs_ok(err)) { ... }
+```
+
 ### `iter_destroy` (inline)
 
 ```c
@@ -333,7 +401,7 @@ typedef struct {
 ```c
 iter_t it = iter_enumerate(list_iter(&l));
 enum_entry_t e;
-while (it.next(&it, &e))
+while (iter_next(&it, &e))
     printf("[%zu] %d\n", e.index, *(int *)e.elem);
 iter_destroy(&it);
 ```
@@ -375,7 +443,7 @@ Yields nothing if the source has fewer than `n` elements.
 // sliding 3-element window over [1,2,3,4,5]
 iter_t it = iter_window(vec_iter(&v), 3);
 slice_t win;
-while (it.next(&it, &win))
+while (iter_next(&it, &win))
     printf("%d %d %d\n", *(int *)slice_get_ptr(win,0),
                          *(int *)slice_get_ptr(win,1),
                          *(int *)slice_get_ptr(win,2));
@@ -477,6 +545,10 @@ slice_t iter_collect(iter_t it, allocator_t allocator);
 Materialise all elements into an arena-owned [`slice_t`](slice.md). `allocator`
 determines which arena owns the returned memory. Pass the same arena you used
 for the iterator chain, or any other arena whose lifetime exceeds the slice.
+
+If an allocation fails the result is `{NULL, 0}` — never a partial result —
+which looks like an empty sequence. When the difference matters, use
+`vec_extend`, which returns `SEQC_OOM`.
 
 ```c
 growing_arena_t arena;
@@ -586,7 +658,7 @@ bool iter_all(iter_t it, pred_fn pred, void *ctx);
 ```
 
 Return `true` if every element satisfies `pred` (vacuously true for empty
-iterators). Short-circuits on first failure.
+iterators, `false` for a failed one). Short-circuits on first failure.
 
 ---
 

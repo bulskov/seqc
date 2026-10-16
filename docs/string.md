@@ -696,7 +696,7 @@ per-character iteration.
 iter_t    it  = string_split_substr(STRING_LIT("a,b,c"), STRING_LIT(","),
                                   a);
 string_t  tok;
-while (it.next(&it, &tok))
+while (iter_next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
 iter_destroy(&it);
 // prints: a / b / c
@@ -721,7 +721,7 @@ iter_t    raw = string_split_any(STRING_LIT("  the\tquick \n"),
 // skip-empty tokenisation = split + filter
 iter_t    it  = iter_filter(raw, non_empty_str, NULL);
 string_t  tok;
-while (it.next(&it, &tok))
+while (iter_next(&it, &tok))
     printf(STRING_FMT "\n", STRING_ARG(tok));
 iter_destroy(&it);
 // prints: the / quick

@@ -125,7 +125,7 @@ in-range element in O(log n).
 int lo = 10, hi = 50;
 iter_t it = avl_iter_range(t, &lo, &hi);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d ", v);
 iter_destroy(&it);
 ```

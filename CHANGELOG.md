@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+A failed iterator — the zero `iter_t` every constructor returns when it cannot
+make one — is now safe everywhere and visible at the end of a pipeline.
+
+### Added
+
+- `iter_is_valid(&it)` — false for a failed iterator.
+- `iter_next(&it, out)` — the next element, false at the end and for a failed
+  iterator. Use it instead of calling `it.next` directly.
+- docs: [Failed iterators](docs/iter.md#failed-iterators-iter_is_valid-iter_next-inline),
+  and the convention for sources that can fail while running (`E *err`).
+
+### Fixed
+
+- An adaptor whose allocation failed returned the zero `iter_t` without
+  destroying its source (a leak — of a whole pipeline, or an open handle),
+  and every terminal and adaptor then called its `next`: a NULL function
+  call. Adaptors now destroy the source and fail; a failed source fails the
+  adaptor; terminals treat a failed iterator as empty.
+- `iter_all` of a failed iterator is `false`, not vacuously `true`.
+- `iter_collect` (and `iter_sort`) running out of memory half-way returned
+  the part collected so far, which looked like the whole sequence. They now
+  return `{NULL, 0}`.
+- The `*_extend` functions return `SEQC_INVALID` for a failed iterator, and
+  for one whose `elem_size` is not the collection's — that one used to write
+  past the element buffer.
+- `string_join` of a failed iterator gives `{NULL, 0}`.
+
 ## [3.2.0] - 2026-10-10
 
 ### Added

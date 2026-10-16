@@ -100,7 +100,7 @@ Iterate over all elements in unspecified order. Yields elements of size
 ```c
 iter_t it = set_iter(s);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d\n", v);
 iter_destroy(&it);
 ```
@@ -118,7 +118,7 @@ the opposite order without collecting first.
 ```c
 iter_t it = set_iter_rev(s);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d\n", v);
 iter_destroy(&it);
 ```

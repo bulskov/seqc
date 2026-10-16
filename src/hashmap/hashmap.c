@@ -518,14 +518,14 @@ iter_t hashmap_iter_rev(const hashmap_t *map)
 
 seqc_status_t hashmap_extend(hashmap_t *map, iter_t it)
 {
-    if (!map)
+    if (!map || !iter_is_valid(&it) || it.elem_size != sizeof(hashmap_entry_t))
     {
         iter_destroy(&it);
         return SEQC_INVALID;
     }
     hashmap_entry_t e;
     seqc_status_t st = SEQC_OK;
-    while (it.next(&it, &e))
+    while (iter_next(&it, &e))
     {
         st = hashmap_set(map, e.key, e.value);
         if (st != SEQC_OK)

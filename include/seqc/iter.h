@@ -29,6 +29,25 @@ struct iter_t
     allocator_t allocator; /* used by adaptors that need to allocate state */
 };
 
+/* A failed iterator.  Every function that makes an iterator returns the
+ * zero iter_t when it cannot (out of memory, invalid argument), and it
+ * passes through: an adaptor given a failed source fails too (and an
+ * adaptor that cannot allocate destroys its source), so one check of the
+ * finished pipeline covers every step.  A failed iterator is also safe to
+ * use: it yields nothing, terminals treat it as empty, and the *_extend
+ * functions return SEQC_INVALID for it. */
+static inline bool iter_is_valid(const iter_t *it)
+{
+    return it && it->next;
+}
+
+/* The next element into out (elem_size bytes); false at the end.  Use this
+ * rather than it->next directly: it is false for a failed iterator too. */
+static inline bool iter_next(iter_t *it, void *out)
+{
+    return iter_is_valid(it) && it->next(it, out);
+}
+
 /* Release an iterator you did not hand to a terminal (or an adaptor). */
 static inline void iter_destroy(iter_t *it)
 {
@@ -129,9 +148,16 @@ iter_t iter_peekable(iter_t source);
 iter_t iter_dedup(iter_t source, compare_fn cmp);
 
 /* --- Terminals (consume and destroy the iterator) ----------------------- */
+/* A failed iterator (see iter_is_valid) counts as empty — except for
+ * iter_all, which is false for it.  Terminals cannot tell you that a
+ * pipeline failed: check iter_is_valid before you hand it over, or use an
+ * *_extend function, which returns a status.  Elements larger than 512
+ * bytes need a scratch buffer from it.allocator; if that fails the
+ * terminal also acts as if the iterator were empty. */
 
-/* Materialise the iterator into an arena-owned slice_t.
- * `allocator` determines which arena owns the returned memory. */
+/* Materialise the iterator into a slice_t allocated from `allocator`.
+ * If an allocation fails the result is {NULL, 0} — never a partial result
+ * — which looks like an empty sequence: use vec_extend to know. */
 slice_t iter_collect(iter_t it, allocator_t allocator);
 size_t iter_count(iter_t it);
 void iter_foreach(iter_t it, visitor_fn visit, void *ctx);
@@ -148,7 +174,8 @@ bool iter_find(iter_t it, pred_fn pred, void *ctx, void *out);
 /* Returns 1 if any element satisfies pred */
 bool iter_any(iter_t it, pred_fn pred, void *ctx);
 
-/* Returns 1 if all elements satisfy pred (vacuously true for empty) */
+/* Returns 1 if all elements satisfy pred (vacuously true for empty, false
+ * for a failed iterator) */
 bool iter_all(iter_t it, pred_fn pred, void *ctx);
 
 /* Write the minimum element to *out; returns 1 on success, 0 if empty.

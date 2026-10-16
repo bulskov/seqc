@@ -510,7 +510,7 @@ seqc_status_t set_difference(set_t *dest, const set_t *a, const set_t *b)
 
 seqc_status_t set_extend(set_t *s, iter_t it)
 {
-    if (!s)
+    if (!s || !iter_is_valid(&it) || it.elem_size != s->elem_size)
     {
         iter_destroy(&it);
         return SEQC_INVALID;
@@ -522,7 +522,7 @@ seqc_status_t set_extend(set_t *s, iter_t it)
         return SEQC_OOM;
     }
     seqc_status_t st = SEQC_OK;
-    while (it.next(&it, elem))
+    while (iter_next(&it, elem))
     {
         st = set_add(s, elem);
         if (st != SEQC_OK && st != SEQC_DUPLICATE)

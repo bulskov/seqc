@@ -164,7 +164,7 @@ for (int i = 1; i <= 5; i++)
 
 iter_t it = list_iter(l);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d ", v);  // 1 2 3 4 5
 iter_destroy(&it);
 
