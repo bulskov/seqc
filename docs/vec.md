@@ -348,12 +348,12 @@ for (int i = 0; i < 10; i++)
 // forward
 iter_t fwd = vec_iter(v);
 int x;
-while (fwd.next(&fwd, &x)) printf("%d ", x);
+while (iter_next(&fwd, &x)) printf("%d ", x);
 iter_destroy(&fwd);
 
 // reverse
 iter_t rev = vec_iter_rev(v);
-while (rev.next(&rev, &x)) printf("%d ", x);
+while (iter_next(&rev, &x)) printf("%d ", x);
 iter_destroy(&rev);
 
 growing_arena_destroy(&arena);

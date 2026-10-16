@@ -792,14 +792,14 @@ bool omap_is_empty(const omap_t *m)
 /* Iterator of omap_entry_t (key/value pointer pairs), as hashmap_extend. */
 seqc_status_t omap_extend(omap_t *m, iter_t it)
 {
-    if (!m)
+    if (!m || !iter_is_valid(&it) || it.elem_size != sizeof(omap_entry_t))
     {
         iter_destroy(&it);
         return SEQC_INVALID;
     }
     omap_entry_t e;
     seqc_status_t st = SEQC_OK;
-    while (it.next(&it, &e))
+    while (iter_next(&it, &e))
     {
         st = omap_set(m, e.key, e.value);
         if (st != SEQC_OK)

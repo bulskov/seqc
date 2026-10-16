@@ -139,7 +139,7 @@ Create a forward [`iter_t`](iter.md) from front to back.
 ```c
 iter_t it = ringbuf_iter(r);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d\n", v);
 iter_destroy(&it);
 ```

@@ -224,7 +224,7 @@ static bool filter_next(iter_t *it, void *out)
         return false; /* invalid iterator or output buffer */
     }
     filter_state_t *s = it->state;
-    while (s->source.next(&s->source, out))
+    while (iter_next(&s->source, out))
     {
         if (s->pred(out, s->ctx))
         {
@@ -247,10 +247,15 @@ static void filter_drop(iter_t *it)
 
 iter_t iter_filter(iter_t source, pred_fn pred, void *ctx)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     filter_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(filter_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (filter_state_t){source, pred, ctx};
@@ -279,7 +284,7 @@ static bool map_next(iter_t *it, void *out)
         return false; /* invalid iterator or output buffer */
     }
     map_state_t *s = it->state;
-    if (!s->source.next(&s->source, s->in_buf))
+    if (!iter_next(&s->source, s->in_buf))
     {
         return false;
     }
@@ -301,10 +306,15 @@ static void map_drop(iter_t *it)
 
 iter_t iter_map(iter_t source, map_fn map, void *ctx, size_t out_elem_size)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     map_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(map_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     void *in_buf =
@@ -312,6 +322,7 @@ iter_t iter_map(iter_t source, map_fn map, void *ctx, size_t out_elem_size)
     if (!in_buf)
     {
         mem_free(source.allocator, s, sizeof(map_state_t));
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (map_state_t){source, map, ctx, in_buf};
@@ -338,7 +349,7 @@ static bool take_next(iter_t *it, void *out)
     {
         return false;
     }
-    if (!s->source.next(&s->source, out))
+    if (!iter_next(&s->source, out))
     {
         return false;
     }
@@ -359,10 +370,15 @@ static void take_drop(iter_t *it)
 
 iter_t iter_take(iter_t source, size_t n)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     take_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(take_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (take_state_t){source, n};
@@ -386,7 +402,7 @@ typedef struct
 static bool take_while_next(iter_t *it, void *out)
 {
     take_while_state_t *s = it->state;
-    if (!s->source.next(&s->source, out))
+    if (!iter_next(&s->source, out))
     {
         return false;
     }
@@ -410,10 +426,15 @@ static void take_while_drop(iter_t *it)
 
 iter_t iter_take_while(iter_t source, pred_fn pred, void *ctx)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     take_while_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(take_while_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (take_while_state_t){source, pred, ctx};
@@ -439,13 +460,13 @@ static bool skip_next(iter_t *it, void *out)
     /* drain skipped elements once, then pass through */
     while (s->remaining > 0)
     {
-        if (!s->source.next(&s->source, out))
+        if (!iter_next(&s->source, out))
         {
             return false;
         }
         s->remaining--;
     }
-    return s->source.next(&s->source, out);
+    return iter_next(&s->source, out);
 }
 
 static void skip_drop(iter_t *it)
@@ -461,10 +482,15 @@ static void skip_drop(iter_t *it)
 
 iter_t iter_skip(iter_t source, size_t n)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     skip_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(skip_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (skip_state_t){source, n};
@@ -489,7 +515,7 @@ typedef struct
 static bool skip_while_next(iter_t *it, void *out)
 {
     skip_while_state_t *s = it->state;
-    while (s->source.next(&s->source, out))
+    while (iter_next(&s->source, out))
     {
         if (s->done_skipping || !s->pred(out, s->ctx))
         {
@@ -513,10 +539,15 @@ static void skip_while_drop(iter_t *it)
 
 iter_t iter_skip_while(iter_t source, pred_fn pred, void *ctx)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     skip_while_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(skip_while_state_t));
     if (!s)
     {
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (skip_while_state_t){source, pred, ctx, false};
@@ -552,7 +583,7 @@ slice_t iter_collect(iter_t it, allocator_t allocator)
         return (slice_t){NULL, 0, elem_size};
     }
 
-    while (it.next(&it, tmp))
+    while (iter_next(&it, tmp))
     {
         if (len == cap)
         {
@@ -566,8 +597,12 @@ slice_t iter_collect(iter_t it, allocator_t allocator)
                 SEQC_MAX_ALIGN);
             if (!grown)
             {
-                /* return what we collected so far rather than losing it */
-                break;
+                /* a failure is {NULL, 0}, never a partial result that looks
+                 * like the whole sequence */
+                iter_destroy(&it);
+                scratch_release(sbuf, tmp, allocator, elem_size);
+                mem_free(allocator, buf, cap * elem_size);
+                return (slice_t){NULL, 0, elem_size};
             }
             buf = grown;
             cap = new_cap;
@@ -614,7 +649,7 @@ size_t iter_count(iter_t it)
         return 0;
     }
     size_t n = 0;
-    while (it.next(&it, tmp))
+    while (iter_next(&it, tmp))
     {
         n++;
     }
@@ -632,7 +667,7 @@ void iter_foreach(iter_t it, visitor_fn visit, void *ctx)
         iter_destroy(&it);
         return;
     }
-    while (it.next(&it, tmp))
+    while (iter_next(&it, tmp))
     {
         visit(tmp, ctx);
     }
@@ -649,7 +684,7 @@ void iter_reduce(iter_t it, void *acc, combine_fn combine, void *ctx)
         iter_destroy(&it);
         return;
     }
-    while (it.next(&it, tmp))
+    while (iter_next(&it, tmp))
     {
         combine(acc, tmp, ctx);
     }
@@ -671,13 +706,13 @@ static bool chain_next(iter_t *it, void *out)
     chain_state_t *s = it->state;
     if (!s->done_first)
     {
-        if (s->first.next(&s->first, out))
+        if (iter_next(&s->first, out))
         {
             return true;
         }
         s->done_first = 1;
     }
-    return s->second.next(&s->second, out);
+    return iter_next(&s->second, out);
 }
 
 static void chain_drop(iter_t *it)
@@ -694,10 +729,18 @@ static void chain_drop(iter_t *it)
 
 iter_t iter_chain(iter_t a, iter_t b)
 {
+    if (!iter_is_valid(&a) || !iter_is_valid(&b))
+    {
+        iter_destroy(&a);
+        iter_destroy(&b);
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     chain_state_t *s =
         mem_alloc(a.allocator, sizeof *s, _Alignof(chain_state_t));
     if (!s)
     {
+        iter_destroy(&a);
+        iter_destroy(&b);
         return (iter_t){0};
     }
     *s = (chain_state_t){a, b, 0};
@@ -722,11 +765,11 @@ typedef struct
 static bool zip_next(iter_t *it, void *out)
 {
     zip_state_t *s = it->state;
-    if (!s->a.next(&s->a, s->buf_a))
+    if (!iter_next(&s->a, s->buf_a))
     {
         return false;
     }
-    if (!s->b.next(&s->b, (char *)out + s->a_elem_size))
+    if (!iter_next(&s->b, (char *)out + s->a_elem_size))
     {
         return false;
     }
@@ -749,6 +792,12 @@ static void zip_drop(iter_t *it)
 
 iter_t iter_zip(iter_t a, iter_t b)
 {
+    if (!iter_is_valid(&a) || !iter_is_valid(&b))
+    {
+        iter_destroy(&a);
+        iter_destroy(&b);
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     zip_state_t *s = mem_alloc(a.allocator, sizeof *s, _Alignof(zip_state_t));
     void *buf_a = mem_alloc(a.allocator, a.elem_size, SEQC_MAX_ALIGN);
     if (!s || !buf_a)
@@ -761,6 +810,8 @@ iter_t iter_zip(iter_t a, iter_t b)
         {
             mem_free(a.allocator, buf_a, a.elem_size);
         }
+        iter_destroy(&a);
+        iter_destroy(&b);
         return (iter_t){0};
     }
     *s = (zip_state_t){a, b, a.elem_size, buf_a};
@@ -796,7 +847,7 @@ bool iter_find(iter_t it, pred_fn pred, void *ctx, void *out)
         return false;
     }
     bool found = false;
-    while (it.next(&it, tmp))
+    while (iter_next(&it, tmp))
     {
         if (pred(tmp, ctx))
         {
@@ -825,7 +876,7 @@ bool iter_any(iter_t it, pred_fn pred, void *ctx)
         return false;
     }
     bool found = false;
-    while (!found && it.next(&it, tmp))
+    while (!found && iter_next(&it, tmp))
     {
         if (pred(tmp, ctx))
         {
@@ -841,6 +892,10 @@ bool iter_any(iter_t it, pred_fn pred, void *ctx)
 
 bool iter_all(iter_t it, pred_fn pred, void *ctx)
 {
+    if (!iter_is_valid(&it))
+    {
+        return false; /* a failed pipeline is not "vacuously all" */
+    }
     char sbuf[SEQC_SCRATCH_MAX];
     void *tmp = scratch_acquire(sbuf, it.elem_size, it.allocator);
     if (!tmp)
@@ -849,7 +904,7 @@ bool iter_all(iter_t it, pred_fn pred, void *ctx)
         return false;
     }
     bool all = true;
-    while (all && it.next(&it, tmp))
+    while (all && iter_next(&it, tmp))
     {
         if (!pred(tmp, ctx))
         {
@@ -873,7 +928,7 @@ typedef struct
 static bool enum_next(iter_t *it, void *out)
 {
     enum_state_t *s = it->state;
-    if (!s->source.next(&s->source, s->buf))
+    if (!iter_next(&s->source, s->buf))
     {
         return false;
     }
@@ -892,6 +947,10 @@ static void enum_drop(iter_t *it)
 
 iter_t iter_enumerate(iter_t source)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     enum_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(enum_state_t));
     void *buf = mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
@@ -905,6 +964,7 @@ iter_t iter_enumerate(iter_t source)
         {
             mem_free(source.allocator, buf, source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (enum_state_t){source, 0, buf};
@@ -940,7 +1000,7 @@ static bool window_next(iter_t *it, void *out)
         /* Fill first n elements */
         for (size_t i = 0; i < s->n; i++)
         {
-            if (!s->source.next(&s->source, s->buf + i * s->elem_size))
+            if (!iter_next(&s->source, s->buf + i * s->elem_size))
             {
                 return false; /* source shorter than n */
             }
@@ -951,7 +1011,7 @@ static bool window_next(iter_t *it, void *out)
     {
         /* Shift left by one, read new element at end */
         memmove(s->buf, s->buf + s->elem_size, (s->n - 1) * s->elem_size);
-        if (!s->source.next(&s->source, s->buf + (s->n - 1) * s->elem_size))
+        if (!iter_next(&s->source, s->buf + (s->n - 1) * s->elem_size))
         {
             return false;
         }
@@ -974,6 +1034,10 @@ static void window_drop(iter_t *it)
 
 iter_t iter_window(iter_t source, size_t n)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     window_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(window_state_t));
     /* n == 0 needs no buffer; window_next yields nothing in that case */
@@ -990,6 +1054,7 @@ iter_t iter_window(iter_t source, size_t n)
         {
             mem_free(source.allocator, buf, n * source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s =
@@ -1022,8 +1087,7 @@ static bool chunk_next(iter_t *it, void *out)
         return false;
     }
     size_t count = 0;
-    while (count < s->n
-           && s->source.next(&s->source, s->buf + count * s->elem_size))
+    while (count < s->n && iter_next(&s->source, s->buf + count * s->elem_size))
     {
         count++;
     }
@@ -1053,6 +1117,10 @@ static void chunk_drop(iter_t *it)
 
 iter_t iter_chunks(iter_t source, size_t n)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     chunk_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(chunk_state_t));
     /* n == 0 needs no buffer; chunk_next yields nothing in that case */
@@ -1069,6 +1137,7 @@ iter_t iter_chunks(iter_t source, size_t n)
         {
             mem_free(source.allocator, buf, n * source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (chunk_state_t){source, buf, n, source.elem_size, 0, source.allocator};
@@ -1103,7 +1172,7 @@ static bool peekable_next(iter_t *it, void *out)
     {
         return false;
     }
-    return s->source.next(&s->source, out);
+    return iter_next(&s->source, out);
 }
 
 static bool peekable_peek(iter_t *it, void *out)
@@ -1115,7 +1184,7 @@ static bool peekable_peek(iter_t *it, void *out)
         {
             return false;
         }
-        if (!s->source.next(&s->source, s->buf))
+        if (!iter_next(&s->source, s->buf))
         {
             s->source_done = true;
             return false;
@@ -1143,6 +1212,10 @@ static void peekable_drop(iter_t *it)
 
 iter_t iter_peekable(iter_t source)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     peekable_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(peekable_state_t));
     void *buf = mem_alloc(source.allocator, source.elem_size, SEQC_MAX_ALIGN);
@@ -1156,6 +1229,7 @@ iter_t iter_peekable(iter_t source)
         {
             mem_free(source.allocator, buf, source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (peekable_state_t){source, buf, false, false};
@@ -1181,7 +1255,7 @@ typedef struct
 static bool dedup_next(iter_t *it, void *out)
 {
     dedup_state_t *s = it->state;
-    while (s->source.next(&s->source, out))
+    while (iter_next(&s->source, out))
     {
         if (!s->has_last || s->cmp(out, s->last_buf) != 0)
         {
@@ -1207,6 +1281,10 @@ static void dedup_drop(iter_t *it)
 
 iter_t iter_dedup(iter_t source, compare_fn cmp)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     dedup_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(dedup_state_t));
     void *last_buf =
@@ -1221,6 +1299,7 @@ iter_t iter_dedup(iter_t source, compare_fn cmp)
         {
             mem_free(source.allocator, last_buf, source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (dedup_state_t){source, cmp, last_buf, false};
@@ -1254,7 +1333,7 @@ static bool flat_map_next(iter_t *it, void *out)
         /* Drain current sub-iterator */
         if (s->sub_active)
         {
-            if (s->sub.next(&s->sub, out))
+            if (iter_next(&s->sub, out))
             {
                 return true;
             }
@@ -1262,7 +1341,7 @@ static bool flat_map_next(iter_t *it, void *out)
             s->sub_active = 0;
         }
         /* Pull next element from source */
-        if (!s->source.next(&s->source, s->elem_buf))
+        if (!iter_next(&s->source, s->elem_buf))
         {
             return false;
         }
@@ -1287,6 +1366,10 @@ static void flat_map_drop(iter_t *it)
 iter_t iter_flat_map(
     iter_t source, flat_map_fn fn, void *ctx, size_t out_elem_size)
 {
+    if (!iter_is_valid(&source))
+    {
+        return (iter_t){0}; /* a failed source fails the adaptor */
+    }
     flat_map_state_t *s =
         mem_alloc(source.allocator, sizeof *s, _Alignof(flat_map_state_t));
     void *elem_buf =
@@ -1301,6 +1384,7 @@ iter_t iter_flat_map(
         {
             mem_free(source.allocator, elem_buf, source.elem_size);
         }
+        iter_destroy(&source);
         return (iter_t){0};
     }
     *s = (flat_map_state_t){
@@ -1337,7 +1421,7 @@ bool iter_min(iter_t it, compare_fn cmp, void *out)
         return false;
     }
     bool found = false;
-    while (it.next(&it, cur))
+    while (iter_next(&it, cur))
     {
         if (!found || cmp(cur, best) < 0)
         {
@@ -1370,7 +1454,7 @@ bool iter_max(iter_t it, compare_fn cmp, void *out)
         return false;
     }
     bool found = false;
-    while (it.next(&it, cur))
+    while (iter_next(&it, cur))
     {
         if (!found || cmp(cur, best) > 0)
         {

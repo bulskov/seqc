@@ -144,7 +144,7 @@ Pass `NULL` for `lo` or `hi` to leave that bound open.
 int lo = 3, hi = 7;
 iter_t it = bstree_iter_range(t, &lo, &hi);
 int  v;
-while (it.next(&it, &v))
+while (iter_next(&it, &v))
     printf("%d ", v);  // 3 4 5 6 7
 iter_destroy(&it);
 ```
@@ -224,7 +224,7 @@ printf("min=%d max=%d len=%zu\n",
 // ascending
 iter_t it = bstree_iter(t);
 int v;
-while (it.next(&it, &v)) printf("%d ", v);
+while (iter_next(&it, &v)) printf("%d ", v);
 iter_destroy(&it);
 // 1 3 4 5 6 7 8
 

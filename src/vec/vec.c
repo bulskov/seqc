@@ -308,7 +308,7 @@ void vec_sort(vec_t *v, compare_fn cmp)
 
 seqc_status_t vec_extend(vec_t *v, iter_t it)
 {
-    if (!v)
+    if (!v || !iter_is_valid(&it) || it.elem_size != v->elem_size)
     {
         iter_destroy(&it);
         return SEQC_INVALID;
@@ -320,7 +320,7 @@ seqc_status_t vec_extend(vec_t *v, iter_t it)
         return SEQC_OOM;
     }
     seqc_status_t st = SEQC_OK;
-    while (it.next(&it, elem))
+    while (iter_next(&it, elem))
     {
         st = vec_push(v, elem);
         if (st != SEQC_OK)

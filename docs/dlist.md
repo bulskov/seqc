@@ -165,12 +165,12 @@ for (int i = 1; i <= 5; i++)
 // forward: 1 2 3 4 5
 iter_t fwd = dlist_iter(l);
 int v;
-while (fwd.next(&fwd, &v)) printf("%d ", v);
+while (iter_next(&fwd, &v)) printf("%d ", v);
 iter_destroy(&fwd);
 
 // reverse: 5 4 3 2 1
 iter_t rev = dlist_iter_rev(l);
-while (rev.next(&rev, &v)) printf("%d ", v);
+while (iter_next(&rev, &v)) printf("%d ", v);
 iter_destroy(&rev);
 
 growing_arena_destroy(&arena);
