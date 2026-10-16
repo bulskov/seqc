@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-10-16
+
 A failed iterator — the zero `iter_t` every constructor returns when it cannot
 make one — is now safe everywhere and visible at the end of a pipeline.
 
